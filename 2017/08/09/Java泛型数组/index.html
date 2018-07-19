@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html >
+<head>
+
+    <!--[if lt IE 9]>
+        <style>body {display: none; background: none !important} </style>
+        <meta http-equiv="Refresh" Content="0; url=//outdatedbrowser.com/" />
+    <![endif]-->
+
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge, chrome=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="format-detection" content="telephone=no" />
+<meta name="author" content="zhy" />
+
+
+
+<meta name="description" content="Java泛型的实现提到Java的泛型一般人都会想到类型擦除(Type Erasure)机制。如果你没想到，请去补一补。。。。   创建泛型数组Java不允许创建泛型数组  1Hello&amp;lt;String&amp;gt;[] hello = new Hello&amp;lt;String&amp;gt;[12]; 这句话是编译不通过的。  答案有点让人失望的简单，因为数组必须知道里面的元素是什么。  但是这句话很误导人真">
+<meta name="keywords" content="Java">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Java泛型">
+<meta property="og:url" content="http://zhyzhyzhy.github.io/2017/08/09/Java泛型数组/index.html">
+<meta property="og:site_name" content="LoveZhy">
+<meta property="og:description" content="Java泛型的实现提到Java的泛型一般人都会想到类型擦除(Type Erasure)机制。如果你没想到，请去补一补。。。。   创建泛型数组Java不允许创建泛型数组  1Hello&amp;lt;String&amp;gt;[] hello = new Hello&amp;lt;String&amp;gt;[12]; 这句话是编译不通过的。  答案有点让人失望的简单，因为数组必须知道里面的元素是什么。  但是这句话很误导人真">
+<meta property="og:locale" content="default">
+<meta property="og:updated_time" content="2017-08-09T09:45:05.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Java泛型">
+<meta name="twitter:description" content="Java泛型的实现提到Java的泛型一般人都会想到类型擦除(Type Erasure)机制。如果你没想到，请去补一补。。。。   创建泛型数组Java不允许创建泛型数组  1Hello&amp;lt;String&amp;gt;[] hello = new Hello&amp;lt;String&amp;gt;[12]; 这句话是编译不通过的。  答案有点让人失望的简单，因为数组必须知道里面的元素是什么。  但是这句话很误导人真">
+
+<link rel="apple-touch-icon" href= "/apple-touch-icon.png">
+
+
+    <link rel="alternate" href="/atom.xml" title="LoveZhy" type="application/atom+xml">
+
+
+
+    <link rel="shortcut icon" href="/favicon.png">
+
+
+
+    <link href="//cdn.bootcss.com/animate.css/3.5.1/animate.min.css" rel="stylesheet">
+
+
+
+    <link href="//cdn.bootcss.com/fancybox/2.1.5/jquery.fancybox.min.css" rel="stylesheet">
+
+
+
+    <script src="//cdn.bootcss.com/pace/1.0.2/pace.min.js"></script>
+    <link href="//cdn.bootcss.com/pace/1.0.2/themes/blue/pace-theme-minimal.css" rel="stylesheet">
+
+
+<link rel="stylesheet" href="/css/style.css">
+
+
+
+<link href="//cdn.bootcss.com/font-awesome/4.6.3/css/font-awesome.min.css" rel="stylesheet">
+
+
+<title>Java泛型 | LoveZhy</title>
+
+<script src="//cdn.bootcss.com/jquery/2.2.4/jquery.min.js"></script>
+<script src="//cdn.bootcss.com/clipboard.js/1.5.10/clipboard.min.js"></script>
+
+<script>
+    var yiliaConfig = {
+        fancybox: true,
+        animate: true,
+        isHome: false,
+        isPost: true,
+        isArchive: false,
+        isTag: false,
+        isCategory: false,
+        fancybox_js: "//cdn.bootcss.com/fancybox/2.1.5/jquery.fancybox.min.js",
+        scrollreveal: "//cdn.bootcss.com/scrollReveal.js/3.1.4/scrollreveal.min.js",
+        search: undefined
+    }
+</script>
+
+
+    <script> yiliaConfig.jquery_ui = [false]; </script>
+
+
+
+    <script> yiliaConfig.rootUrl = "\/";</script>
+
+
+
+
+
+
+</head>
+<body>
+  <div id="container">
+    <div class="left-col">
+    <div class="overlay"></div>
+<div class="intrude-less">
+    <header id="header" class="inner">
+        <a href="/" class="profilepic">
+            <img src="/img/avatar.jpg" class="animated zoomIn">
+        </a>
+        <hgroup>
+          <h1 class="header-author"><a href="/">zhy</a></h1>
+        </hgroup>
+
+        
+
+        
+
+
+        
+
+        <div id="switch-area" class="switch-area">
+            <div class="switch-wrap">
+                <section class="switch-part switch-part1">
+                    <nav class="header-menu">
+                        <ul>
+                        
+                            <li><a href="/">主页</a></li>
+                        
+                            <li><a href="/archives/">所有文章</a></li>
+                        
+                            <li><a href="/tags/">标签云</a></li>
+                        
+                            <li><a href="/about/">关于我</a></li>
+                        
+                        </ul>
+                    </nav>
+                    <nav class="header-nav">
+                        <ul class="social">
+                            
+                                <a class="fa Email" href="mailto:zhuyichen1017@gmail.com" title="Email"></a>
+                            
+                                <a class="fa GitHub" href="https://github.com/zhyzhyzhy" title="GitHub"></a>
+                            
+                        </ul>
+                    </nav>
+                </section>
+                
+                
+                
+                
+
+                
+                
+                <section class="switch-part switch-part3">
+                
+                    <div id="js-aboutme">江湖里卧虎，人心里藏龙</div>
+                </section>
+                
+            </div>
+        </div>
+    </header>                
+</div>
+    </div>
+    <div class="mid-col">
+      <nav id="mobile-nav">
+      <div class="overlay">
+          <div class="slider-trigger"></div>
+          <h1 class="header-author js-mobile-header hide"><a href="/" title="回到主页">zhy</a></h1>
+      </div>
+    <div class="intrude-less">
+        <header id="header" class="inner">
+            <a href="/" class="profilepic">
+                <img src="/img/avatar.jpg" class="animated zoomIn">
+            </a>
+            <hgroup>
+              <h1 class="header-author"><a href="/" title="回到主页">zhy</a></h1>
+            </hgroup>
+            
+            <nav class="header-menu">
+                <ul>
+                
+                    <li><a href="/">主页</a></li>
+                
+                    <li><a href="/archives/">所有文章</a></li>
+                
+                    <li><a href="/tags/">标签云</a></li>
+                
+                    <li><a href="/about/">关于我</a></li>
+                
+                <div class="clearfix"></div>
+                </ul>
+            </nav>
+            <nav class="header-nav">
+                        <ul class="social">
+                            
+                                <a class="fa Email" target="_blank" href="mailto:zhuyichen1017@gmail.com" title="Email"></a>
+                            
+                                <a class="fa GitHub" target="_blank" href="https://github.com/zhyzhyzhy" title="GitHub"></a>
+                            
+                        </ul>
+            </nav>
+        </header>                
+    </div>
+    <link class="menu-list" tags="标签" friends="友情链接" about="关于我"/>
+</nav>
+      <div class="body-wrap"><article id="post-Java泛型数组" class="article article-type-post" itemscope itemprop="blogPost">
+  
+    <div class="article-meta">
+      <a href="/2017/08/09/Java泛型数组/" class="article-date">
+      <time datetime="2017-08-08T16:00:00.000Z" itemprop="datePublished">2017-08-09</time>
+</a>
+
+
+    </div>
+  
+  <div class="article-inner">
+    
+      <input type="hidden" class="isFancy" />
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      Java泛型
+    </h1>
+  
+
+      </header>
+      
+      <div class="article-info article-info-post">
+        
+
+        
+    <div class="article-tag tagcloud">
+        <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Java/">Java</a></li></ul>
+    </div>
+
+        <div class="clearfix"></div>
+      </div>
+      
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+          
+        <h3 id="Java泛型的实现"><a href="#Java泛型的实现" class="headerlink" title="Java泛型的实现"></a>Java泛型的实现</h3><p>提到Java的泛型一般人都会想到类型擦除(Type Erasure)机制。<br>如果你没想到，请去补一补。。。。  </p>
+<h3 id="创建泛型数组"><a href="#创建泛型数组" class="headerlink" title="创建泛型数组"></a>创建泛型数组</h3><p>Java不允许创建泛型数组 </p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Hello&lt;String&gt;[] hello = <span class="keyword">new</span> Hello&lt;String&gt;[<span class="number">12</span>];</span><br></pre></td></tr></table></figure>
+<p>这句话是编译不通过的。 </p>
+<p>答案有点让人失望的简单，因为数组必须知道里面的元素是什么。 </p>
+<p>但是这句话很误导人<br>真的不允许创建我们想要的泛型数组么，那种可以编译时检查的泛型数组。<br>答案是可以的，不过得通过一些技巧。</p>
+<p>好，那么怎么创建呢。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@SuppressWarnings</span>(<span class="string">"unchecked"</span>)</span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;</span><br><span class="line">    List&lt;String&gt;[] lists = (List&lt;String&gt;[])<span class="keyword">new</span> ArrayList[<span class="number">12</span>];</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这是其中之一的方法，可能有人觉得这样和  </p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;</span><br><span class="line">    List[] lists = <span class="keyword">new</span> ArrayList[<span class="number">12</span>];</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>没有区别。</p>
+<p>划重点！！！！！<br>第一种方法相对于第二种方法还是具有编译时类型检查的。  </p>
+<h3 id="泛型类中的泛型数组"><a href="#泛型类中的泛型数组" class="headerlink" title="泛型类中的泛型数组"></a>泛型类中的泛型数组</h3><p>怎么在范型类中创建泛型数组呢  </p>
+<p>其实第一来说没必要， 比如在ArrayList中维护的底层的数组是Object数组。  </p>
+<p>如果你硬是想创建，可以这样</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">T[] arr = (T[])<span class="keyword">new</span> Object[<span class="number">12</span>];</span><br></pre></td></tr></table></figure>
+<p>很多人或许觉得奇怪为什么，这不是向上转型么。   </p>
+<p>然后举出例子为什么</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">List&lt;String&gt;[] list = (List&lt;String&gt;[])<span class="keyword">new</span> Object[<span class="number">10</span>];</span><br></pre></td></tr></table></figure>
+<p>这种就不行。</p>
+<p>答案还是Java泛型实现的核心类型擦除。<br>在编译时</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">T[] arr = (T[])<span class="keyword">new</span> Object[<span class="number">12</span>];</span><br><span class="line"><span class="comment">//会变成</span></span><br><span class="line"><span class="comment">//Object[] arr = (Object[])new Object[12];</span></span><br></pre></td></tr></table></figure>
+<p>这样就是毫无问题。</p>
+<h3 id="协变，逆变"><a href="#协变，逆变" class="headerlink" title="协变，逆变"></a>协变，逆变</h3><p>协变和逆变</p>
+<p>当A是B的子类时,如果有f(A)也是f(B)的子类,那么f叫做协变；<br>当A是B的子类时,如果有f(B)是f(A)的子类,那么f叫做逆变；</p>
+<p>数组是协变的。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">public class Genetic &#123;</span><br><span class="line">    public static void main(String[] args) &#123;</span><br><span class="line">        Fruit[] fruits;</span><br><span class="line">        Apple[] apples = new Apple[10];</span><br><span class="line">        fruits = apples;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line">class Apple extends Fruit &#123;</span><br><span class="line">  </span><br><span class="line">&#125;</span><br><span class="line">class Fruit &#123;</span><br><span class="line">  </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这段代码能编译通过。</p>
+<p>但是这一段就不行了</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Genetic</span> </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;</span><br><span class="line">        List&lt;Fruit&gt; list;</span><br><span class="line">        List&lt;Apple&gt; list1 = <span class="keyword">new</span> ArrayList&lt;&gt;();</span><br><span class="line">        list = list1;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Apple</span> <span class="keyword">extends</span> <span class="title">Fruit</span> </span>&#123;</span><br><span class="line">  </span><br><span class="line">&#125;</span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Fruit</span> </span>&#123;</span><br><span class="line">  </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>就是说List<fruit>和List<apple>没有关系。  </apple></fruit></p>
+<p>java通过通配符解决这个问题，还是上面的代码</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Genetic</span> </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;</span><br><span class="line">        List&lt;? extends Fruit&gt; list;</span><br><span class="line">        List&lt;Apple&gt; list1 = <span class="keyword">new</span> ArrayList&lt;&gt;();</span><br><span class="line">        list = list1;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Apple</span> <span class="keyword">extends</span> <span class="title">Fruit</span> </span>&#123;</span><br><span class="line">  </span><br><span class="line">&#125;</span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Fruit</span> </span>&#123;</span><br><span class="line">  </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>extends解决了协变的问题，逆变通过super解决。</p>
+<p>但是，没有那么简单。  </p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Genetic</span> </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;</span><br><span class="line">        List&lt;? extends Fruit&gt; list = <span class="keyword">new</span> ArrayList&lt;Apple&gt;();</span><br><span class="line">        <span class="comment">//这句话并不能通过编译</span></span><br><span class="line">        <span class="comment">//list.add(new Apple());</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Apple</span> <span class="keyword">extends</span> <span class="title">Fruit</span> </span>&#123;</span><br><span class="line">  </span><br><span class="line">&#125;</span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Fruit</span> </span>&#123;</span><br><span class="line">  </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>&lt;? extends Fruit&gt;不是表示里面的元素只要是Fruit的子类就行，而是加入的元素必须可以向上转型为Fruit的任意一个子类。<br>那么大概只有null可以add了。</p>
+<p>同样的&lt;? super Fruit&gt;表示里面元素可以转型为Fruid的任意一个父类。</p>
+<p>要想可以编译通过，我们可以使用super </p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Genetic</span> </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;</span><br><span class="line">        List&lt;? <span class="keyword">super</span> Fruit&gt; list = <span class="keyword">new</span> ArrayList&lt;&gt;();</span><br><span class="line">        list.add(<span class="keyword">new</span> Apple());</span><br><span class="line">        <span class="comment">//ok</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Apple</span> <span class="keyword">extends</span> <span class="title">Fruit</span> </span>&#123;</span><br><span class="line">  </span><br><span class="line">&#125;</span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Fruit</span> </span>&#123;</span><br><span class="line">  </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>那到底应该什么时候用super和extends呢。<br>Effective Java中总结了一个原则</p>
+<p><code>producer-extends, consumer-super</code></p>
+<p>看看ArrayList的源码就知道了</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">boolean</span> <span class="title">addAll</span><span class="params">(Collection&lt;? extends E&gt; c)</span> </span>&#123;</span><br><span class="line">     Object[] a = c.toArray();</span><br><span class="line">     <span class="keyword">int</span> numNew = a.length;</span><br><span class="line">     ensureCapacityInternal(size + numNew);  <span class="comment">// Increments modCount</span></span><br><span class="line">     System.arraycopy(a, <span class="number">0</span>, elementData, size, numNew);</span><br><span class="line">     size += numNew;</span><br><span class="line">     <span class="keyword">return</span> numNew != <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">forEach</span><span class="params">(Consumer&lt;? <span class="keyword">super</span> E&gt; action)</span> </span>&#123;</span><br><span class="line">    Objects.requireNonNull(action);</span><br><span class="line">    <span class="keyword">final</span> <span class="keyword">int</span> expectedModCount = modCount;</span><br><span class="line">    <span class="meta">@SuppressWarnings</span>(<span class="string">"unchecked"</span>)</span><br><span class="line">    <span class="keyword">final</span> E[] elementData = (E[]) <span class="keyword">this</span>.elementData;</span><br><span class="line">    <span class="keyword">final</span> <span class="keyword">int</span> size = <span class="keyword">this</span>.size;</span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">int</span> i=<span class="number">0</span>; modCount == expectedModCount &amp;&amp; i &lt; size; i++) &#123;</span><br><span class="line">        action.accept(elementData[i]);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (modCount != expectedModCount) &#123;</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> ConcurrentModificationException();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+      
+    </div>
+    
+  </div>
+  
+    
+    <div class="copyright">
+        <p><span>本文标题:</span><a href="/2017/08/09/Java泛型数组/">Java泛型</a></p>
+        <p><span>文章作者:</span><a href="/" title="回到主页">zhy</a></p>
+        <p><span>发布时间:</span>2017-08-09, 00:00:00</p>
+        <!--<p><span>最后更新:</span>2017-08-09, 17:45:05</p>-->
+        <p>
+            <span>原始链接:</span><a class="post-url" href="/2017/08/09/Java泛型数组/" title="Java泛型">http://zhyzhyzhy.github.io/2017/08/09/Java泛型数组/</a>
+            <span class="copy-path" data-clipboard-text="原文: http://zhyzhyzhy.github.io/2017/08/09/Java泛型数组/　　作者: zhy" title="点击复制文章链接"><i class="fa fa-clipboard"></i></span>
+            <script> var clipboard = new Clipboard('.copy-path'); </script>
+        </p>
+        <p>
+            <span>许可协议:</span><i class="fa fa-creative-commons"></i> <a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/" title="CC BY-NC-SA 4.0 International" target = "_blank">"署名-非商用-相同方式共享 4.0"</a> 转载请保留原文链接及作者。
+        </p>
+    </div>
+
+
+
+    <nav id="article-nav">
+        
+            <div id="article-nav-newer" class="article-nav-title">
+                <a href="/2017/08/20/IO之同步，阻塞，非阻塞/">
+                    同步，阻塞，非阻塞
+                </a>
+            </div>
+        
+        
+            <div id="article-nav-older" class="article-nav-title">
+                <a href="/2017/08/05/Java内部类/">
+                    Java内部类
+                </a>
+            </div>
+        
+    </nav>
+
+  
+</article>
+
+    <div id="toc" class="toc-article">
+        <strong class="toc-title">文章目录</strong>
+        
+            <ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#Java泛型的实现"><span class="toc-number">1.</span> <span class="toc-text">Java泛型的实现</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#创建泛型数组"><span class="toc-number">2.</span> <span class="toc-text">创建泛型数组</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#泛型类中的泛型数组"><span class="toc-number">3.</span> <span class="toc-text">泛型类中的泛型数组</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#协变，逆变"><span class="toc-number">4.</span> <span class="toc-text">协变，逆变</span></a></li></ol>
+        
+    </div>
+    <style>
+        .left-col .switch-btn,
+        .left-col .switch-area {
+            display: none;
+        }
+        .toc-level-3 i,
+        .toc-level-3 ol {
+            display: none !important;
+        }
+    </style>
+
+    <input type="button" id="tocButton" value="隐藏目录"  title="点击按钮隐藏或者显示文章目录">
+
+    <script>
+        yiliaConfig.toc = ["隐藏目录", "显示目录", !!"false"];
+    </script>
+
+
+
+
+
+    
+        <section id="comments">
+    <style> aside.comment-bar { margin: auto 30px; }</style>
+    <div id="disqus_thread"></div>
+    <script>
+        var disqus_config = function(){
+            this.page.url = 'http://zhyzhyzhy.github.io/2017/08/09/Java泛型数组/';
+            this.page.identifier = '2017/08/09/Java泛型数组/';
+        };
+        var loadComment = function(){
+            var d = document, s = d.createElement('script');
+            s.src = '//blog-lovezhy-cc-1.disqus.com/embed.js';
+            s.setAttribute('data-timestamp', +new Date());
+            (d.head || d.body).appendChild(s);
+        }
+    </script>
+    
+    <script> loadComment(); </script>
+
+</section>
+
+
+    
+
+
+
+
+    <div class="scroll" id="post-nav-button">
+        
+            <a href="/2017/08/20/IO之同步，阻塞，非阻塞/" title="上一篇: 同步，阻塞，非阻塞">
+                <i class="fa fa-angle-left"></i>
+            </a>
+        
+
+        <a title="文章列表"><i class="fa fa-bars"></i><i class="fa fa-times"></i></a>
+
+        
+            <a href="/2017/08/05/Java内部类/" title="下一篇: Java内部类">
+                <i class="fa fa-angle-right"></i>
+            </a>
+        
+    </div>
+
+    <ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/2018/07/20/Presto源码-ExchangeClient和OutputBuffer详解/">Presto源码-ExchangeClient和OutputBuffer详解</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/07/19/Presto源码解析-Slice实现/">Presto源码解析 - Slice实现</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/07/15/Guava库学习之Collections/">Guava库学习之Collections</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/07/15/数据库Join算法/">数据库Join算法</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/07/10/presto执行流程/">Presto执行流程</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/07/10/Presto的Join细节研究/">Presto的Join的细节研究</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/07/10/Presto的分段源码解析/">Presto的分段源码解析</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/06/16/Presto和Hive的区别/">Presto和Hive的区别</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/06/05/行列存储的区别/">行列存储的区别</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/06/03/Presto基本概念/">Presto基本概念</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/05/23/OLAP基本知识/">OLAP基本知识</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/05/01/分布式基础知识/">分布式基础知识</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/04/15/CSRF和XSS/">CSRF和XSS攻击</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/04/11/brpc-doc笔记/">brpc-doc笔记</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/04/01/vim技巧/">Vim技巧</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/04/01/在ubuntu16.04上搭建hadoop环境/">在ubunut16.04上搭建hadoop环境</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/03/03/spi和破坏双亲委派/">spi和破坏双亲委派</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/02/24/AQS和ReentrantLock/">AQS和ReentrantLock</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/02/23/LongAdder解析/">LongAdder解析</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/02/18/pigeon一些细节的具体实现/">pigeon一些细节的具体实现</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/02/18/pigeon的服务注册与发现/">pigeon的服务注册与发现</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/02/18/pigeon中的核心类和作用/">pigeon中的核心类和作用</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/02/10/fat-jar/">fat-jar配置</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/02/07/log4j和slf4j配置/">log4j和slf4j配置</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/12/21/ThreadLocal源码分析/">ThreadLocal源码分析</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/12/18/ConcurrentHashMap源码分析/">ConcurrentHashMap源码分析</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/12/10/LinkedList源码分析/">LinkedList源码分析</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/12/09/HashSet源码分析/">HashSet源码解析</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/12/07/ArrayList源码分析/">ArrayList源码分析</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/11/18/jsessionid的生成/">JsessionId的生成</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/10/24/哪些可以作为GCRoots/">哪些可以作为GC Roots</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/09/10/动态代理的缓存实现/">动态代理的缓存实现</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/08/20/IO之同步，阻塞，非阻塞/">同步，阻塞，非阻塞</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/08/09/Java泛型数组/">Java泛型</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/08/05/Java内部类/">Java内部类</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/08/02/libevent简单使用/">libevent简单使用</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/07/26/叶子/">叶子</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/07/21/HashMap源码解析/">HashMap源码解析</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/07/21/PathVariable及route设计/">PathVariable及路由设计</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/07/07/hello-world/">Hello World</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/05/28/use_AuthenticationProvider_in_springSec/">使用AuthenticationProvider进行自定义登陆配置</a></li></ul>
+
+
+
+
+    <script>
+        
+    </script>
+</div>
+      <footer id="footer">
+    <div class="outer">
+        <div id="footer-info">
+            <div class="footer-left">
+                <i class="fa fa-copyright"></i> 
+                2016-2018 zhy
+            </div>
+            <div class="footer-right">
+                <a href="http://hexo.io/" target="_blank" title="快速、简洁且高效的博客框架">Hexo</a>  Theme <a href="https://github.com/MOxFIVE/hexo-theme-yelee" target="_blank" title="简而不减 Hexo 双栏博客主题  v3.5">Yelee</a> by MOxFIVE <i class="fa fa-heart animated infinite pulse"></i>
+            </div>
+        </div>
+        
+    </div>
+</footer>
+    </div>
+    
+    <script src="/js/GithubRepoWidget.js"></script>
+
+<script data-main="/js/main.js" src="//cdn.bootcss.com/require.js/2.2.0/require.min.js"></script>
+
+    <script>
+        $(document).ready(function() {
+            var iPad = window.navigator.userAgent.indexOf('iPad');
+            if (iPad > -1 || $(".left-col").css("display") === "none") {
+                var bgColorList = ["#9db3f4", "#414141", "#e5a859", "#f5dfc6", "#c084a0", "#847e72", "#cd8390", "#996731"];
+                var bgColor = Math.ceil(Math.random() * (bgColorList.length - 1));
+                $("body").css({"background-color": bgColorList[bgColor], "background-size": "cover"});
+            }
+            else {
+                var backgroundnum = 5;
+                var backgroundimg = "url(/background/bg-x.jpg)".replace(/x/gi, Math.ceil(Math.random() * backgroundnum));
+                $("body").css({"background": backgroundimg, "background-attachment": "fixed", "background-size": "cover"});
+            }
+        })
+    </script>
+
+
+
+
+
+<div class="scroll" id="scroll">
+    <a href="#" title="返回顶部"><i class="fa fa-arrow-up"></i></a>
+    <a href="#comments" onclick="load$hide();" title="查看评论"><i class="fa fa-comments-o"></i></a>
+    <a href="#footer" title="转到底部"><i class="fa fa-arrow-down"></i></a>
+</div>
+<script>
+    // Open in New Window
+    
+        var oOpenInNew = {
+             github: ".github-widget a", 
+            
+            
+            
+            
+            
+             archives: ".archive-article-title", 
+             miniArchives: "a.post-list-link", 
+            
+             friends: "#js-friends a", 
+             socail: ".social a" 
+        }
+        for (var x in oOpenInNew) {
+            $(oOpenInNew[x]).attr("target", "_blank");
+        }
+    
+</script>
+
+<script async src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js">
+</script>
+  </div>
+</body>
+</html>

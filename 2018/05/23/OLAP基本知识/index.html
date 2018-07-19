@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html >
+<head>
+
+    <!--[if lt IE 9]>
+        <style>body {display: none; background: none !important} </style>
+        <meta http-equiv="Refresh" Content="0; url=//outdatedbrowser.com/" />
+    <![endif]-->
+
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge, chrome=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="format-detection" content="telephone=no" />
+<meta name="author" content="zhy" />
+
+
+
+<meta name="description" content="OLAP和OLTPOLTP（OnLine Transaction Processing ，联机事务处理），如MySQL, MicroSoft SQL Server等关系数据库系统，这些关系数据库系统擅长事务处理，在数据操作中保持着很强的一致性和原子性，能够很好的支持频繁的数据插入和修改，但是，一旦需要进行计算的数据量过大，达到数千万甚至数十亿条，或需要进行的计算非常复杂的情况下，OLTP类数据库系">
+<meta name="keywords" content="大数据">
+<meta property="og:type" content="article">
+<meta property="og:title" content="OLAP基本知识">
+<meta property="og:url" content="http://zhyzhyzhy.github.io/2018/05/23/OLAP基本知识/index.html">
+<meta property="og:site_name" content="LoveZhy">
+<meta property="og:description" content="OLAP和OLTPOLTP（OnLine Transaction Processing ，联机事务处理），如MySQL, MicroSoft SQL Server等关系数据库系统，这些关系数据库系统擅长事务处理，在数据操作中保持着很强的一致性和原子性，能够很好的支持频繁的数据插入和修改，但是，一旦需要进行计算的数据量过大，达到数千万甚至数十亿条，或需要进行的计算非常复杂的情况下，OLTP类数据库系">
+<meta property="og:locale" content="default">
+<meta property="og:updated_time" content="2018-07-18T15:42:59.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="OLAP基本知识">
+<meta name="twitter:description" content="OLAP和OLTPOLTP（OnLine Transaction Processing ，联机事务处理），如MySQL, MicroSoft SQL Server等关系数据库系统，这些关系数据库系统擅长事务处理，在数据操作中保持着很强的一致性和原子性，能够很好的支持频繁的数据插入和修改，但是，一旦需要进行计算的数据量过大，达到数千万甚至数十亿条，或需要进行的计算非常复杂的情况下，OLTP类数据库系">
+
+<link rel="apple-touch-icon" href= "/apple-touch-icon.png">
+
+
+    <link rel="alternate" href="/atom.xml" title="LoveZhy" type="application/atom+xml">
+
+
+
+    <link rel="shortcut icon" href="/favicon.png">
+
+
+
+    <link href="//cdn.bootcss.com/animate.css/3.5.1/animate.min.css" rel="stylesheet">
+
+
+
+    <link href="//cdn.bootcss.com/fancybox/2.1.5/jquery.fancybox.min.css" rel="stylesheet">
+
+
+
+    <script src="//cdn.bootcss.com/pace/1.0.2/pace.min.js"></script>
+    <link href="//cdn.bootcss.com/pace/1.0.2/themes/blue/pace-theme-minimal.css" rel="stylesheet">
+
+
+<link rel="stylesheet" href="/css/style.css">
+
+
+
+<link href="//cdn.bootcss.com/font-awesome/4.6.3/css/font-awesome.min.css" rel="stylesheet">
+
+
+<title>OLAP基本知识 | LoveZhy</title>
+
+<script src="//cdn.bootcss.com/jquery/2.2.4/jquery.min.js"></script>
+<script src="//cdn.bootcss.com/clipboard.js/1.5.10/clipboard.min.js"></script>
+
+<script>
+    var yiliaConfig = {
+        fancybox: true,
+        animate: true,
+        isHome: false,
+        isPost: true,
+        isArchive: false,
+        isTag: false,
+        isCategory: false,
+        fancybox_js: "//cdn.bootcss.com/fancybox/2.1.5/jquery.fancybox.min.js",
+        scrollreveal: "//cdn.bootcss.com/scrollReveal.js/3.1.4/scrollreveal.min.js",
+        search: undefined
+    }
+</script>
+
+
+    <script> yiliaConfig.jquery_ui = [false]; </script>
+
+
+
+    <script> yiliaConfig.rootUrl = "\/";</script>
+
+
+
+
+
+
+</head>
+<body>
+  <div id="container">
+    <div class="left-col">
+    <div class="overlay"></div>
+<div class="intrude-less">
+    <header id="header" class="inner">
+        <a href="/" class="profilepic">
+            <img src="/img/avatar.jpg" class="animated zoomIn">
+        </a>
+        <hgroup>
+          <h1 class="header-author"><a href="/">zhy</a></h1>
+        </hgroup>
+
+        
+
+        
+
+
+        
+
+        <div id="switch-area" class="switch-area">
+            <div class="switch-wrap">
+                <section class="switch-part switch-part1">
+                    <nav class="header-menu">
+                        <ul>
+                        
+                            <li><a href="/">主页</a></li>
+                        
+                            <li><a href="/archives/">所有文章</a></li>
+                        
+                            <li><a href="/tags/">标签云</a></li>
+                        
+                            <li><a href="/about/">关于我</a></li>
+                        
+                        </ul>
+                    </nav>
+                    <nav class="header-nav">
+                        <ul class="social">
+                            
+                                <a class="fa Email" href="mailto:zhuyichen1017@gmail.com" title="Email"></a>
+                            
+                                <a class="fa GitHub" href="https://github.com/zhyzhyzhy" title="GitHub"></a>
+                            
+                        </ul>
+                    </nav>
+                </section>
+                
+                
+                
+                
+
+                
+                
+                <section class="switch-part switch-part3">
+                
+                    <div id="js-aboutme">江湖里卧虎，人心里藏龙</div>
+                </section>
+                
+            </div>
+        </div>
+    </header>                
+</div>
+    </div>
+    <div class="mid-col">
+      <nav id="mobile-nav">
+      <div class="overlay">
+          <div class="slider-trigger"></div>
+          <h1 class="header-author js-mobile-header hide"><a href="/" title="回到主页">zhy</a></h1>
+      </div>
+    <div class="intrude-less">
+        <header id="header" class="inner">
+            <a href="/" class="profilepic">
+                <img src="/img/avatar.jpg" class="animated zoomIn">
+            </a>
+            <hgroup>
+              <h1 class="header-author"><a href="/" title="回到主页">zhy</a></h1>
+            </hgroup>
+            
+            <nav class="header-menu">
+                <ul>
+                
+                    <li><a href="/">主页</a></li>
+                
+                    <li><a href="/archives/">所有文章</a></li>
+                
+                    <li><a href="/tags/">标签云</a></li>
+                
+                    <li><a href="/about/">关于我</a></li>
+                
+                <div class="clearfix"></div>
+                </ul>
+            </nav>
+            <nav class="header-nav">
+                        <ul class="social">
+                            
+                                <a class="fa Email" target="_blank" href="mailto:zhuyichen1017@gmail.com" title="Email"></a>
+                            
+                                <a class="fa GitHub" target="_blank" href="https://github.com/zhyzhyzhy" title="GitHub"></a>
+                            
+                        </ul>
+            </nav>
+        </header>                
+    </div>
+    <link class="menu-list" tags="标签" friends="友情链接" about="关于我"/>
+</nav>
+      <div class="body-wrap"><article id="post-OLAP基本知识" class="article article-type-post" itemscope itemprop="blogPost">
+  
+    <div class="article-meta">
+      <a href="/2018/05/23/OLAP基本知识/" class="article-date">
+      <time datetime="2018-05-22T16:00:00.000Z" itemprop="datePublished">2018-05-23</time>
+</a>
+
+
+    </div>
+  
+  <div class="article-inner">
+    
+      <input type="hidden" class="isFancy" />
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      OLAP基本知识
+    </h1>
+  
+
+      </header>
+      
+      <div class="article-info article-info-post">
+        
+
+        
+    <div class="article-tag tagcloud">
+        <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/大数据/">大数据</a></li></ul>
+    </div>
+
+        <div class="clearfix"></div>
+      </div>
+      
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+          
+        <h2 id="OLAP和OLTP"><a href="#OLAP和OLTP" class="headerlink" title="OLAP和OLTP"></a>OLAP和OLTP</h2><p><code>OLTP</code>（<code>OnLine Transaction Processing</code> ，联机事务处理），如<code>MySQL</code>, <code>MicroSoft SQL Server</code>等关系数据库系统，这些关系数据库系统擅长事务处理，在数据操作中保持着很强的一致性和原子性，能够很好的支持频繁的数据插入和修改，但是，一旦需要进行计算的数据量过大，达到数千万甚至数十亿条，或需要进行的计算非常复杂的情况下，<code>OLTP</code>类数据库系统便力不从心了。</p>
+<p>这个时候，我们便需要<code>OLAP</code>（<code>On-Line Analytical Processing</code>，联机分析处理）系统，来进行处理。从广义上，<code>OLAP</code>系统是针对<code>OLTP</code>系统而言的，暨不特别关心对数据进行输入、修改等事务性处理，而是关心对已有的大量数据进行多维度的、复杂的分析的一类数据系统。</p>
+<h2 id="数据仓库"><a href="#数据仓库" class="headerlink" title="数据仓库"></a>数据仓库</h2><blockquote>
+<p>英文名称为Data Warehouse，可简写为DW或DWH。</p>
+<p>是为企业所有级别的决策制定过程，提供所有类型数据支持的战略集合。它是单个数据存储，出于分析性报告和决策支持目的而创建。</p>
+</blockquote>
+<p>简单的理解就是把OLTP的数据抽取出来，按照主题分类，存到数据仓库里，然后通过OLAP进行分析。<br>所以数据仓库的数据一般都很大很大，因为包含了很多的历史数据</p>
+<p>当然更深的理论我还要继续去学习。<br>等我学到了再来补充这个。</p>
+<h2 id="实时数据仓库"><a href="#实时数据仓库" class="headerlink" title="实时数据仓库"></a>实时数据仓库</h2><p>我去实习的组有个业务是实时数据仓库。<br>说实话一开始我是懵逼的，因为我看到的概念里，数据仓库的查询一般是很慢的，但是现在加上实时两个字是啥意思。<br>后来我去百度了一下，发现还真有这个概念。 </p>
+<p>实时数仓的实时主要体现在两个方面</p>
+<ul>
+<li>实时插入：数据除了可以通过离线Batch的行为导入仓库，还可以像Mysql那样进行实时的插入。</li>
+<li>查询快速：运用Mpp等大规模的分布式的查询引擎，可以在秒级或者毫秒级返回结果。</li>
+</ul>
+<h2 id="Ad-hoc"><a href="#Ad-hoc" class="headerlink" title="Ad-hoc"></a>Ad-hoc</h2><p>Ad-hoc是数据仓库领域的专业术语。<br>表示没有预先计划或者按很低的计划或不可预期的事件。</p>
+<p>即席查询与通常查询从SQL语句上来说，并没有本质的差别。<br>它们之间的差别在于，通常的查询在系统设计和实施时是已知的，所有我们可以在系统实施时通过建立索引、分区等技术来优化这些查询，使这些查询的效率很高。<br>而即席查询是用户在使用时临时生产的，系统无法预先优化这些查询，所以即席查询也是评估数据仓库的一个重要指标</p>
+<p>所以Ad-hoc查询对数据仓库的要求很高。</p>
+<h2 id="MPP"><a href="#MPP" class="headerlink" title="MPP"></a>MPP</h2><p>Mpp：大规模并行处理 (Massively Parallel Processor)<br>简单的说就是分布式计算。<br>一般像Presto这种，可以处理PB级别的数据</p>
+<h2 id="维度表和事实表"><a href="#维度表和事实表" class="headerlink" title="维度表和事实表"></a>维度表和事实表</h2><p>是数据仓库中或者BI中的概念</p>
+<p>比如描述人可以有两个维度：姓名和年级。<br>我们又有这个人的大学表。<br>这时候我们可以做一个表是姓名 - 年级 - 大学<br>那么这个表就是事实表，而单独的姓名和年级和大学表都是维度表。</p>
+<h2 id="数据库分区"><a href="#数据库分区" class="headerlink" title="数据库分区"></a>数据库分区</h2><p>之前只听过分库分表，但是分区真的没听过。<br>查了一下其实Mysql也是支持分区的。</p>
+<p>一般来说分区需要指名一个字段和分区数。<br>每插入一条数据，根据分区列进行Hash，然后插入<strong>指定分区</strong>。</p>
+<p>Mysql的分区大多是指的分文件，几个分区就会被分成几个文件。</p>
+<p>但是真正在分布式数据库中的分区就不仅仅是这样了。<br>相当于一个文件就代表着一个数据节点。<br>每插入一个数据，根据分区列进行Hash，然后插入<strong>指定Node</strong>。</p>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a href="https://help.aliyun.com/document_detail/26387.html?spm=a2c4g.11186623.6.566.xHxTVZ" target="_blank" rel="noopener">https://help.aliyun.com/document_detail/26387.html?spm=a2c4g.11186623.6.566.xHxTVZ</a></p>
+<p>(<a href="https://help.aliyun.com/document_detail/64020.html?spm=a2c4g.11186623.6.632.S3SGxf)[https://help.aliyun.com/document_detail/64020.html?spm=a2c4g.11186623.6.632.S3SGxf" target="_blank" rel="noopener">https://help.aliyun.com/document_detail/64020.html?spm=a2c4g.11186623.6.632.S3SGxf)[https://help.aliyun.com/document_detail/64020.html?spm=a2c4g.11186623.6.632.S3SGxf</a>]</p>
+
+      
+    </div>
+    
+  </div>
+  
+    
+    <div class="copyright">
+        <p><span>本文标题:</span><a href="/2018/05/23/OLAP基本知识/">OLAP基本知识</a></p>
+        <p><span>文章作者:</span><a href="/" title="回到主页">zhy</a></p>
+        <p><span>发布时间:</span>2018-05-23, 00:00:00</p>
+        <!--<p><span>最后更新:</span>2018-07-18, 23:42:59</p>-->
+        <p>
+            <span>原始链接:</span><a class="post-url" href="/2018/05/23/OLAP基本知识/" title="OLAP基本知识">http://zhyzhyzhy.github.io/2018/05/23/OLAP基本知识/</a>
+            <span class="copy-path" data-clipboard-text="原文: http://zhyzhyzhy.github.io/2018/05/23/OLAP基本知识/　　作者: zhy" title="点击复制文章链接"><i class="fa fa-clipboard"></i></span>
+            <script> var clipboard = new Clipboard('.copy-path'); </script>
+        </p>
+        <p>
+            <span>许可协议:</span><i class="fa fa-creative-commons"></i> <a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/" title="CC BY-NC-SA 4.0 International" target = "_blank">"署名-非商用-相同方式共享 4.0"</a> 转载请保留原文链接及作者。
+        </p>
+    </div>
+
+
+
+    <nav id="article-nav">
+        
+            <div id="article-nav-newer" class="article-nav-title">
+                <a href="/2018/06/03/Presto基本概念/">
+                    Presto基本概念
+                </a>
+            </div>
+        
+        
+            <div id="article-nav-older" class="article-nav-title">
+                <a href="/2018/05/01/分布式基础知识/">
+                    分布式基础知识
+                </a>
+            </div>
+        
+    </nav>
+
+  
+</article>
+
+    <div id="toc" class="toc-article">
+        <strong class="toc-title">文章目录</strong>
+        
+            <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#OLAP和OLTP"><span class="toc-number">1.</span> <span class="toc-text">OLAP和OLTP</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#数据仓库"><span class="toc-number">2.</span> <span class="toc-text">数据仓库</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#实时数据仓库"><span class="toc-number">3.</span> <span class="toc-text">实时数据仓库</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Ad-hoc"><span class="toc-number">4.</span> <span class="toc-text">Ad-hoc</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#MPP"><span class="toc-number">5.</span> <span class="toc-text">MPP</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#维度表和事实表"><span class="toc-number">6.</span> <span class="toc-text">维度表和事实表</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#数据库分区"><span class="toc-number">7.</span> <span class="toc-text">数据库分区</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#参考"><span class="toc-number">8.</span> <span class="toc-text">参考</span></a></li></ol>
+        
+    </div>
+    <style>
+        .left-col .switch-btn,
+        .left-col .switch-area {
+            display: none;
+        }
+        .toc-level-3 i,
+        .toc-level-3 ol {
+            display: none !important;
+        }
+    </style>
+
+    <input type="button" id="tocButton" value="隐藏目录"  title="点击按钮隐藏或者显示文章目录">
+
+    <script>
+        yiliaConfig.toc = ["隐藏目录", "显示目录", !!"false"];
+    </script>
+
+
+
+
+
+    
+        <section id="comments">
+    <style> aside.comment-bar { margin: auto 30px; }</style>
+    <div id="disqus_thread"></div>
+    <script>
+        var disqus_config = function(){
+            this.page.url = 'http://zhyzhyzhy.github.io/2018/05/23/OLAP基本知识/';
+            this.page.identifier = '2018/05/23/OLAP基本知识/';
+        };
+        var loadComment = function(){
+            var d = document, s = d.createElement('script');
+            s.src = '//blog-lovezhy-cc-1.disqus.com/embed.js';
+            s.setAttribute('data-timestamp', +new Date());
+            (d.head || d.body).appendChild(s);
+        }
+    </script>
+    
+    <script> loadComment(); </script>
+
+</section>
+
+
+    
+
+
+
+
+    <div class="scroll" id="post-nav-button">
+        
+            <a href="/2018/06/03/Presto基本概念/" title="上一篇: Presto基本概念">
+                <i class="fa fa-angle-left"></i>
+            </a>
+        
+
+        <a title="文章列表"><i class="fa fa-bars"></i><i class="fa fa-times"></i></a>
+
+        
+            <a href="/2018/05/01/分布式基础知识/" title="下一篇: 分布式基础知识">
+                <i class="fa fa-angle-right"></i>
+            </a>
+        
+    </div>
+
+    <ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/2018/07/20/Presto源码-ExchangeClient和OutputBuffer详解/">Presto源码-ExchangeClient和OutputBuffer详解</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/07/19/Presto源码解析-Slice实现/">Presto源码解析 - Slice实现</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/07/15/Guava库学习之Collections/">Guava库学习之Collections</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/07/15/数据库Join算法/">数据库Join算法</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/07/10/presto执行流程/">Presto执行流程</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/07/10/Presto的Join细节研究/">Presto的Join的细节研究</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/07/10/Presto的分段源码解析/">Presto的分段源码解析</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/06/16/Presto和Hive的区别/">Presto和Hive的区别</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/06/05/行列存储的区别/">行列存储的区别</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/06/03/Presto基本概念/">Presto基本概念</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/05/23/OLAP基本知识/">OLAP基本知识</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/05/01/分布式基础知识/">分布式基础知识</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/04/15/CSRF和XSS/">CSRF和XSS攻击</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/04/11/brpc-doc笔记/">brpc-doc笔记</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/04/01/vim技巧/">Vim技巧</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/04/01/在ubuntu16.04上搭建hadoop环境/">在ubunut16.04上搭建hadoop环境</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/03/03/spi和破坏双亲委派/">spi和破坏双亲委派</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/02/24/AQS和ReentrantLock/">AQS和ReentrantLock</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/02/23/LongAdder解析/">LongAdder解析</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/02/18/pigeon一些细节的具体实现/">pigeon一些细节的具体实现</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/02/18/pigeon的服务注册与发现/">pigeon的服务注册与发现</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/02/18/pigeon中的核心类和作用/">pigeon中的核心类和作用</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/02/10/fat-jar/">fat-jar配置</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/02/07/log4j和slf4j配置/">log4j和slf4j配置</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/12/21/ThreadLocal源码分析/">ThreadLocal源码分析</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/12/18/ConcurrentHashMap源码分析/">ConcurrentHashMap源码分析</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/12/10/LinkedList源码分析/">LinkedList源码分析</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/12/09/HashSet源码分析/">HashSet源码解析</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/12/07/ArrayList源码分析/">ArrayList源码分析</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/11/18/jsessionid的生成/">JsessionId的生成</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/10/24/哪些可以作为GCRoots/">哪些可以作为GC Roots</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/09/10/动态代理的缓存实现/">动态代理的缓存实现</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/08/20/IO之同步，阻塞，非阻塞/">同步，阻塞，非阻塞</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/08/09/Java泛型数组/">Java泛型</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/08/05/Java内部类/">Java内部类</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/08/02/libevent简单使用/">libevent简单使用</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/07/26/叶子/">叶子</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/07/21/HashMap源码解析/">HashMap源码解析</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/07/21/PathVariable及route设计/">PathVariable及路由设计</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/07/07/hello-world/">Hello World</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/05/28/use_AuthenticationProvider_in_springSec/">使用AuthenticationProvider进行自定义登陆配置</a></li></ul>
+
+
+
+
+    <script>
+        
+    </script>
+</div>
+      <footer id="footer">
+    <div class="outer">
+        <div id="footer-info">
+            <div class="footer-left">
+                <i class="fa fa-copyright"></i> 
+                2016-2018 zhy
+            </div>
+            <div class="footer-right">
+                <a href="http://hexo.io/" target="_blank" title="快速、简洁且高效的博客框架">Hexo</a>  Theme <a href="https://github.com/MOxFIVE/hexo-theme-yelee" target="_blank" title="简而不减 Hexo 双栏博客主题  v3.5">Yelee</a> by MOxFIVE <i class="fa fa-heart animated infinite pulse"></i>
+            </div>
+        </div>
+        
+    </div>
+</footer>
+    </div>
+    
+    <script src="/js/GithubRepoWidget.js"></script>
+
+<script data-main="/js/main.js" src="//cdn.bootcss.com/require.js/2.2.0/require.min.js"></script>
+
+    <script>
+        $(document).ready(function() {
+            var iPad = window.navigator.userAgent.indexOf('iPad');
+            if (iPad > -1 || $(".left-col").css("display") === "none") {
+                var bgColorList = ["#9db3f4", "#414141", "#e5a859", "#f5dfc6", "#c084a0", "#847e72", "#cd8390", "#996731"];
+                var bgColor = Math.ceil(Math.random() * (bgColorList.length - 1));
+                $("body").css({"background-color": bgColorList[bgColor], "background-size": "cover"});
+            }
+            else {
+                var backgroundnum = 5;
+                var backgroundimg = "url(/background/bg-x.jpg)".replace(/x/gi, Math.ceil(Math.random() * backgroundnum));
+                $("body").css({"background": backgroundimg, "background-attachment": "fixed", "background-size": "cover"});
+            }
+        })
+    </script>
+
+
+
+
+
+<div class="scroll" id="scroll">
+    <a href="#" title="返回顶部"><i class="fa fa-arrow-up"></i></a>
+    <a href="#comments" onclick="load$hide();" title="查看评论"><i class="fa fa-comments-o"></i></a>
+    <a href="#footer" title="转到底部"><i class="fa fa-arrow-down"></i></a>
+</div>
+<script>
+    // Open in New Window
+    
+        var oOpenInNew = {
+             github: ".github-widget a", 
+            
+            
+            
+            
+            
+             archives: ".archive-article-title", 
+             miniArchives: "a.post-list-link", 
+            
+             friends: "#js-friends a", 
+             socail: ".social a" 
+        }
+        for (var x in oOpenInNew) {
+            $(oOpenInNew[x]).attr("target", "_blank");
+        }
+    
+</script>
+
+<script async src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js">
+</script>
+  </div>
+</body>
+</html>

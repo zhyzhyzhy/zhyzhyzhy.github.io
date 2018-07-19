@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html >
+<head>
+
+    <!--[if lt IE 9]>
+        <style>body {display: none; background: none !important} </style>
+        <meta http-equiv="Refresh" Content="0; url=//outdatedbrowser.com/" />
+    <![endif]-->
+
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge, chrome=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="format-detection" content="telephone=no" />
+<meta name="author" content="zhy" />
+
+
+
+<meta name="description" content="前言行列存储的区别，上次在串讲的时候被问到了。因为没有作为具体的分析，所以今天就来全方面的分析一下。 存储方式假设我们拥有一张表，有两个字段为name和age    name age     Zhao 19   Qian 20   Sun 21   Li 22    我们知道磁盘的存储是以页为单位的，每一页的存储地址是连续的下面看看两种不同的存储方式的区别 行式那么假设我们以行来存储简单的看就是每">
+<meta name="keywords" content="数据库">
+<meta property="og:type" content="article">
+<meta property="og:title" content="行列存储的区别">
+<meta property="og:url" content="http://zhyzhyzhy.github.io/2018/06/05/行列存储的区别/index.html">
+<meta property="og:site_name" content="LoveZhy">
+<meta property="og:description" content="前言行列存储的区别，上次在串讲的时候被问到了。因为没有作为具体的分析，所以今天就来全方面的分析一下。 存储方式假设我们拥有一张表，有两个字段为name和age    name age     Zhao 19   Qian 20   Sun 21   Li 22    我们知道磁盘的存储是以页为单位的，每一页的存储地址是连续的下面看看两种不同的存储方式的区别 行式那么假设我们以行来存储简单的看就是每">
+<meta property="og:locale" content="default">
+<meta property="og:image" content="http://zhyzhyzhy.github.io/images/行列存储/行式存储.png">
+<meta property="og:image" content="http://zhyzhyzhy.github.io/images/行列存储/列式存储.png">
+<meta property="og:image" content="http://zhyzhyzhy.github.io/images/行列存储/字典压缩.png">
+<meta property="og:updated_time" content="2018-07-15T12:14:19.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="行列存储的区别">
+<meta name="twitter:description" content="前言行列存储的区别，上次在串讲的时候被问到了。因为没有作为具体的分析，所以今天就来全方面的分析一下。 存储方式假设我们拥有一张表，有两个字段为name和age    name age     Zhao 19   Qian 20   Sun 21   Li 22    我们知道磁盘的存储是以页为单位的，每一页的存储地址是连续的下面看看两种不同的存储方式的区别 行式那么假设我们以行来存储简单的看就是每">
+<meta name="twitter:image" content="http://zhyzhyzhy.github.io/images/行列存储/行式存储.png">
+
+<link rel="apple-touch-icon" href= "/apple-touch-icon.png">
+
+
+    <link rel="alternate" href="/atom.xml" title="LoveZhy" type="application/atom+xml">
+
+
+
+    <link rel="shortcut icon" href="/favicon.png">
+
+
+
+    <link href="//cdn.bootcss.com/animate.css/3.5.1/animate.min.css" rel="stylesheet">
+
+
+
+    <link href="//cdn.bootcss.com/fancybox/2.1.5/jquery.fancybox.min.css" rel="stylesheet">
+
+
+
+    <script src="//cdn.bootcss.com/pace/1.0.2/pace.min.js"></script>
+    <link href="//cdn.bootcss.com/pace/1.0.2/themes/blue/pace-theme-minimal.css" rel="stylesheet">
+
+
+<link rel="stylesheet" href="/css/style.css">
+
+
+
+<link href="//cdn.bootcss.com/font-awesome/4.6.3/css/font-awesome.min.css" rel="stylesheet">
+
+
+<title>行列存储的区别 | LoveZhy</title>
+
+<script src="//cdn.bootcss.com/jquery/2.2.4/jquery.min.js"></script>
+<script src="//cdn.bootcss.com/clipboard.js/1.5.10/clipboard.min.js"></script>
+
+<script>
+    var yiliaConfig = {
+        fancybox: true,
+        animate: true,
+        isHome: false,
+        isPost: true,
+        isArchive: false,
+        isTag: false,
+        isCategory: false,
+        fancybox_js: "//cdn.bootcss.com/fancybox/2.1.5/jquery.fancybox.min.js",
+        scrollreveal: "//cdn.bootcss.com/scrollReveal.js/3.1.4/scrollreveal.min.js",
+        search: undefined
+    }
+</script>
+
+
+    <script> yiliaConfig.jquery_ui = [false]; </script>
+
+
+
+    <script> yiliaConfig.rootUrl = "\/";</script>
+
+
+
+
+
+
+</head>
+<body>
+  <div id="container">
+    <div class="left-col">
+    <div class="overlay"></div>
+<div class="intrude-less">
+    <header id="header" class="inner">
+        <a href="/" class="profilepic">
+            <img src="/img/avatar.jpg" class="animated zoomIn">
+        </a>
+        <hgroup>
+          <h1 class="header-author"><a href="/">zhy</a></h1>
+        </hgroup>
+
+        
+
+        
+
+
+        
+
+        <div id="switch-area" class="switch-area">
+            <div class="switch-wrap">
+                <section class="switch-part switch-part1">
+                    <nav class="header-menu">
+                        <ul>
+                        
+                            <li><a href="/">主页</a></li>
+                        
+                            <li><a href="/archives/">所有文章</a></li>
+                        
+                            <li><a href="/tags/">标签云</a></li>
+                        
+                            <li><a href="/about/">关于我</a></li>
+                        
+                        </ul>
+                    </nav>
+                    <nav class="header-nav">
+                        <ul class="social">
+                            
+                                <a class="fa Email" href="mailto:zhuyichen1017@gmail.com" title="Email"></a>
+                            
+                                <a class="fa GitHub" href="https://github.com/zhyzhyzhy" title="GitHub"></a>
+                            
+                        </ul>
+                    </nav>
+                </section>
+                
+                
+                
+                
+
+                
+                
+                <section class="switch-part switch-part3">
+                
+                    <div id="js-aboutme">江湖里卧虎，人心里藏龙</div>
+                </section>
+                
+            </div>
+        </div>
+    </header>                
+</div>
+    </div>
+    <div class="mid-col">
+      <nav id="mobile-nav">
+      <div class="overlay">
+          <div class="slider-trigger"></div>
+          <h1 class="header-author js-mobile-header hide"><a href="/" title="回到主页">zhy</a></h1>
+      </div>
+    <div class="intrude-less">
+        <header id="header" class="inner">
+            <a href="/" class="profilepic">
+                <img src="/img/avatar.jpg" class="animated zoomIn">
+            </a>
+            <hgroup>
+              <h1 class="header-author"><a href="/" title="回到主页">zhy</a></h1>
+            </hgroup>
+            
+            <nav class="header-menu">
+                <ul>
+                
+                    <li><a href="/">主页</a></li>
+                
+                    <li><a href="/archives/">所有文章</a></li>
+                
+                    <li><a href="/tags/">标签云</a></li>
+                
+                    <li><a href="/about/">关于我</a></li>
+                
+                <div class="clearfix"></div>
+                </ul>
+            </nav>
+            <nav class="header-nav">
+                        <ul class="social">
+                            
+                                <a class="fa Email" target="_blank" href="mailto:zhuyichen1017@gmail.com" title="Email"></a>
+                            
+                                <a class="fa GitHub" target="_blank" href="https://github.com/zhyzhyzhy" title="GitHub"></a>
+                            
+                        </ul>
+            </nav>
+        </header>                
+    </div>
+    <link class="menu-list" tags="标签" friends="友情链接" about="关于我"/>
+</nav>
+      <div class="body-wrap"><article id="post-行列存储的区别" class="article article-type-post" itemscope itemprop="blogPost">
+  
+    <div class="article-meta">
+      <a href="/2018/06/05/行列存储的区别/" class="article-date">
+      <time datetime="2018-06-04T16:00:00.000Z" itemprop="datePublished">2018-06-05</time>
+</a>
+
+
+    </div>
+  
+  <div class="article-inner">
+    
+      <input type="hidden" class="isFancy" />
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      行列存储的区别
+    </h1>
+  
+
+      </header>
+      
+      <div class="article-info article-info-post">
+        
+
+        
+    <div class="article-tag tagcloud">
+        <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/数据库/">数据库</a></li></ul>
+    </div>
+
+        <div class="clearfix"></div>
+      </div>
+      
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+          
+        <h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>行列存储的区别，上次在串讲的时候被问到了。<br>因为没有作为具体的分析，所以今天就来全方面的分析一下。</p>
+<h2 id="存储方式"><a href="#存储方式" class="headerlink" title="存储方式"></a>存储方式</h2><p>假设我们拥有一张表，有两个字段为name和age</p>
+<table>
+<thead>
+<tr>
+<th>name</th>
+<th>age</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Zhao</td>
+<td>19</td>
+</tr>
+<tr>
+<td>Qian</td>
+<td>20</td>
+</tr>
+<tr>
+<td>Sun</td>
+<td>21</td>
+</tr>
+<tr>
+<td>Li</td>
+<td>22</td>
+</tr>
+</tbody>
+</table>
+<p>我们知道磁盘的存储是以页为单位的，每一页的存储地址是连续的<br>下面看看两种不同的存储方式的区别</p>
+<h3 id="行式"><a href="#行式" class="headerlink" title="行式"></a>行式</h3><p>那么假设我们以行来存储<br><img src="/images/行列存储/行式存储.png" alt=""><br>简单的看就是每一行的数据都是存在连续的一块地址中</p>
+<h3 id="列式"><a href="#列式" class="headerlink" title="列式"></a>列式</h3><p>列式存储根据字段进行切割，把每一个字段的数据存在一起。<br><img src="/images/行列存储/列式存储.png" alt=""></p>
+<h2 id="压缩"><a href="#压缩" class="headerlink" title="压缩"></a>压缩</h2><p>一般来说数据可以进行压缩，以减少存储的空间。<br>对于行式来说，很难进行压缩，因为每个表的字段的类型是不统一的，除非预先确认，否则无法动态的进行压缩。<br>但是列式的就不一样了，每一个字段的类型是确定的，占用大小也是确定的，所以很容易进行压缩。</p>
+<p><strong>字典压缩：</strong><br>假设年龄字段基本就是在18到25之间，那么我们可以建立一个字典，如下<br><img src="/images/行列存储/字典压缩.png" alt=""><br>当数据量达到亿级或者千亿级，这样其实是可以省下大量的空间，提高了IO的效率</p>
+<h2 id="查询"><a href="#查询" class="headerlink" title="查询"></a>查询</h2><p>对于查询而言，针对不同的查询场景，行式和列式的区别较大。<br>还是以上面的表为例</p>
+<p><strong>1.</strong><br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> <span class="keyword">avg</span>(age) <span class="keyword">from</span> <span class="keyword">table</span></span><br></pre></td></tr></table></figure></p>
+<p>对于这句Query，如果是行式，我们需要</p>
+<ul>
+<li>读取<strong>所有</strong>的Page</li>
+<li>在内存中<strong>跳着读</strong>所有的age字段的数据</li>
+<li>进行计算</li>
+</ul>
+<p>而对于列式而言</p>
+<ul>
+<li>读取<strong>存储age字段</strong>的page</li>
+<li>在内存中<strong>连续读</strong>取所有的age字段</li>
+<li>进行计算</li>
+</ul>
+<p>显而易见的是肯定是列式的效率更高一点。<br>同时列式还可以更好的利用Cpu Cache的特性加快读取。</p>
+<p><strong>Cpu Cache</strong><br>对于Cpu的缓存而言，一次的缓存大小是固定的，比如是64KB，叫做一个Cache Line。<br>那么我们在读age为19的地址的时候，由于那部分凑不齐64KB，那么cpu就是把读取地址附近的数据也读过去以补齐一个Cache Line。<br>那么可能读18的时候，把后面的19，20，21一起读到Cache中了。<br>下面在进行读的时候，就不用继续读取内存了，直接在缓存中拿就行了。</p>
+<p><strong>2.</strong><br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> <span class="keyword">table</span> <span class="keyword">where</span> age = <span class="number">18</span></span><br></pre></td></tr></table></figure></p>
+<p>对于这句Query，假设行式都有索引的情况下<br>行式</p>
+<ul>
+<li>读取Page1</li>
+<li>连续读一块内存</li>
+<li>进行计算</li>
+</ul>
+<p>列式</p>
+<ul>
+<li>读取Page1和Page2</li>
+<li>跳着读出所有指定行的字段数据</li>
+<li>计算输出</li>
+</ul>
+<p>显而易见是行式更好一点。<br>拥有更好的IO效率和更好的运用了Cpu Cache</p>
+<p><strong>总结：</strong><br>对于只需要指定字段的查询，那么行式拥有更好的效率</p>
+<h2 id="Insert和Update"><a href="#Insert和Update" class="headerlink" title="Insert和Update"></a>Insert和Update</h2><p>对于传统的数据库需求<br>插入和更新的语句较多的情况</p>
+<p><strong>行式</strong><br>如果是行式的话，更新只需要找到指定的行的地址，进行修改就行了。<br>对于插入操作，只需要在将上一行的指向下一行的指针修改为插入的那一行的数据就行了。</p>
+<p><strong>列式</strong><br>对于列式而言，如果没有开启压缩，那么对于更新操作而言其实和行式的差不多。<br>但是如果开启了压缩，那么还需要解压缩-&gt;修改-&gt;压缩的操作，消耗的时间更久。<br>同样的，对于插入操作，即使没有开启压缩，那么需要的时间也很久，因为指定行的数据是连续的放在一起，在其中插入一个，必然导致后面的会进行后移。</p>
+<p><strong>总结：</strong><br>对于行式而言，频繁的插入和更新操作损耗较小<br>对于列式而言，频繁的插入和更新操作损耗较大</p>
+<h2 id="使用场景"><a href="#使用场景" class="headerlink" title="使用场景"></a>使用场景</h2><p>正常来说</p>
+<blockquote>
+<p>行式存储比较适合OLTP，列式存储比较适合OLTP</p>
+</blockquote>
+<p>因为对于OLTP而言</p>
+<ul>
+<li>查询需要全字段，只需要指定的几行的语句较多</li>
+<li>插入，删除，更新操作较多</li>
+</ul>
+<p>对于OLAP而言</p>
+<ul>
+<li>插入，删除，更新操作较少</li>
+<li>经常只需要相关的列</li>
+</ul>
+<p>而这恰恰是运用了行式和列式的优点和缺点。</p>
+
+      
+    </div>
+    
+  </div>
+  
+    
+    <div class="copyright">
+        <p><span>本文标题:</span><a href="/2018/06/05/行列存储的区别/">行列存储的区别</a></p>
+        <p><span>文章作者:</span><a href="/" title="回到主页">zhy</a></p>
+        <p><span>发布时间:</span>2018-06-05, 00:00:00</p>
+        <!--<p><span>最后更新:</span>2018-07-15, 20:14:19</p>-->
+        <p>
+            <span>原始链接:</span><a class="post-url" href="/2018/06/05/行列存储的区别/" title="行列存储的区别">http://zhyzhyzhy.github.io/2018/06/05/行列存储的区别/</a>
+            <span class="copy-path" data-clipboard-text="原文: http://zhyzhyzhy.github.io/2018/06/05/行列存储的区别/　　作者: zhy" title="点击复制文章链接"><i class="fa fa-clipboard"></i></span>
+            <script> var clipboard = new Clipboard('.copy-path'); </script>
+        </p>
+        <p>
+            <span>许可协议:</span><i class="fa fa-creative-commons"></i> <a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/" title="CC BY-NC-SA 4.0 International" target = "_blank">"署名-非商用-相同方式共享 4.0"</a> 转载请保留原文链接及作者。
+        </p>
+    </div>
+
+
+
+    <nav id="article-nav">
+        
+            <div id="article-nav-newer" class="article-nav-title">
+                <a href="/2018/06/16/Presto和Hive的区别/">
+                    Presto和Hive的区别
+                </a>
+            </div>
+        
+        
+            <div id="article-nav-older" class="article-nav-title">
+                <a href="/2018/06/03/Presto基本概念/">
+                    Presto基本概念
+                </a>
+            </div>
+        
+    </nav>
+
+  
+</article>
+
+    <div id="toc" class="toc-article">
+        <strong class="toc-title">文章目录</strong>
+        
+            <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#前言"><span class="toc-number">1.</span> <span class="toc-text">前言</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#存储方式"><span class="toc-number">2.</span> <span class="toc-text">存储方式</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#行式"><span class="toc-number">2.1.</span> <span class="toc-text">行式</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#列式"><span class="toc-number">2.2.</span> <span class="toc-text">列式</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#压缩"><span class="toc-number">3.</span> <span class="toc-text">压缩</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#查询"><span class="toc-number">4.</span> <span class="toc-text">查询</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Insert和Update"><span class="toc-number">5.</span> <span class="toc-text">Insert和Update</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#使用场景"><span class="toc-number">6.</span> <span class="toc-text">使用场景</span></a></li></ol>
+        
+    </div>
+    <style>
+        .left-col .switch-btn,
+        .left-col .switch-area {
+            display: none;
+        }
+        .toc-level-3 i,
+        .toc-level-3 ol {
+            display: none !important;
+        }
+    </style>
+
+    <input type="button" id="tocButton" value="隐藏目录"  title="点击按钮隐藏或者显示文章目录">
+
+    <script>
+        yiliaConfig.toc = ["隐藏目录", "显示目录", !!"false"];
+    </script>
+
+
+
+
+
+    
+        <section id="comments">
+    <style> aside.comment-bar { margin: auto 30px; }</style>
+    <div id="disqus_thread"></div>
+    <script>
+        var disqus_config = function(){
+            this.page.url = 'http://zhyzhyzhy.github.io/2018/06/05/行列存储的区别/';
+            this.page.identifier = '2018/06/05/行列存储的区别/';
+        };
+        var loadComment = function(){
+            var d = document, s = d.createElement('script');
+            s.src = '//blog-lovezhy-cc-1.disqus.com/embed.js';
+            s.setAttribute('data-timestamp', +new Date());
+            (d.head || d.body).appendChild(s);
+        }
+    </script>
+    
+    <script> loadComment(); </script>
+
+</section>
+
+
+    
+
+
+
+
+    <div class="scroll" id="post-nav-button">
+        
+            <a href="/2018/06/16/Presto和Hive的区别/" title="上一篇: Presto和Hive的区别">
+                <i class="fa fa-angle-left"></i>
+            </a>
+        
+
+        <a title="文章列表"><i class="fa fa-bars"></i><i class="fa fa-times"></i></a>
+
+        
+            <a href="/2018/06/03/Presto基本概念/" title="下一篇: Presto基本概念">
+                <i class="fa fa-angle-right"></i>
+            </a>
+        
+    </div>
+
+    <ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/2018/07/20/Presto源码-ExchangeClient和OutputBuffer详解/">Presto源码-ExchangeClient和OutputBuffer详解</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/07/19/Presto源码解析-Slice实现/">Presto源码解析 - Slice实现</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/07/15/Guava库学习之Collections/">Guava库学习之Collections</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/07/15/数据库Join算法/">数据库Join算法</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/07/10/presto执行流程/">Presto执行流程</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/07/10/Presto的Join细节研究/">Presto的Join的细节研究</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/07/10/Presto的分段源码解析/">Presto的分段源码解析</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/06/16/Presto和Hive的区别/">Presto和Hive的区别</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/06/05/行列存储的区别/">行列存储的区别</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/06/03/Presto基本概念/">Presto基本概念</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/05/23/OLAP基本知识/">OLAP基本知识</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/05/01/分布式基础知识/">分布式基础知识</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/04/15/CSRF和XSS/">CSRF和XSS攻击</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/04/11/brpc-doc笔记/">brpc-doc笔记</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/04/01/vim技巧/">Vim技巧</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/04/01/在ubuntu16.04上搭建hadoop环境/">在ubunut16.04上搭建hadoop环境</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/03/03/spi和破坏双亲委派/">spi和破坏双亲委派</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/02/24/AQS和ReentrantLock/">AQS和ReentrantLock</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/02/23/LongAdder解析/">LongAdder解析</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/02/18/pigeon一些细节的具体实现/">pigeon一些细节的具体实现</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/02/18/pigeon的服务注册与发现/">pigeon的服务注册与发现</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/02/18/pigeon中的核心类和作用/">pigeon中的核心类和作用</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/02/10/fat-jar/">fat-jar配置</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/02/07/log4j和slf4j配置/">log4j和slf4j配置</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/12/21/ThreadLocal源码分析/">ThreadLocal源码分析</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/12/18/ConcurrentHashMap源码分析/">ConcurrentHashMap源码分析</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/12/10/LinkedList源码分析/">LinkedList源码分析</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/12/09/HashSet源码分析/">HashSet源码解析</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/12/07/ArrayList源码分析/">ArrayList源码分析</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/11/18/jsessionid的生成/">JsessionId的生成</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/10/24/哪些可以作为GCRoots/">哪些可以作为GC Roots</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/09/10/动态代理的缓存实现/">动态代理的缓存实现</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/08/20/IO之同步，阻塞，非阻塞/">同步，阻塞，非阻塞</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/08/09/Java泛型数组/">Java泛型</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/08/05/Java内部类/">Java内部类</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/08/02/libevent简单使用/">libevent简单使用</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/07/26/叶子/">叶子</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/07/21/HashMap源码解析/">HashMap源码解析</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/07/21/PathVariable及route设计/">PathVariable及路由设计</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/07/07/hello-world/">Hello World</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/05/28/use_AuthenticationProvider_in_springSec/">使用AuthenticationProvider进行自定义登陆配置</a></li></ul>
+
+
+
+
+    <script>
+        
+    </script>
+</div>
+      <footer id="footer">
+    <div class="outer">
+        <div id="footer-info">
+            <div class="footer-left">
+                <i class="fa fa-copyright"></i> 
+                2016-2018 zhy
+            </div>
+            <div class="footer-right">
+                <a href="http://hexo.io/" target="_blank" title="快速、简洁且高效的博客框架">Hexo</a>  Theme <a href="https://github.com/MOxFIVE/hexo-theme-yelee" target="_blank" title="简而不减 Hexo 双栏博客主题  v3.5">Yelee</a> by MOxFIVE <i class="fa fa-heart animated infinite pulse"></i>
+            </div>
+        </div>
+        
+    </div>
+</footer>
+    </div>
+    
+    <script src="/js/GithubRepoWidget.js"></script>
+
+<script data-main="/js/main.js" src="//cdn.bootcss.com/require.js/2.2.0/require.min.js"></script>
+
+    <script>
+        $(document).ready(function() {
+            var iPad = window.navigator.userAgent.indexOf('iPad');
+            if (iPad > -1 || $(".left-col").css("display") === "none") {
+                var bgColorList = ["#9db3f4", "#414141", "#e5a859", "#f5dfc6", "#c084a0", "#847e72", "#cd8390", "#996731"];
+                var bgColor = Math.ceil(Math.random() * (bgColorList.length - 1));
+                $("body").css({"background-color": bgColorList[bgColor], "background-size": "cover"});
+            }
+            else {
+                var backgroundnum = 5;
+                var backgroundimg = "url(/background/bg-x.jpg)".replace(/x/gi, Math.ceil(Math.random() * backgroundnum));
+                $("body").css({"background": backgroundimg, "background-attachment": "fixed", "background-size": "cover"});
+            }
+        })
+    </script>
+
+
+
+
+
+<div class="scroll" id="scroll">
+    <a href="#" title="返回顶部"><i class="fa fa-arrow-up"></i></a>
+    <a href="#comments" onclick="load$hide();" title="查看评论"><i class="fa fa-comments-o"></i></a>
+    <a href="#footer" title="转到底部"><i class="fa fa-arrow-down"></i></a>
+</div>
+<script>
+    // Open in New Window
+    
+        var oOpenInNew = {
+             github: ".github-widget a", 
+            
+            
+            
+            
+            
+             archives: ".archive-article-title", 
+             miniArchives: "a.post-list-link", 
+            
+             friends: "#js-friends a", 
+             socail: ".social a" 
+        }
+        for (var x in oOpenInNew) {
+            $(oOpenInNew[x]).attr("target", "_blank");
+        }
+    
+</script>
+
+<script async src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js">
+</script>
+  </div>
+</body>
+</html>

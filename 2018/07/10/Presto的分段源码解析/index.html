@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html >
+<head>
+
+    <!--[if lt IE 9]>
+        <style>body {display: none; background: none !important} </style>
+        <meta http-equiv="Refresh" Content="0; url=//outdatedbrowser.com/" />
+    <![endif]-->
+
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge, chrome=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="format-detection" content="telephone=no" />
+<meta name="author" content="zhy" />
+
+
+
+<meta name="description" content="先行流程在进行分段之前，已经建立好计划数PlanNode，并且已经进行了所有的planOptimizers进行优化。最后在SqlQueryExecution#doAnalyzeQuery()的PlanFragmenter中进行分段。 Stage抽象 Stage：unit of work that does not require shuffling    这个定义是抄的某个PPT上面的，虽然有点抽">
+<meta name="keywords" content="Presto">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Presto的分段源码解析">
+<meta property="og:url" content="http://zhyzhyzhy.github.io/2018/07/10/Presto的分段源码解析/index.html">
+<meta property="og:site_name" content="LoveZhy">
+<meta property="og:description" content="先行流程在进行分段之前，已经建立好计划数PlanNode，并且已经进行了所有的planOptimizers进行优化。最后在SqlQueryExecution#doAnalyzeQuery()的PlanFragmenter中进行分段。 Stage抽象 Stage：unit of work that does not require shuffling    这个定义是抄的某个PPT上面的，虽然有点抽">
+<meta property="og:locale" content="default">
+<meta property="og:image" content="http://zhyzhyzhy.github.io/images/presto-stage/JoinStage1.png">
+<meta property="og:image" content="http://zhyzhyzhy.github.io/images/presto-stage/JoinStage2.png">
+<meta property="og:updated_time" content="2018-07-19T10:53:08.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Presto的分段源码解析">
+<meta name="twitter:description" content="先行流程在进行分段之前，已经建立好计划数PlanNode，并且已经进行了所有的planOptimizers进行优化。最后在SqlQueryExecution#doAnalyzeQuery()的PlanFragmenter中进行分段。 Stage抽象 Stage：unit of work that does not require shuffling    这个定义是抄的某个PPT上面的，虽然有点抽">
+<meta name="twitter:image" content="http://zhyzhyzhy.github.io/images/presto-stage/JoinStage1.png">
+
+<link rel="apple-touch-icon" href= "/apple-touch-icon.png">
+
+
+    <link rel="alternate" href="/atom.xml" title="LoveZhy" type="application/atom+xml">
+
+
+
+    <link rel="shortcut icon" href="/favicon.png">
+
+
+
+    <link href="//cdn.bootcss.com/animate.css/3.5.1/animate.min.css" rel="stylesheet">
+
+
+
+    <link href="//cdn.bootcss.com/fancybox/2.1.5/jquery.fancybox.min.css" rel="stylesheet">
+
+
+
+    <script src="//cdn.bootcss.com/pace/1.0.2/pace.min.js"></script>
+    <link href="//cdn.bootcss.com/pace/1.0.2/themes/blue/pace-theme-minimal.css" rel="stylesheet">
+
+
+<link rel="stylesheet" href="/css/style.css">
+
+
+
+<link href="//cdn.bootcss.com/font-awesome/4.6.3/css/font-awesome.min.css" rel="stylesheet">
+
+
+<title>Presto的分段源码解析 | LoveZhy</title>
+
+<script src="//cdn.bootcss.com/jquery/2.2.4/jquery.min.js"></script>
+<script src="//cdn.bootcss.com/clipboard.js/1.5.10/clipboard.min.js"></script>
+
+<script>
+    var yiliaConfig = {
+        fancybox: true,
+        animate: true,
+        isHome: false,
+        isPost: true,
+        isArchive: false,
+        isTag: false,
+        isCategory: false,
+        fancybox_js: "//cdn.bootcss.com/fancybox/2.1.5/jquery.fancybox.min.js",
+        scrollreveal: "//cdn.bootcss.com/scrollReveal.js/3.1.4/scrollreveal.min.js",
+        search: undefined
+    }
+</script>
+
+
+    <script> yiliaConfig.jquery_ui = [false]; </script>
+
+
+
+    <script> yiliaConfig.rootUrl = "\/";</script>
+
+
+
+
+
+
+</head>
+<body>
+  <div id="container">
+    <div class="left-col">
+    <div class="overlay"></div>
+<div class="intrude-less">
+    <header id="header" class="inner">
+        <a href="/" class="profilepic">
+            <img src="/img/avatar.jpg" class="animated zoomIn">
+        </a>
+        <hgroup>
+          <h1 class="header-author"><a href="/">zhy</a></h1>
+        </hgroup>
+
+        
+
+        
+
+
+        
+
+        <div id="switch-area" class="switch-area">
+            <div class="switch-wrap">
+                <section class="switch-part switch-part1">
+                    <nav class="header-menu">
+                        <ul>
+                        
+                            <li><a href="/">主页</a></li>
+                        
+                            <li><a href="/archives/">所有文章</a></li>
+                        
+                            <li><a href="/tags/">标签云</a></li>
+                        
+                            <li><a href="/about/">关于我</a></li>
+                        
+                        </ul>
+                    </nav>
+                    <nav class="header-nav">
+                        <ul class="social">
+                            
+                                <a class="fa Email" href="mailto:zhuyichen1017@gmail.com" title="Email"></a>
+                            
+                                <a class="fa GitHub" href="https://github.com/zhyzhyzhy" title="GitHub"></a>
+                            
+                        </ul>
+                    </nav>
+                </section>
+                
+                
+                
+                
+
+                
+                
+                <section class="switch-part switch-part3">
+                
+                    <div id="js-aboutme">江湖里卧虎，人心里藏龙</div>
+                </section>
+                
+            </div>
+        </div>
+    </header>                
+</div>
+    </div>
+    <div class="mid-col">
+      <nav id="mobile-nav">
+      <div class="overlay">
+          <div class="slider-trigger"></div>
+          <h1 class="header-author js-mobile-header hide"><a href="/" title="回到主页">zhy</a></h1>
+      </div>
+    <div class="intrude-less">
+        <header id="header" class="inner">
+            <a href="/" class="profilepic">
+                <img src="/img/avatar.jpg" class="animated zoomIn">
+            </a>
+            <hgroup>
+              <h1 class="header-author"><a href="/" title="回到主页">zhy</a></h1>
+            </hgroup>
+            
+            <nav class="header-menu">
+                <ul>
+                
+                    <li><a href="/">主页</a></li>
+                
+                    <li><a href="/archives/">所有文章</a></li>
+                
+                    <li><a href="/tags/">标签云</a></li>
+                
+                    <li><a href="/about/">关于我</a></li>
+                
+                <div class="clearfix"></div>
+                </ul>
+            </nav>
+            <nav class="header-nav">
+                        <ul class="social">
+                            
+                                <a class="fa Email" target="_blank" href="mailto:zhuyichen1017@gmail.com" title="Email"></a>
+                            
+                                <a class="fa GitHub" target="_blank" href="https://github.com/zhyzhyzhy" title="GitHub"></a>
+                            
+                        </ul>
+            </nav>
+        </header>                
+    </div>
+    <link class="menu-list" tags="标签" friends="友情链接" about="关于我"/>
+</nav>
+      <div class="body-wrap"><article id="post-Presto的分段源码解析" class="article article-type-post" itemscope itemprop="blogPost">
+  
+    <div class="article-meta">
+      <a href="/2018/07/10/Presto的分段源码解析/" class="article-date">
+      <time datetime="2018-07-09T16:00:00.000Z" itemprop="datePublished">2018-07-10</time>
+</a>
+
+
+    </div>
+  
+  <div class="article-inner">
+    
+      <input type="hidden" class="isFancy" />
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      Presto的分段源码解析
+    </h1>
+  
+
+      </header>
+      
+      <div class="article-info article-info-post">
+        
+
+        
+    <div class="article-tag tagcloud">
+        <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Presto/">Presto</a></li></ul>
+    </div>
+
+        <div class="clearfix"></div>
+      </div>
+      
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+          
+        <h2 id="先行流程"><a href="#先行流程" class="headerlink" title="先行流程"></a>先行流程</h2><p>在进行分段之前，已经建立好计划数PlanNode，并且已经进行了所有的planOptimizers进行优化。<br>最后在SqlQueryExecution#doAnalyzeQuery()的PlanFragmenter中进行分段。</p>
+<h2 id="Stage抽象"><a href="#Stage抽象" class="headerlink" title="Stage抽象"></a>Stage抽象</h2><blockquote>
+<p>Stage：unit of work that does not require shuffling  </p>
+</blockquote>
+<p>这个定义是抄的某个PPT上面的，虽然有点抽象，但是也算是个通俗的原则。</p>
+<h2 id="PlanFragmenter"><a href="#PlanFragmenter" class="headerlink" title="PlanFragmenter"></a>PlanFragmenter</h2><p>在进行分段的流程同样是Visit模式，这里的Visit类是PlanFragmenter的内部类Fragmenter。</p>
+<p>每一段之间的分段标记符是RemoteSourceNode</p>
+<p>在看Fragmenter源码时，我们会发现每遇到一个Remote的ExchangeNode，都会创建一个RemoteSourceNode。在其他的地方都不会创建。<br>所以核心在ExchangeNode上。</p>
+<h2 id="AddExchanges"><a href="#AddExchanges" class="headerlink" title="AddExchanges"></a>AddExchanges</h2><p>既然是Remote的ExchangeNode决定了分段，那么这些ExchangeNode是什么时候添加进去的呢。</p>
+<p>经过查找发现是在AddExchanges的Optimizer类中。</p>
+<p>他在进行优化的时候，也是运用的Visit模式。</p>
+<p><strong>聚合数据节点</strong><br>首先在OutputNode的时候，如果Child计划不是运行在一个Node上的，就会加上一个Remote的ExchangeNode，同时Type是GATHER，意思就是Child节点的数据远程传输集中到这个OutPutNode上来。</p>
+<p>在SortNode上，如果底层的Child计划不是SingleNode运行的，那么就会加上Remote的ExchangeNode，同时Type是GATHER</p>
+<p>在TopNNode上，同样的，如果是FINAL级别的TopN(因为TopN是可以先进行Partition的)，并且Child不是在一个节点上，那么就会创建一个Remote的ExchangeNode，同时Type是GATHER。</p>
+<p>同时在LimitNode节点上也是如此。</p>
+<p><strong>总结：</strong><br>在进行OutputNode，SortNode，TopNNode，或者是LimitNode这种需要聚合所有节点的数据来进行操作的，如果Child的执行计划是在多个节点上运行，那么就会加上RemoteExchangeNode来进行分段。</p>
+<p><strong>Join节点</strong><br>和上面的聚合数据的节点不同，Join节点的处理方式较为复杂。<br><code>select * from video v join user u on v.user_id = u.user_id</code><br>想象这么一句话。<br>如果不考虑数据分布的情况，正常的处理就是</p>
+<ul>
+<li>随机选择Fixed阶段处理节点</li>
+<li>从Source把数据读出</li>
+<li>video的数据按照user_id的Hash进行shuffle到Fixed节点</li>
+<li>user的数据按照user_id的Hash进行shuffle到Fixed节点</li>
+</ul>
+<p>但是如果video的原先数据分布就是按照user_id进行分布的呢。<br>那我们这时候，把user的数据按照user_id分到video的节点上。<br>是不是更好呢。</p>
+<p>那么这样的话，原先是这样的结构。<br><img src="/images/presto-stage/JoinStage1.png" alt=""></p>
+<p>那么就可以变成这样的结构<br><img src="/images/presto-stage/JoinStage2.png" alt=""><br>如果左表特别大的话，那么就省去了很多的shuffle时间。</p>
+
+      
+    </div>
+    
+  </div>
+  
+    
+    <div class="copyright">
+        <p><span>本文标题:</span><a href="/2018/07/10/Presto的分段源码解析/">Presto的分段源码解析</a></p>
+        <p><span>文章作者:</span><a href="/" title="回到主页">zhy</a></p>
+        <p><span>发布时间:</span>2018-07-10, 00:00:00</p>
+        <!--<p><span>最后更新:</span>2018-07-19, 18:53:08</p>-->
+        <p>
+            <span>原始链接:</span><a class="post-url" href="/2018/07/10/Presto的分段源码解析/" title="Presto的分段源码解析">http://zhyzhyzhy.github.io/2018/07/10/Presto的分段源码解析/</a>
+            <span class="copy-path" data-clipboard-text="原文: http://zhyzhyzhy.github.io/2018/07/10/Presto的分段源码解析/　　作者: zhy" title="点击复制文章链接"><i class="fa fa-clipboard"></i></span>
+            <script> var clipboard = new Clipboard('.copy-path'); </script>
+        </p>
+        <p>
+            <span>许可协议:</span><i class="fa fa-creative-commons"></i> <a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/" title="CC BY-NC-SA 4.0 International" target = "_blank">"署名-非商用-相同方式共享 4.0"</a> 转载请保留原文链接及作者。
+        </p>
+    </div>
+
+
+
+    <nav id="article-nav">
+        
+            <div id="article-nav-newer" class="article-nav-title">
+                <a href="/2018/07/10/Presto的Join细节研究/">
+                    Presto的Join的细节研究
+                </a>
+            </div>
+        
+        
+            <div id="article-nav-older" class="article-nav-title">
+                <a href="/2018/06/16/Presto和Hive的区别/">
+                    Presto和Hive的区别
+                </a>
+            </div>
+        
+    </nav>
+
+  
+</article>
+
+    <div id="toc" class="toc-article">
+        <strong class="toc-title">文章目录</strong>
+        
+            <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#先行流程"><span class="toc-number">1.</span> <span class="toc-text">先行流程</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Stage抽象"><span class="toc-number">2.</span> <span class="toc-text">Stage抽象</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#PlanFragmenter"><span class="toc-number">3.</span> <span class="toc-text">PlanFragmenter</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#AddExchanges"><span class="toc-number">4.</span> <span class="toc-text">AddExchanges</span></a></li></ol>
+        
+    </div>
+    <style>
+        .left-col .switch-btn,
+        .left-col .switch-area {
+            display: none;
+        }
+        .toc-level-3 i,
+        .toc-level-3 ol {
+            display: none !important;
+        }
+    </style>
+
+    <input type="button" id="tocButton" value="隐藏目录"  title="点击按钮隐藏或者显示文章目录">
+
+    <script>
+        yiliaConfig.toc = ["隐藏目录", "显示目录", !!"false"];
+    </script>
+
+
+
+
+
+    
+        <section id="comments">
+    <style> aside.comment-bar { margin: auto 30px; }</style>
+    <div id="disqus_thread"></div>
+    <script>
+        var disqus_config = function(){
+            this.page.url = 'http://zhyzhyzhy.github.io/2018/07/10/Presto的分段源码解析/';
+            this.page.identifier = '2018/07/10/Presto的分段源码解析/';
+        };
+        var loadComment = function(){
+            var d = document, s = d.createElement('script');
+            s.src = '//blog-lovezhy-cc-1.disqus.com/embed.js';
+            s.setAttribute('data-timestamp', +new Date());
+            (d.head || d.body).appendChild(s);
+        }
+    </script>
+    
+    <script> loadComment(); </script>
+
+</section>
+
+
+    
+
+
+
+
+    <div class="scroll" id="post-nav-button">
+        
+            <a href="/2018/07/10/Presto的Join细节研究/" title="上一篇: Presto的Join的细节研究">
+                <i class="fa fa-angle-left"></i>
+            </a>
+        
+
+        <a title="文章列表"><i class="fa fa-bars"></i><i class="fa fa-times"></i></a>
+
+        
+            <a href="/2018/06/16/Presto和Hive的区别/" title="下一篇: Presto和Hive的区别">
+                <i class="fa fa-angle-right"></i>
+            </a>
+        
+    </div>
+
+    <ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/2018/07/20/Presto源码-ExchangeClient和OutputBuffer详解/">Presto源码-ExchangeClient和OutputBuffer详解</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/07/19/Presto源码解析-Slice实现/">Presto源码解析 - Slice实现</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/07/15/Guava库学习之Collections/">Guava库学习之Collections</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/07/15/数据库Join算法/">数据库Join算法</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/07/10/presto执行流程/">Presto执行流程</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/07/10/Presto的Join细节研究/">Presto的Join的细节研究</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/07/10/Presto的分段源码解析/">Presto的分段源码解析</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/06/16/Presto和Hive的区别/">Presto和Hive的区别</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/06/05/行列存储的区别/">行列存储的区别</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/06/03/Presto基本概念/">Presto基本概念</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/05/23/OLAP基本知识/">OLAP基本知识</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/05/01/分布式基础知识/">分布式基础知识</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/04/15/CSRF和XSS/">CSRF和XSS攻击</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/04/11/brpc-doc笔记/">brpc-doc笔记</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/04/01/vim技巧/">Vim技巧</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/04/01/在ubuntu16.04上搭建hadoop环境/">在ubunut16.04上搭建hadoop环境</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/03/03/spi和破坏双亲委派/">spi和破坏双亲委派</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/02/24/AQS和ReentrantLock/">AQS和ReentrantLock</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/02/23/LongAdder解析/">LongAdder解析</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/02/18/pigeon一些细节的具体实现/">pigeon一些细节的具体实现</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/02/18/pigeon的服务注册与发现/">pigeon的服务注册与发现</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/02/18/pigeon中的核心类和作用/">pigeon中的核心类和作用</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/02/10/fat-jar/">fat-jar配置</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/02/07/log4j和slf4j配置/">log4j和slf4j配置</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/12/21/ThreadLocal源码分析/">ThreadLocal源码分析</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/12/18/ConcurrentHashMap源码分析/">ConcurrentHashMap源码分析</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/12/10/LinkedList源码分析/">LinkedList源码分析</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/12/09/HashSet源码分析/">HashSet源码解析</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/12/07/ArrayList源码分析/">ArrayList源码分析</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/11/18/jsessionid的生成/">JsessionId的生成</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/10/24/哪些可以作为GCRoots/">哪些可以作为GC Roots</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/09/10/动态代理的缓存实现/">动态代理的缓存实现</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/08/20/IO之同步，阻塞，非阻塞/">同步，阻塞，非阻塞</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/08/09/Java泛型数组/">Java泛型</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/08/05/Java内部类/">Java内部类</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/08/02/libevent简单使用/">libevent简单使用</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/07/26/叶子/">叶子</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/07/21/HashMap源码解析/">HashMap源码解析</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/07/21/PathVariable及route设计/">PathVariable及路由设计</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/07/07/hello-world/">Hello World</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/05/28/use_AuthenticationProvider_in_springSec/">使用AuthenticationProvider进行自定义登陆配置</a></li></ul>
+
+
+
+
+    <script>
+        
+    </script>
+</div>
+      <footer id="footer">
+    <div class="outer">
+        <div id="footer-info">
+            <div class="footer-left">
+                <i class="fa fa-copyright"></i> 
+                2016-2018 zhy
+            </div>
+            <div class="footer-right">
+                <a href="http://hexo.io/" target="_blank" title="快速、简洁且高效的博客框架">Hexo</a>  Theme <a href="https://github.com/MOxFIVE/hexo-theme-yelee" target="_blank" title="简而不减 Hexo 双栏博客主题  v3.5">Yelee</a> by MOxFIVE <i class="fa fa-heart animated infinite pulse"></i>
+            </div>
+        </div>
+        
+    </div>
+</footer>
+    </div>
+    
+    <script src="/js/GithubRepoWidget.js"></script>
+
+<script data-main="/js/main.js" src="//cdn.bootcss.com/require.js/2.2.0/require.min.js"></script>
+
+    <script>
+        $(document).ready(function() {
+            var iPad = window.navigator.userAgent.indexOf('iPad');
+            if (iPad > -1 || $(".left-col").css("display") === "none") {
+                var bgColorList = ["#9db3f4", "#414141", "#e5a859", "#f5dfc6", "#c084a0", "#847e72", "#cd8390", "#996731"];
+                var bgColor = Math.ceil(Math.random() * (bgColorList.length - 1));
+                $("body").css({"background-color": bgColorList[bgColor], "background-size": "cover"});
+            }
+            else {
+                var backgroundnum = 5;
+                var backgroundimg = "url(/background/bg-x.jpg)".replace(/x/gi, Math.ceil(Math.random() * backgroundnum));
+                $("body").css({"background": backgroundimg, "background-attachment": "fixed", "background-size": "cover"});
+            }
+        })
+    </script>
+
+
+
+
+
+<div class="scroll" id="scroll">
+    <a href="#" title="返回顶部"><i class="fa fa-arrow-up"></i></a>
+    <a href="#comments" onclick="load$hide();" title="查看评论"><i class="fa fa-comments-o"></i></a>
+    <a href="#footer" title="转到底部"><i class="fa fa-arrow-down"></i></a>
+</div>
+<script>
+    // Open in New Window
+    
+        var oOpenInNew = {
+             github: ".github-widget a", 
+            
+            
+            
+            
+            
+             archives: ".archive-article-title", 
+             miniArchives: "a.post-list-link", 
+            
+             friends: "#js-friends a", 
+             socail: ".social a" 
+        }
+        for (var x in oOpenInNew) {
+            $(oOpenInNew[x]).attr("target", "_blank");
+        }
+    
+</script>
+
+<script async src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js">
+</script>
+  </div>
+</body>
+</html>

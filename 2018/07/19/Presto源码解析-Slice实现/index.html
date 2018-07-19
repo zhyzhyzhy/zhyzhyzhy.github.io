@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html >
+<head>
+
+    <!--[if lt IE 9]>
+        <style>body {display: none; background: none !important} </style>
+        <meta http-equiv="Refresh" Content="0; url=//outdatedbrowser.com/" />
+    <![endif]-->
+
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge, chrome=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="format-detection" content="telephone=no" />
+<meta name="author" content="zhy" />
+
+
+
+<meta name="description" content="前言Presto的Slice并不在Presto包中，是在一个独立的包org.airlift.slice中org.airlift是个工具类，作者也是Presto的主要开发者，主要是服务于Presto的，但是我们也可以单独取出来用。 ClassLayout和Unsafe在Java中一般是无法取得类的大小的，需要通过一些特殊的手段，例如Unsafe包中的方法。org.openjdk.jol包封装了很多U">
+<meta name="keywords" content="Presto">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Presto源码解析 - Slice实现">
+<meta property="og:url" content="http://zhyzhyzhy.github.io/2018/07/19/Presto源码解析-Slice实现/index.html">
+<meta property="og:site_name" content="LoveZhy">
+<meta property="og:description" content="前言Presto的Slice并不在Presto包中，是在一个独立的包org.airlift.slice中org.airlift是个工具类，作者也是Presto的主要开发者，主要是服务于Presto的，但是我们也可以单独取出来用。 ClassLayout和Unsafe在Java中一般是无法取得类的大小的，需要通过一些特殊的手段，例如Unsafe包中的方法。org.openjdk.jol包封装了很多U">
+<meta property="og:locale" content="default">
+<meta property="og:image" content="http://zhyzhyzhy.github.io/images/presto-slice/FixedBlock.png">
+<meta property="og:image" content="http://zhyzhyzhy.github.io/images/presto-slice/varBlock.png">
+<meta property="og:updated_time" content="2018-07-19T11:02:13.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Presto源码解析 - Slice实现">
+<meta name="twitter:description" content="前言Presto的Slice并不在Presto包中，是在一个独立的包org.airlift.slice中org.airlift是个工具类，作者也是Presto的主要开发者，主要是服务于Presto的，但是我们也可以单独取出来用。 ClassLayout和Unsafe在Java中一般是无法取得类的大小的，需要通过一些特殊的手段，例如Unsafe包中的方法。org.openjdk.jol包封装了很多U">
+<meta name="twitter:image" content="http://zhyzhyzhy.github.io/images/presto-slice/FixedBlock.png">
+
+<link rel="apple-touch-icon" href= "/apple-touch-icon.png">
+
+
+    <link rel="alternate" href="/atom.xml" title="LoveZhy" type="application/atom+xml">
+
+
+
+    <link rel="shortcut icon" href="/favicon.png">
+
+
+
+    <link href="//cdn.bootcss.com/animate.css/3.5.1/animate.min.css" rel="stylesheet">
+
+
+
+    <link href="//cdn.bootcss.com/fancybox/2.1.5/jquery.fancybox.min.css" rel="stylesheet">
+
+
+
+    <script src="//cdn.bootcss.com/pace/1.0.2/pace.min.js"></script>
+    <link href="//cdn.bootcss.com/pace/1.0.2/themes/blue/pace-theme-minimal.css" rel="stylesheet">
+
+
+<link rel="stylesheet" href="/css/style.css">
+
+
+
+<link href="//cdn.bootcss.com/font-awesome/4.6.3/css/font-awesome.min.css" rel="stylesheet">
+
+
+<title>Presto源码解析 - Slice实现 | LoveZhy</title>
+
+<script src="//cdn.bootcss.com/jquery/2.2.4/jquery.min.js"></script>
+<script src="//cdn.bootcss.com/clipboard.js/1.5.10/clipboard.min.js"></script>
+
+<script>
+    var yiliaConfig = {
+        fancybox: true,
+        animate: true,
+        isHome: false,
+        isPost: true,
+        isArchive: false,
+        isTag: false,
+        isCategory: false,
+        fancybox_js: "//cdn.bootcss.com/fancybox/2.1.5/jquery.fancybox.min.js",
+        scrollreveal: "//cdn.bootcss.com/scrollReveal.js/3.1.4/scrollreveal.min.js",
+        search: undefined
+    }
+</script>
+
+
+    <script> yiliaConfig.jquery_ui = [false]; </script>
+
+
+
+    <script> yiliaConfig.rootUrl = "\/";</script>
+
+
+
+
+
+
+</head>
+<body>
+  <div id="container">
+    <div class="left-col">
+    <div class="overlay"></div>
+<div class="intrude-less">
+    <header id="header" class="inner">
+        <a href="/" class="profilepic">
+            <img src="/img/avatar.jpg" class="animated zoomIn">
+        </a>
+        <hgroup>
+          <h1 class="header-author"><a href="/">zhy</a></h1>
+        </hgroup>
+
+        
+
+        
+
+
+        
+
+        <div id="switch-area" class="switch-area">
+            <div class="switch-wrap">
+                <section class="switch-part switch-part1">
+                    <nav class="header-menu">
+                        <ul>
+                        
+                            <li><a href="/">主页</a></li>
+                        
+                            <li><a href="/archives/">所有文章</a></li>
+                        
+                            <li><a href="/tags/">标签云</a></li>
+                        
+                            <li><a href="/about/">关于我</a></li>
+                        
+                        </ul>
+                    </nav>
+                    <nav class="header-nav">
+                        <ul class="social">
+                            
+                                <a class="fa Email" href="mailto:zhuyichen1017@gmail.com" title="Email"></a>
+                            
+                                <a class="fa GitHub" href="https://github.com/zhyzhyzhy" title="GitHub"></a>
+                            
+                        </ul>
+                    </nav>
+                </section>
+                
+                
+                
+                
+
+                
+                
+                <section class="switch-part switch-part3">
+                
+                    <div id="js-aboutme">江湖里卧虎，人心里藏龙</div>
+                </section>
+                
+            </div>
+        </div>
+    </header>                
+</div>
+    </div>
+    <div class="mid-col">
+      <nav id="mobile-nav">
+      <div class="overlay">
+          <div class="slider-trigger"></div>
+          <h1 class="header-author js-mobile-header hide"><a href="/" title="回到主页">zhy</a></h1>
+      </div>
+    <div class="intrude-less">
+        <header id="header" class="inner">
+            <a href="/" class="profilepic">
+                <img src="/img/avatar.jpg" class="animated zoomIn">
+            </a>
+            <hgroup>
+              <h1 class="header-author"><a href="/" title="回到主页">zhy</a></h1>
+            </hgroup>
+            
+            <nav class="header-menu">
+                <ul>
+                
+                    <li><a href="/">主页</a></li>
+                
+                    <li><a href="/archives/">所有文章</a></li>
+                
+                    <li><a href="/tags/">标签云</a></li>
+                
+                    <li><a href="/about/">关于我</a></li>
+                
+                <div class="clearfix"></div>
+                </ul>
+            </nav>
+            <nav class="header-nav">
+                        <ul class="social">
+                            
+                                <a class="fa Email" target="_blank" href="mailto:zhuyichen1017@gmail.com" title="Email"></a>
+                            
+                                <a class="fa GitHub" target="_blank" href="https://github.com/zhyzhyzhy" title="GitHub"></a>
+                            
+                        </ul>
+            </nav>
+        </header>                
+    </div>
+    <link class="menu-list" tags="标签" friends="友情链接" about="关于我"/>
+</nav>
+      <div class="body-wrap"><article id="post-Presto源码解析-Slice实现" class="article article-type-post" itemscope itemprop="blogPost">
+  
+    <div class="article-meta">
+      <a href="/2018/07/19/Presto源码解析-Slice实现/" class="article-date">
+      <time datetime="2018-07-18T16:00:00.000Z" itemprop="datePublished">2018-07-19</time>
+</a>
+
+
+    </div>
+  
+  <div class="article-inner">
+    
+      <input type="hidden" class="isFancy" />
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      Presto源码解析 - Slice实现
+    </h1>
+  
+
+      </header>
+      
+      <div class="article-info article-info-post">
+        
+
+        
+    <div class="article-tag tagcloud">
+        <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Presto/">Presto</a></li></ul>
+    </div>
+
+        <div class="clearfix"></div>
+      </div>
+      
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+          
+        <h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>Presto的Slice并不在Presto包中，是在一个独立的包<code>org.airlift.slice</code>中<br><code>org.airlift</code>是个工具类，作者也是Presto的主要开发者，主要是服务于Presto的，但是我们也可以单独取出来用。</p>
+<h2 id="ClassLayout和Unsafe"><a href="#ClassLayout和Unsafe" class="headerlink" title="ClassLayout和Unsafe"></a>ClassLayout和Unsafe</h2><p>在Java中一般是无法取得类的大小的，需要通过一些特殊的手段，例如Unsafe包中的方法。<br><code>org.openjdk.jol</code>包封装了很多Unsafe的方法。<br>我们可以通过<code>ClassLayout</code>类来或者我们创建的Java对象在内存中的大小。</p>
+<p>通过Unsafe我们可以对对象的内存直接进行操作。<br>假设我们创建一个int类型的数组，每个元素的值是他Index的位置<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">int</span>[] nums = <span class="keyword">new</span> <span class="keyword">int</span>[<span class="number">20</span>];</span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; nums.length; i++) &#123;</span><br><span class="line">        nums[i] = i;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>上面这种写法是常规的写法。<br>我们也可以用Unsafe。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment">         * 调用反射获得Unsafe实例</span></span><br><span class="line"><span class="comment">         */</span></span><br><span class="line">        Field field = Unsafe.class.getDeclaredField(<span class="string">"theUnsafe"</span>);</span><br><span class="line">        field.setAccessible(<span class="keyword">true</span>);</span><br><span class="line">        Unsafe unsafe = (Unsafe) field.get(<span class="keyword">null</span>);</span><br><span class="line"></span><br><span class="line">        <span class="keyword">int</span>[] nums = <span class="keyword">new</span> <span class="keyword">int</span>[<span class="number">20</span>];</span><br><span class="line">        <span class="keyword">for</span> (<span class="keyword">int</span>  i = <span class="number">0</span>; i &lt; nums.length; i++) &#123;</span><br><span class="line">            unsafe.putInt(nums, (<span class="keyword">long</span>) i * Unsafe.ARRAY_INT_INDEX_SCALE + Unsafe.ARRAY_INT_BASE_OFFSET, i);</span><br><span class="line">        &#125;</span><br></pre></td></tr></table></figure></p>
+<p>Unsafe实例我们需要通过反射获得，直接获得会抛出异常。<br>ARRAY_INT_BASE_OFFSET表示数组对象的第一个元素在内存中的位置。<br>ARRAY_INT_INDEX_SCALE表示每一个真正的元素的数据中的占据空间。<br>这些变量都在Unsafe中，还有许多，对应byte数组，long数组等。</p>
+<p>同样的，只要能获得对象的地址，那么我们就可以对任意的对象进行写入。<br>我们尝试在Object对象中写入两个Long元素<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment">         * 调用反射获得Unsafe实例</span></span><br><span class="line"><span class="comment">         */</span></span><br><span class="line">        Field field = Unsafe.class.getDeclaredField(<span class="string">"theUnsafe"</span>);</span><br><span class="line">        field.setAccessible(<span class="keyword">true</span>);</span><br><span class="line">        Unsafe unsafe = (Unsafe) field.get(<span class="keyword">null</span>);</span><br><span class="line"></span><br><span class="line">        Object object = <span class="keyword">new</span> Object();</span><br><span class="line">        System.out.println(object);</span><br><span class="line">        <span class="keyword">int</span> size  = ClassLayout.parseClass(Object.class).instanceSize();</span><br><span class="line">        System.out.println(<span class="string">"size: "</span> + size); <span class="comment">// 16</span></span><br><span class="line">        <span class="comment">/**</span></span><br><span class="line"><span class="comment">         * 把Object写为两个long</span></span><br><span class="line"><span class="comment">         */</span></span><br><span class="line">        unsafe.putLong(object, <span class="number">0L</span>, <span class="number">13L</span>);</span><br><span class="line">        unsafe.putLong(object, (<span class="keyword">long</span>) SizeOf.SIZE_OF_LONG, <span class="number">19L</span>);</span><br><span class="line"></span><br><span class="line">        System.out.println(unsafe.getLong(object, <span class="number">0L</span>)); <span class="comment">// 13</span></span><br><span class="line">        System.out.println(unsafe.getLong(object, (<span class="keyword">long</span>)SizeOf.SIZE_OF_LONG)); <span class="comment">// 19</span></span><br><span class="line"></span><br><span class="line">        System.out.println(object); <span class="comment">// upe</span></span><br></pre></td></tr></table></figure></p>
+<p>需要注意的是，这样Object对象就是<strong>不可用</strong>了。<br>如果我们强行输出的话，会抛出空指针异常。</p>
+<p>同样的，我们可以对对象进行设值，这个时候我们可以借助ClassLayout封装好的方法<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">static</span> <span class="class"><span class="keyword">class</span> <span class="title">Person</span> </span>&#123;</span><br><span class="line">        <span class="keyword">private</span> String name;</span><br><span class="line">        <span class="keyword">private</span> <span class="keyword">int</span> age;</span><br><span class="line"></span><br><span class="line"><span class="comment">//get set...</span></span><br><span class="line">        <span class="meta">@Override</span></span><br><span class="line">        <span class="function"><span class="keyword">public</span> String <span class="title">toString</span><span class="params">()</span> </span>&#123;</span><br><span class="line">            <span class="keyword">final</span> StringBuilder sb = <span class="keyword">new</span> StringBuilder(<span class="string">"Person&#123;"</span>);</span><br><span class="line">            sb.append(<span class="string">"name='"</span>).append(name).append(<span class="string">'\''</span>);</span><br><span class="line">            sb.append(<span class="string">", age="</span>).append(age);</span><br><span class="line">            sb.append(<span class="string">'&#125;'</span>);</span><br><span class="line">            <span class="keyword">return</span> sb.toString();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line">Person person = <span class="keyword">new</span> Person();</span><br><span class="line">        ClassLayout personClassLayout = ClassLayout.parseClass(Person.class);</span><br><span class="line">        <span class="keyword">int</span> size = personClassLayout.instanceSize();</span><br><span class="line">        System.out.println(<span class="string">"size: "</span> + size);</span><br><span class="line">        System.out.println(<span class="string">"header size: "</span> + personClassLayout.headerSize());</span><br><span class="line"></span><br><span class="line">        <span class="comment">/**</span></span><br><span class="line"><span class="comment">         * 得到所有的field的信息</span></span><br><span class="line"><span class="comment">         */</span></span><br><span class="line">        SortedSet&lt;FieldLayout&gt; fields = personClassLayout.fields();</span><br><span class="line">        <span class="keyword">for</span> (FieldLayout layout : fields) &#123;</span><br><span class="line">            <span class="keyword">switch</span> (layout.name()) &#123;</span><br><span class="line">                <span class="keyword">case</span> <span class="string">"name"</span>:</span><br><span class="line">                    unsafe.putObject(person, ((<span class="keyword">long</span>) layout.offset()), <span class="string">"Zhu"</span>);</span><br><span class="line">                    <span class="keyword">break</span>;</span><br><span class="line">                <span class="keyword">case</span> <span class="string">"age"</span>:</span><br><span class="line">                    unsafe.putInt(person, ((<span class="keyword">long</span>) layout.offset()), <span class="number">20</span>);</span><br><span class="line">                    <span class="keyword">break</span>;</span><br><span class="line">                <span class="keyword">default</span>:</span><br><span class="line">                    <span class="keyword">break</span>;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        System.out.println(person); <span class="comment">// Person&#123;name='Zhu', age=20&#125;</span></span><br></pre></td></tr></table></figure>
+<p><strong>总之，这就给了一个类似于利用大对象的内存配合Unsafe直接操作内存的方法做一个内存池的思路</strong></p>
+<h2 id="Slices"><a href="#Slices" class="headerlink" title="Slices"></a>Slices</h2><p>我们无法直接创建Slice类，可以通过Slices类提供的很多的静态方法来进行创建。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">Slice <span class="title">allocate</span><span class="params">(<span class="keyword">int</span> capacity)</span></span>; </span><br><span class="line"><span class="comment">//利用这个方法我们可以直接创建一个容量为capacity的Slice，底层就是创建了一个byte[capacity]的数组，不过这个对象是在堆内的</span></span><br><span class="line"><span class="function">Slice <span class="title">allocateDirect</span><span class="params">(<span class="keyword">int</span> capacity)</span></span>;</span><br><span class="line"><span class="comment">//利用这个方法我们可以在堆外创建一块内存，底层是使用的nio的ByteBuffer.allocateDirect</span></span><br></pre></td></tr></table></figure>
+<p>创建了Slice之后，就可以往里面添加元素了。<br>在Presto中最重要的两个用法就是FixedWidthBlock和VariableWidthBlock了。<br>创建者两种Block运用他的Builder类FixedWidthBlockBuilder和VariableWidthBlockBuilder类。</p>
+<h3 id="FixedWidthBlockBuilder"><a href="#FixedWidthBlockBuilder" class="headerlink" title="FixedWidthBlockBuilder"></a>FixedWidthBlockBuilder</h3><p><img src="/images/presto-slice/FixedBlock.png" alt=""></p>
+<p>定长的Block，所以会固定一个FixedSize，然后底层就是一个byte数组。<br>不管我们往里面写什么，只要一个entry的长度是FixedSize就行。<br>同时这个不提供自动扩展内存的功能，当超出大小时，会抛出异常。</p>
+<h3 id="VariableWidthBlockBuilder"><a href="#VariableWidthBlockBuilder" class="headerlink" title="VariableWidthBlockBuilder"></a>VariableWidthBlockBuilder</h3><p><img src="/images/presto-slice/varBlock.png" alt=""><br>变长的Block，没有固定的大小，所以需要一个额外的数组记录指定entry的位置<br>同时在每次增加之前会确保内存空间足够，如果不够会进行自动扩容。</p>
+
+      
+    </div>
+    
+  </div>
+  
+    
+    <div class="copyright">
+        <p><span>本文标题:</span><a href="/2018/07/19/Presto源码解析-Slice实现/">Presto源码解析 - Slice实现</a></p>
+        <p><span>文章作者:</span><a href="/" title="回到主页">zhy</a></p>
+        <p><span>发布时间:</span>2018-07-19, 00:00:00</p>
+        <!--<p><span>最后更新:</span>2018-07-19, 19:02:13</p>-->
+        <p>
+            <span>原始链接:</span><a class="post-url" href="/2018/07/19/Presto源码解析-Slice实现/" title="Presto源码解析 - Slice实现">http://zhyzhyzhy.github.io/2018/07/19/Presto源码解析-Slice实现/</a>
+            <span class="copy-path" data-clipboard-text="原文: http://zhyzhyzhy.github.io/2018/07/19/Presto源码解析-Slice实现/　　作者: zhy" title="点击复制文章链接"><i class="fa fa-clipboard"></i></span>
+            <script> var clipboard = new Clipboard('.copy-path'); </script>
+        </p>
+        <p>
+            <span>许可协议:</span><i class="fa fa-creative-commons"></i> <a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/" title="CC BY-NC-SA 4.0 International" target = "_blank">"署名-非商用-相同方式共享 4.0"</a> 转载请保留原文链接及作者。
+        </p>
+    </div>
+
+
+
+    <nav id="article-nav">
+        
+            <div id="article-nav-newer" class="article-nav-title">
+                <a href="/2018/07/20/Presto源码-ExchangeClient和OutputBuffer详解/">
+                    Presto源码-ExchangeClient和OutputBuffer详解
+                </a>
+            </div>
+        
+        
+            <div id="article-nav-older" class="article-nav-title">
+                <a href="/2018/07/15/Guava库学习之Collections/">
+                    Guava库学习之Collections
+                </a>
+            </div>
+        
+    </nav>
+
+  
+</article>
+
+    <div id="toc" class="toc-article">
+        <strong class="toc-title">文章目录</strong>
+        
+            <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#前言"><span class="toc-number">1.</span> <span class="toc-text">前言</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#ClassLayout和Unsafe"><span class="toc-number">2.</span> <span class="toc-text">ClassLayout和Unsafe</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Slices"><span class="toc-number">3.</span> <span class="toc-text">Slices</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#FixedWidthBlockBuilder"><span class="toc-number">3.1.</span> <span class="toc-text">FixedWidthBlockBuilder</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#VariableWidthBlockBuilder"><span class="toc-number">3.2.</span> <span class="toc-text">VariableWidthBlockBuilder</span></a></li></ol></li></ol>
+        
+    </div>
+    <style>
+        .left-col .switch-btn,
+        .left-col .switch-area {
+            display: none;
+        }
+        .toc-level-3 i,
+        .toc-level-3 ol {
+            display: none !important;
+        }
+    </style>
+
+    <input type="button" id="tocButton" value="隐藏目录"  title="点击按钮隐藏或者显示文章目录">
+
+    <script>
+        yiliaConfig.toc = ["隐藏目录", "显示目录", !!"false"];
+    </script>
+
+
+
+
+
+    
+        <section id="comments">
+    <style> aside.comment-bar { margin: auto 30px; }</style>
+    <div id="disqus_thread"></div>
+    <script>
+        var disqus_config = function(){
+            this.page.url = 'http://zhyzhyzhy.github.io/2018/07/19/Presto源码解析-Slice实现/';
+            this.page.identifier = '2018/07/19/Presto源码解析-Slice实现/';
+        };
+        var loadComment = function(){
+            var d = document, s = d.createElement('script');
+            s.src = '//blog-lovezhy-cc-1.disqus.com/embed.js';
+            s.setAttribute('data-timestamp', +new Date());
+            (d.head || d.body).appendChild(s);
+        }
+    </script>
+    
+    <script> loadComment(); </script>
+
+</section>
+
+
+    
+
+
+
+
+    <div class="scroll" id="post-nav-button">
+        
+            <a href="/2018/07/20/Presto源码-ExchangeClient和OutputBuffer详解/" title="上一篇: Presto源码-ExchangeClient和OutputBuffer详解">
+                <i class="fa fa-angle-left"></i>
+            </a>
+        
+
+        <a title="文章列表"><i class="fa fa-bars"></i><i class="fa fa-times"></i></a>
+
+        
+            <a href="/2018/07/15/Guava库学习之Collections/" title="下一篇: Guava库学习之Collections">
+                <i class="fa fa-angle-right"></i>
+            </a>
+        
+    </div>
+
+    <ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/2018/07/20/Presto源码-ExchangeClient和OutputBuffer详解/">Presto源码-ExchangeClient和OutputBuffer详解</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/07/19/Presto源码解析-Slice实现/">Presto源码解析 - Slice实现</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/07/15/Guava库学习之Collections/">Guava库学习之Collections</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/07/15/数据库Join算法/">数据库Join算法</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/07/10/presto执行流程/">Presto执行流程</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/07/10/Presto的Join细节研究/">Presto的Join的细节研究</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/07/10/Presto的分段源码解析/">Presto的分段源码解析</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/06/16/Presto和Hive的区别/">Presto和Hive的区别</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/06/05/行列存储的区别/">行列存储的区别</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/06/03/Presto基本概念/">Presto基本概念</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/05/23/OLAP基本知识/">OLAP基本知识</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/05/01/分布式基础知识/">分布式基础知识</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/04/15/CSRF和XSS/">CSRF和XSS攻击</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/04/11/brpc-doc笔记/">brpc-doc笔记</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/04/01/vim技巧/">Vim技巧</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/04/01/在ubuntu16.04上搭建hadoop环境/">在ubunut16.04上搭建hadoop环境</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/03/03/spi和破坏双亲委派/">spi和破坏双亲委派</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/02/24/AQS和ReentrantLock/">AQS和ReentrantLock</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/02/23/LongAdder解析/">LongAdder解析</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/02/18/pigeon一些细节的具体实现/">pigeon一些细节的具体实现</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/02/18/pigeon的服务注册与发现/">pigeon的服务注册与发现</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/02/18/pigeon中的核心类和作用/">pigeon中的核心类和作用</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/02/10/fat-jar/">fat-jar配置</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/02/07/log4j和slf4j配置/">log4j和slf4j配置</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/12/21/ThreadLocal源码分析/">ThreadLocal源码分析</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/12/18/ConcurrentHashMap源码分析/">ConcurrentHashMap源码分析</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/12/10/LinkedList源码分析/">LinkedList源码分析</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/12/09/HashSet源码分析/">HashSet源码解析</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/12/07/ArrayList源码分析/">ArrayList源码分析</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/11/18/jsessionid的生成/">JsessionId的生成</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/10/24/哪些可以作为GCRoots/">哪些可以作为GC Roots</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/09/10/动态代理的缓存实现/">动态代理的缓存实现</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/08/20/IO之同步，阻塞，非阻塞/">同步，阻塞，非阻塞</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/08/09/Java泛型数组/">Java泛型</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/08/05/Java内部类/">Java内部类</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/08/02/libevent简单使用/">libevent简单使用</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/07/26/叶子/">叶子</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/07/21/HashMap源码解析/">HashMap源码解析</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/07/21/PathVariable及route设计/">PathVariable及路由设计</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/07/07/hello-world/">Hello World</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/05/28/use_AuthenticationProvider_in_springSec/">使用AuthenticationProvider进行自定义登陆配置</a></li></ul>
+
+
+
+
+    <script>
+        
+    </script>
+</div>
+      <footer id="footer">
+    <div class="outer">
+        <div id="footer-info">
+            <div class="footer-left">
+                <i class="fa fa-copyright"></i> 
+                2016-2018 zhy
+            </div>
+            <div class="footer-right">
+                <a href="http://hexo.io/" target="_blank" title="快速、简洁且高效的博客框架">Hexo</a>  Theme <a href="https://github.com/MOxFIVE/hexo-theme-yelee" target="_blank" title="简而不减 Hexo 双栏博客主题  v3.5">Yelee</a> by MOxFIVE <i class="fa fa-heart animated infinite pulse"></i>
+            </div>
+        </div>
+        
+    </div>
+</footer>
+    </div>
+    
+    <script src="/js/GithubRepoWidget.js"></script>
+
+<script data-main="/js/main.js" src="//cdn.bootcss.com/require.js/2.2.0/require.min.js"></script>
+
+    <script>
+        $(document).ready(function() {
+            var iPad = window.navigator.userAgent.indexOf('iPad');
+            if (iPad > -1 || $(".left-col").css("display") === "none") {
+                var bgColorList = ["#9db3f4", "#414141", "#e5a859", "#f5dfc6", "#c084a0", "#847e72", "#cd8390", "#996731"];
+                var bgColor = Math.ceil(Math.random() * (bgColorList.length - 1));
+                $("body").css({"background-color": bgColorList[bgColor], "background-size": "cover"});
+            }
+            else {
+                var backgroundnum = 5;
+                var backgroundimg = "url(/background/bg-x.jpg)".replace(/x/gi, Math.ceil(Math.random() * backgroundnum));
+                $("body").css({"background": backgroundimg, "background-attachment": "fixed", "background-size": "cover"});
+            }
+        })
+    </script>
+
+
+
+
+
+<div class="scroll" id="scroll">
+    <a href="#" title="返回顶部"><i class="fa fa-arrow-up"></i></a>
+    <a href="#comments" onclick="load$hide();" title="查看评论"><i class="fa fa-comments-o"></i></a>
+    <a href="#footer" title="转到底部"><i class="fa fa-arrow-down"></i></a>
+</div>
+<script>
+    // Open in New Window
+    
+        var oOpenInNew = {
+             github: ".github-widget a", 
+            
+            
+            
+            
+            
+             archives: ".archive-article-title", 
+             miniArchives: "a.post-list-link", 
+            
+             friends: "#js-friends a", 
+             socail: ".social a" 
+        }
+        for (var x in oOpenInNew) {
+            $(oOpenInNew[x]).attr("target", "_blank");
+        }
+    
+</script>
+
+<script async src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js">
+</script>
+  </div>
+</body>
+</html>
