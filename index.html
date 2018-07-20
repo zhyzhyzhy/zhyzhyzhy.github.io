@@ -230,30 +230,59 @@
         <h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>Presto在数据进行shuffle的时候，并不是PPT中经常看到的Push模式，而是Pull模式。<br>在两端负责分发和交换数据的类分别是ExchangClient和OutputBuffer。</p>
 <p>比如：<br>Source Stage把数据从Connector中拉取出来，这时候需要给下一个FixedStage进行处理。<br>他会先把数据放在OutputBuffer中，等待上游把数据请求过去，而上游请求数据的类就是ExchangeClient。</p>
 <h2 id="ExchangeClient"><a href="#ExchangeClient" class="headerlink" title="ExchangeClient"></a>ExchangeClient</h2><p><img src="../images/presto-exchangeclient/ExchangeClient.png" alt=""><br>大体的过程是这样，但是一些细节还是没发画出来，尽力了。<br>下面详细解释下。</p>
-<h3 id="ExchangOperator"><a href="#ExchangOperator" class="headerlink" title="ExchangOperator"></a>ExchangOperator</h3><p>一般来说负责拉数据有个专门的Operator是ExchangeOperator。<br>在创建ExchangeOperator的时候，会加上一个ExchangClient。<br>所以和图中不同的是，这个ExchangeClient其实是在ExchangeOperator里面。</p>
-<p>在PipeLine的下一个Operator和ExchangeClient拉数据的时候，会调用上一个的getOutput()<br>在ExchangeOperator的getOutput()方法中<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> Page <span class="title">getOutput</span><span class="params">()</span></span></span><br><span class="line"><span class="function">    </span>&#123;</span><br><span class="line">        SerializedPage page = exchangeClient.pollPage();</span><br><span class="line">        <span class="keyword">if</span> (page == <span class="keyword">null</span>) &#123;</span><br><span class="line">            <span class="keyword">return</span> <span class="keyword">null</span>;</span><br><span class="line">        &#125;</span><br><span class="line"> operatorContext.recordGeneratedInput(page.getSizeInBytes(), page.getPositionCount());</span><br><span class="line">        <span class="keyword">return</span> serde.deserialize(page);</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure></p>
+<h3 id="ExchangOperator"><a href="#ExchangOperator" class="headerlink" title="ExchangOperator"></a>ExchangOperator</h3><p>一般来说负责从下游的Stage拉数据有个专门的Operator是ExchangeOperator。<br>在创建ExchangeOperator的时候，会加上一个ExchangClient。<br>所以和图中不同的是，这个ExchangeClient其实是在ExchangeOperator里面。</p>
+<p>在PipeLine的下一个Operator和ExchangeClient拉数据的时候，会调用上一个的getOutput()，返回的是一个Page。<br>在ExchangeOperator的getOutput()方法中<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> Page <span class="title">getOutput</span><span class="params">()</span></span></span><br><span class="line"><span class="function">    </span>&#123;</span><br><span class="line">        SerializedPage page = exchangeClient.pollPage();</span><br><span class="line">        <span class="keyword">if</span> (page == <span class="keyword">null</span>) &#123;</span><br><span class="line">            <span class="keyword">return</span> <span class="keyword">null</span>;</span><br><span class="line">        &#125;</span><br><span class="line"> operatorContext.recordGeneratedInput(page.getSizeInBytes(), page.getPositionCount());</span><br><span class="line">        <span class="keyword">return</span> serde.deserialize(page);</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure></p>
 <p>就是调用的exchangeClient的pollPage()方法得到一个Page。</p>
 <h3 id="RemoteSplit"><a href="#RemoteSplit" class="headerlink" title="RemoteSplit"></a>RemoteSplit</h3><p>RemoteSplit是Source Stage的Task在生成的时候，会添加给FixedStage的。<br>成员变量特别简单，就是一个标记数据位置的URL。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">RemoteSplit</span></span></span><br><span class="line"><span class="class">        <span class="keyword">implements</span> <span class="title">ConnectorSplit</span></span></span><br><span class="line"><span class="class"></span>&#123;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">final</span> URI location;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
 <h3 id="HttpPageBufferClient"><a href="#HttpPageBufferClient" class="headerlink" title="HttpPageBufferClient"></a>HttpPageBufferClient</h3><p>在进行addSplit到ExchangOperator的时候，会把每个URL封装成一个HttpPageBufferClient，同时传递进去的还有</p>
 <ul>
-<li>httpClient 整个Task共享的一个。</li>
+<li>httpClient 整个Task共享的一个，用于发送请求的。</li>
 <li>maxResponseSize 一次相应最多的数据量大小，默认是1M</li>
-<li>minErrorDuration</li>
-<li>maxErrorDuration</li>
 <li>new ExchangeClientCallback() 当拿到数据后的回调，把Page加到ExchangeClient的队列中</li>
 <li>executor 所有的http请求都是通过这个线程池发送</li>
+<li>minErrorDuration </li>
+<li>maxErrorDuration<br>上面这两个参数会随之构建一个Backoff的对象。</li>
 </ul>
-<h3 id="流控"><a href="#流控" class="headerlink" title="流控"></a>流控</h3><p>如果上游的数据来不及消费会怎么样。<br>那么，上游来不及消费的信号是什么呢？<br>整个buffer肯定有个阈值的。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">ExchangeClientConfig</span></span></span><br><span class="line"><span class="class"></span>&#123;</span><br><span class="line">    <span class="keyword">private</span> DataSize maxBufferSize = <span class="keyword">new</span> DataSize(<span class="number">32</span>, Unit.MEGABYTE);</span><br></pre></td></tr></table></figure></p>
+<h3 id="HttpSchedule"><a href="#HttpSchedule" class="headerlink" title="HttpSchedule"></a>HttpSchedule</h3><p>如果我们进入到HttpPageBufferClient的scheduleRequest方法，会发现里面并不是立即发送请求，而是运用了一个schedule方法<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">synchronized</span> <span class="keyword">void</span> <span class="title">scheduleRequest</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">        <span class="keyword">long</span> delayNanos = backoff.getBackoffDelayNanos();</span><br><span class="line">        executor.schedule(() -&gt; &#123;</span><br><span class="line">            <span class="keyword">try</span> &#123;</span><br><span class="line">                initiateRequest();</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">catch</span> (Throwable t) &#123;</span><br><span class="line">                <span class="comment">// should not happen, but be safe and fail the operator</span></span><br><span class="line">                clientCallback.clientFailed(HttpPageBufferClient.<span class="keyword">this</span>, t);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;, delayNanos, NANOSECONDS);</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure></p>
+<p>这就涉及了请求的失败重试的问题。<br>简单的说，每一次请求失败，会有一个等待时间，而且随着失败次数的增加，这个等待的时间会越来越长。在这个等待的时间内，不会再去进行请求。<br>我们看创建backoff的代码。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">this</span>.backoff = <span class="keyword">new</span> Backoff(</span><br><span class="line">               minErrorDuration,</span><br><span class="line">               maxErrorDuration,</span><br><span class="line">               ticker,</span><br><span class="line">               <span class="keyword">new</span> Duration(<span class="number">0</span>, MILLISECONDS),</span><br><span class="line">               <span class="keyword">new</span> Duration(<span class="number">50</span>, MILLISECONDS),</span><br><span class="line">               <span class="keyword">new</span> Duration(<span class="number">100</span>, MILLISECONDS),</span><br><span class="line">               <span class="keyword">new</span> Duration(<span class="number">200</span>, MILLISECONDS),</span><br><span class="line">               <span class="keyword">new</span> Duration(<span class="number">500</span>, MILLISECONDS));</span><br></pre></td></tr></table></figure></p>
+<p>分别是50MS，100MS，200MS和500MS。<br>同时有个最小时间和最大时间，防止传递了一个超长的时间，那么就永远挂在这儿了。</p>
+<p>这在一定的程度上缓解了请求的压力，同时为节约了下游的cpu资源。因为如果那台服务器挂了，那么一直无意义的http请求是毫无意义的，还会一直浪费cpu资源。<br>但是这个</p>
+<h3 id="流控"><a href="#流控" class="headerlink" title="流控"></a>流控</h3><p>如果上游的数据来不及消费会怎么样。<br>那么，上游来不及消费的信号是什么呢？<br>整个buffer肯定有个阈值的。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">ExchangeClientConfig</span></span></span><br><span class="line"><span class="class"></span>&#123;</span><br><span class="line">    <span class="keyword">private</span> DataSize maxBufferSize = <span class="keyword">new</span> DataSize(<span class="number">32</span>, Unit.MEGABYTE);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
 <p>这个阈值就是最大的bufferSize，默认是32M。</p>
-<p>在ExchangClient中，有一个long bufferBytes;用来标记当前的buffer中有多少buffer。<br>在scheduleRequestIfNecessary()方法中，会把bufferBytes和maxBufferSize进行比较，如果已经满足了，那么就不会请求HttpPageBufferClient去请求数据。</p>
-<p>同时HttpPageBufferClient不是划了个定时任务去做拉数据的，整个拉取入口函数都是scheduleRequestIfNecessary()中，需要进行手动调用的。</p>
+<p>在<code>ExchangClient</code>中，有一个<code>long</code>类型的<code>bufferBytes</code>，用来标记当前的<code>buffer</code>中有多少<code>buffer</code>。<br>在<code>scheduleRequestIfNecessary()</code>方法中，会把<code>bufferBytes</code>和<code>maxBufferSize</code>进行比较，如果已经满足了，那么就不会请求<code>HttpPageBufferClient</code>去请求数据。</p>
+<p>同时<code>HttpPageBufferClient</code>不是划了个定时任务去做拉数据的，整个拉取入口函数都是<code>scheduleRequestIfNecessary()</code>中，需要进行手动调用的。</p>
 <p>那么是在什么时候会进行手动调用呢，查看了一些，在下面情况下会发生：</p>
 <ul>
-<li>在新增URL的时候</li>
-<li>在所有的RemoteSplit分配借书的时候</li>
-<li>在ExchangeOperator进行pollPage时</li>
+<li>在新增<code>URL</code>的时候</li>
+<li>在所有的<code>RemoteSplit</code>分配结束的时候</li>
+<li>在<code>ExchangeOperator</code>进行<code>pollPage</code>时</li>
 </ul>
-<h2 id="OutputBuffer"><a href="#OutputBuffer" class="headerlink" title="OutputBuffer"></a>OutputBuffer</h2>
+<p>其中保证第三个条件是最重要的。</p>
+<h2 id="OutputBuffer"><a href="#OutputBuffer" class="headerlink" title="OutputBuffer"></a>OutputBuffer</h2><p><img src="../images/presto-exchangeClient/SqlTask.png" alt=""></p>
+<p>大体的创建流程如上。</p>
+<h3 id="TaskResource"><a href="#TaskResource" class="headerlink" title="TaskResource"></a>TaskResource</h3><p>一般来说创建Task和更新Task的信息的接口都是<code>/v1/task/{TaskId}</code>。<br>所以Presto使用了一个Guava Cache来进行SqlTask的cache，当是第一次来的时候，会自动创建一个新的SqlTask，而当是进行update的时候，就从cache中拿出来之前创建的。</p>
+<h3 id="LazyOutputBuffer"><a href="#LazyOutputBuffer" class="headerlink" title="LazyOutputBuffer"></a>LazyOutputBuffer</h3><p>当一个请求过来的时候，会从Cache中拿出对应的SqlTask，创建LazyOutputBuffer，这个OutputBuffer只是对外的一个封装，里面还包含了一个类别不同的OutputBuffer。</p>
+<h3 id="BroadcastOutputBuffer和PartitionedOutputBuffer"><a href="#BroadcastOutputBuffer和PartitionedOutputBuffer" class="headerlink" title="BroadcastOutputBuffer和PartitionedOutputBuffer"></a>BroadcastOutputBuffer和PartitionedOutputBuffer</h3><p>具体是哪一种，要根据OutputBuffer的类别来判定。<br>如果是Broadcast类别的，就会创建BroadcastOutputBuffer，如果是Partition类别的，就会创建PartitionedOutputBuffer。<br>然后就会根据OutputBuffers的个数具体创建ClientBuffer。</p>
+<p>然后在TaskOutputOperator或者是PartitionOutputOperator进行finish的时候，都是把Page放到ClientBuffer中。</p>
+<p>如果是BroadcastOutputBuffer类别的，就是把PageReference放到所有的ClientBuffer中，如果是Partition类别的，就是放到指定的ClientBuffer中。</p>
+<h3 id="token机制"><a href="#token机制" class="headerlink" title="token机制"></a>token机制</h3><p>Presto的数据传输怎么保证可靠性呢？<br>Page什么时候会从下游的OutputBuffer中Remove呢？<br>这个就需要了解一下Presto拿数据时的Token机制。<br>我们查看下游去上游的Stage拿数据的接口是<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">@GET</span><br><span class="line">@Path(&quot;&#123;taskId&#125;/results/&#123;bufferId&#125;/&#123;token&#125;&quot;)</span><br></pre></td></tr></table></figure></p>
+<p>这里的TaskId很好理解，bufferId就是下游的Task的Id，也就是标记下游的哪个Task来拿的数据，那么这个Token是怎么回事呢？</p>
+<p>我们想象纯粹的没有token这个参数。<br>来一次请求，从Buffer中取出一部分数据回送回去，然后把这部分Page进行Remove。<br>那么问题来了，如果对方接收失败了这部分数据呢？<br>最终问题就是，你怎么知道对方已经拿到了多少数据？<br>要是接收失败，你怎么处理这种失败的情况。</p>
+<p>解答是Presto模拟了Tcp中的Seq和Ack机制。<br>但是因为只有上游需要把数据传送给下游，所以是半双工的。<br><img src="../images/presto-exchangeClient/token.png" alt=""></p>
+<p>首先下游请求数据的时候，会带上Token，也就是Start，然后还会标记你最多给我多少数据，对应图中的就是MaxSize，其中每个Buffer会有一个叫curSeq的游标。</p>
+<p>假设第一次来的时候，上游的队列中有很多Page，前三个大小分别是8，2，6。因为start = 0，也就是从0开始，MaxSize = 12。所以上游会回送前两个Page给下游，同时回送一个NextStart = 2，告诉下游下一次的数据从什么地方开始请求。</p>
+<p>第二次请求，start就是上一次上游回送的2，maxSize依然是12。这时候请求发过来时，上游会把前2个Page给Remove掉。然后把下两个Page回送回去，同时标记下一个从4开始。</p>
+<p>同样的，当第三次请求过来，start = 4，上游继续把4之前的Page给Remove掉。</p>
+<p>那么假设第二次的回复对方没有接收到，那么游标curSeq还是不会变，等下游再次请求的时候，还是从Start=2开始的，就是不会受到影响。</p>
+<p>这就是Presto的传输数据的Token机制，类似于Tcp中的Seq和Ack，保证了数据传输的可靠性。</p>
+<h3 id="流控-1"><a href="#流控-1" class="headerlink" title="流控"></a>流控</h3><p>上次提到了ExchangeClient端的流控，当数据来不及消费的时候，那么ExchangClient就不会来请求数据了。<br>那么这时候OutputBuffer端会出现什么样子的情况呢？</p>
+<p>同样的，也是有一个配置标记一个Task的Buffer最大能存多少。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">OutputBufferMemoryManager</span></span></span><br><span class="line"><span class="class"></span>&#123;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">final</span> <span class="keyword">long</span> maxBufferedBytes;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>这个类，每一个BroadcastOutputBuffer或者PartitionedOutputBuffer都会含有一个，用来监控当前已经的buffer的大小。</p>
+<p>如果我们简单的想一想其实监控已经很简单，每来一个Page，把大小加进去，每出一个Page把大小减去，如果当前攒着的大小超过了阈值，那么就返回Blocked，把整个Driver给Block掉，不去执行了。</p>
+<p>这种想法其实没错，实现起来也不是很难，足以应付partition的情形，因为每一个Page进来，只会分到<strong>指定</strong>的<strong>一个</strong>ClientBuffer中，移除的时候直接减去就行了。<br><img src="../images/presto-exchangeClient/partition.png" alt=""></p>
+<p>但是如果是broadcast情形呢。<br>每个ClientBuffer中其实都有一个Page的引用，只有当所有的下游Task把对应的ClientBuffer里面的Page取走了才能把大小给减去，那么你怎么知道已经被所有的Task取走了呢？<br><img src="../images/presto-exchangeClient/broadcast.png" alt=""></p>
+<p>如果我们看代码，其实Presto并没有直接把Page放进Buffer中，而是包装了一个PageReference类，传递进去原先的Page和一个回调，这个回调就是把当前的BufferSize减去CurPageSize。<br>再进去看发现这是个引用计数的实现，每add到Buffer中一次，计数就加一，每从buffer中移除一次，计数就减一，当为0的时候，就调用回调把size减去。<br>这真的是很精妙了。</p>
+
       
     </div>
     
@@ -508,6 +537,85 @@
 
 
   
+    <article id="post-Presto的Join细节研究" class="article article-type-post" itemscope itemprop="blogPost">
+  
+    <div class="article-meta">
+      <a href="/2018/07/10/Presto的Join细节研究/" class="article-date">
+      <time datetime="2018-07-09T16:00:00.000Z" itemprop="datePublished">2018-07-10</time>
+</a>
+
+
+    </div>
+  
+  <div class="article-inner">
+    
+      <input type="hidden" class="isFancy" />
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/2018/07/10/Presto的Join细节研究/">Presto的Join的细节研究</a>
+    </h1>
+  
+
+      </header>
+      
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+          
+        <h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>Presto的Join操作可以说是极为复杂的几个步骤之一<br>加上又无其文档和注释，所以想要了解其细节需要自己去耐心的阅读源码<br>笔者进行了一些研究后，进行了一些自己的理解的整理<br>总结出来，希望对你有用</p>
+<h2 id="Partition和Broadcast"><a href="#Partition和Broadcast" class="headerlink" title="Partition和Broadcast"></a>Partition和Broadcast</h2><p>站在整个Presto的体系中，其实数据到底是Partition的分发还是Broadcast的分发在很多环节都有的。<br>那么对于Join而言，Partition肯定是有的。<br>想象对于下面一句话<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> video v <span class="keyword">join</span> <span class="keyword">user</span> u <span class="keyword">on</span> v.user_id = u.id</span><br></pre></td></tr></table></figure></p>
+<p>那么对于整个分布式环境而言，完全可以把video和user表的数据根据join的key按照Hash的方式partition到不同的节点上去进行运算<br>这样提高整体的效率是极好的。  </p>
+<p>那么Join需要Broadcast吗<br>想象下面一句话<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> video v <span class="keyword">left</span> <span class="keyword">join</span> <span class="keyword">user</span> u <span class="keyword">on</span> v.user_id = u.id</span><br></pre></td></tr></table></figure></p>
+<p>那么对于这么一句话，两个表还可以根据key按照Hash的方法partition到不同的节点上去吗？<br>肯定是不行的</p>
+<p>我们可以对左边的表进行partition到不同的节点上，但是对于右边的表，partition肯定是不行了，只有进行Broadcast才能保证数据Join出来是正确的结果  </p>
+<h2 id="DistributionType"><a href="#DistributionType" class="headerlink" title="DistributionType"></a>DistributionType</h2><p>对应到源码级别的就是在JoinNode中<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">enum</span> DistributionType</span><br><span class="line">&#123;</span><br><span class="line">	PARTITIONED,</span><br><span class="line">	REPLICATED</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>这个<code>DistributionType</code>的意思就是针对于右表而言的分发方式，那么是怎么进行判断的呢<br>在<code>DetermineJoinDistributionType</code>类<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> JoinNode.<span class="function">DistributionType <span class="title">getTargetJoinDistributionType</span><span class="params">(JoinNode node)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	</span><br><span class="line">	JoinNode.Type type = node.getType();</span><br><span class="line">	<span class="keyword">if</span> (type == RIGHT || type == FULL || (isDistributedJoinEnabled(session) &amp;&amp; !mustBroadcastJoin(node))) &#123;</span><br><span class="line">		<span class="keyword">return</span> JoinNode.DistributionType.PARTITIONED;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> JoinNode.DistributionType.REPLICATED;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">boolean</span> <span class="title">mustBroadcastJoin</span><span class="params">(JoinNode node)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="keyword">return</span> isScalar(node.getRight()) || isCrossJoin(node);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">boolean</span> <span class="title">isCrossJoin</span><span class="params">(JoinNode node)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="keyword">return</span> node.getType() == INNER &amp;&amp; node.getCriteria().isEmpty();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>整体逻辑其实很挺好懂的<br>如果是right join或者是full join，那么右表肯定就是partition的了<br>因为如果是replicated的话，那么肯定就会多出数据来  </p>
+<p>如果是cross join的话，那么也只能是replicated的方式了。<br>这个其实也不难理解，想象下面这句sql<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> video v <span class="keyword">join</span> <span class="keyword">user</span> u <span class="keyword">on</span> v.user_id &gt; u.id</span><br></pre></td></tr></table></figure></p>
+<p>这种情况和下面这种情况是不同的<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> video v <span class="keyword">join</span> <span class="keyword">user</span> u <span class="keyword">on</span> v.user_id = u.id</span><br></pre></td></tr></table></figure></p>
+<p>因为不是等于关系的Join，所以无法根据Hash(user.id) = Hash(u.id)进行partition分发着Join<br>最多只允许一个表去partition，另外一个表是replicated的。<br>那左边的表replicated还是右边的replicated，对于最终的结果是没有区别的。<br>但是在某些情况下并不等同，这个我们留到下面reorder再讲。</p>
+<h2 id="Probe和Build"><a href="#Probe和Build" class="headerlink" title="Probe和Build"></a>Probe和Build</h2><p>对于Presto而言，其实只有一个Join模式。<br>那就是<br>pipeLine0: 读左表 -&gt; LookUpJoin<br>pipeLine1: 读右边 -&gt; HashBuilder</p>
+<p>其中是pipeLine1的任务先行，把右表读出来，然后建立一个bucket为N的HashTable。<br>pipeLine0的任务是先读取左边的数据，然后等待HashTable的建立完成，然后进行Join操作。</p>
+<p>其实更细节的话，在pipeLine0的读左表和建立HashTable是两个pipeLine的操作，中间还需要进行数据Hash到Bucket的操作和建立PageIndex的操作。</p>
+<p>那么抽象就是左表是Probe表，然后右表是Build表。<br>永远是右表去Build一个东西，然后左表是Probe数据。</p>
+<p>那你发现问题了吗？<br>如果是这种sql语句呢<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> video v <span class="keyword">right</span> <span class="keyword">join</span> <span class="keyword">user</span> u <span class="keyword">on</span> v.user_id = u.id</span><br></pre></td></tr></table></figure></p>
+<p>对于right join而言，肯定是右表出的是全量的数据，它如果还是build的话，那肯定是不行的。<br>那么怎么解决呢? 那就是进行Reorder</p>
+<h2 id="Merge-Join和NestLoopJoin"><a href="#Merge-Join和NestLoopJoin" class="headerlink" title="Merge Join和NestLoopJoin"></a>Merge Join和NestLoopJoin</h2><p>我们分析下可以发现Presto不管对于什么情况的Join，都是由HashBuilderOperator类去进行Build的。<br>这很容易让人理解为Presto中只有Hash Join。<br>但是理论上Hash Join并不是万能的，有些情况是不能解决的。<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> video v <span class="keyword">join</span> <span class="keyword">user</span> u <span class="keyword">on</span> v.user_id &gt; u.is</span><br></pre></td></tr></table></figure></p>
+<p>这种情况，肯定是不可能用HashBuilder去完成的，或者更准确点，不能用HashJoin去完成的。<br>那么肯定是需要NestedLoop Join和Merge Join的存在的。<br>这个其实蕴含在了Hash Join的具体的实现中了。<br>只不过是HashBuilderOperator算子的实现是相同的而已。</p>
+<h2 id="Right-Join和"><a href="#Right-Join和" class="headerlink" title="Right Join和"></a>Right Join和</h2>
+      
+    </div>
+    
+    <div class="article-info article-info-index">
+      
+      
+
+      
+    <div class="article-tag tagcloud">
+        <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Presto/">Presto</a></li></ul>
+    </div>
+
+      
+      <div class="clearfix"></div>
+    </div>
+    
+  </div>
+  
+</article>
+
+
+
+
+
+
+
+
+
+  
     <article id="post-presto执行流程" class="article article-type-post" itemscope itemprop="blogPost">
   
     <div class="article-meta">
@@ -618,7 +726,7 @@
 <li>Fixed 包括聚合join等</li>
 <li>Single 在单个节点上执行，汇总所有的处理结果  </li>
 </ul>
-<p>SqlQueryScheduler就是用管理stage的<br>最终执行的<code>SqlQueryScheduler.schedule</code>方法<br>调用了SqlStageExecution.beginbeginScheduling方法。</p>
+<p>SqlQueryScheduler就是用管理stage的<br>最终执行的<code>SqlQueryScheduler.schedule</code>方法<br>调用了SqlStageExecution.beginScheduling方法。</p>
 <p>SqlTaskExecution</p>
 <p>java.util.OptionalLong<br>java.util.OptionalInt<br>这几个optional的封装类，可以看看</p>
 <p>查询调度<br>每个stage的调度过程是基于split分配Worker Node的过程<br>不同的stage有不同的调度策略  </p>
@@ -674,85 +782,6 @@
       
     <div class="article-tag tagcloud">
         <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Java/">Java</a></li></ul>
-    </div>
-
-      
-      <div class="clearfix"></div>
-    </div>
-    
-  </div>
-  
-</article>
-
-
-
-
-
-
-
-
-
-  
-    <article id="post-Presto的Join细节研究" class="article article-type-post" itemscope itemprop="blogPost">
-  
-    <div class="article-meta">
-      <a href="/2018/07/10/Presto的Join细节研究/" class="article-date">
-      <time datetime="2018-07-09T16:00:00.000Z" itemprop="datePublished">2018-07-10</time>
-</a>
-
-
-    </div>
-  
-  <div class="article-inner">
-    
-      <input type="hidden" class="isFancy" />
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/2018/07/10/Presto的Join细节研究/">Presto的Join的细节研究</a>
-    </h1>
-  
-
-      </header>
-      
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-          
-        <h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>Presto的Join操作可以说是极为复杂的几个步骤之一<br>加上又无其文档和注释，所以想要了解其细节需要自己去耐心的阅读源码<br>笔者进行了一些研究后，进行了一些自己的理解的整理<br>总结出来，希望对你有用</p>
-<h2 id="Partition和Broadcast"><a href="#Partition和Broadcast" class="headerlink" title="Partition和Broadcast"></a>Partition和Broadcast</h2><p>站在整个Presto的体系中，其实数据到底是Partition的分发还是Broadcast的分发在很多环节都有的。<br>那么对于Join而言，Partition肯定是有的。<br>想象对于下面一句话<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> video v <span class="keyword">join</span> <span class="keyword">user</span> u <span class="keyword">on</span> v.user_id = u.id</span><br></pre></td></tr></table></figure></p>
-<p>那么对于整个分布式环境而言，完全可以把video和user表的数据根据join的key按照Hash的方式partition到不同的节点上去进行运算<br>这样提高整体的效率是极好的。  </p>
-<p>那么Join需要Broadcast吗<br>想象下面一句话<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> video v <span class="keyword">left</span> <span class="keyword">join</span> <span class="keyword">user</span> u <span class="keyword">on</span> v.user_id = u.id</span><br></pre></td></tr></table></figure></p>
-<p>那么对于这么一句话，两个表还可以根据key按照Hash的方法partition到不同的节点上去吗？<br>肯定是不行的</p>
-<p>我们可以对左边的表进行partition到不同的节点上，但是对于右边的表，partition肯定是不行了，只有进行Broadcast才能保证数据Join出来是正确的结果  </p>
-<h2 id="DistributionType"><a href="#DistributionType" class="headerlink" title="DistributionType"></a>DistributionType</h2><p>对应到源码级别的就是在JoinNode中<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">enum</span> DistributionType</span><br><span class="line">&#123;</span><br><span class="line">	PARTITIONED,</span><br><span class="line">	REPLICATED</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
-<p>这个<code>DistributionType</code>的意思就是针对于右表而言的分发方式，那么是怎么进行判断的呢<br>在<code>DetermineJoinDistributionType</code>类<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> JoinNode.<span class="function">DistributionType <span class="title">getTargetJoinDistributionType</span><span class="params">(JoinNode node)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	</span><br><span class="line">	JoinNode.Type type = node.getType();</span><br><span class="line">	<span class="keyword">if</span> (type == RIGHT || type == FULL || (isDistributedJoinEnabled(session) &amp;&amp; !mustBroadcastJoin(node))) &#123;</span><br><span class="line">		<span class="keyword">return</span> JoinNode.DistributionType.PARTITIONED;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> JoinNode.DistributionType.REPLICATED;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">boolean</span> <span class="title">mustBroadcastJoin</span><span class="params">(JoinNode node)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="keyword">return</span> isScalar(node.getRight()) || isCrossJoin(node);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">boolean</span> <span class="title">isCrossJoin</span><span class="params">(JoinNode node)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="keyword">return</span> node.getType() == INNER &amp;&amp; node.getCriteria().isEmpty();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
-<p>整体逻辑其实很挺好懂的<br>如果是right join或者是full join，那么右表肯定就是partition的了<br>因为如果是replicated的话，那么肯定就会多出数据来  </p>
-<p>如果是cross join的话，那么也只能是replicated的方式了。<br>这个其实也不难理解，想象下面这句sql<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> video v <span class="keyword">join</span> <span class="keyword">user</span> u <span class="keyword">on</span> v.user_id &gt; u.id</span><br></pre></td></tr></table></figure></p>
-<p>这种情况和下面这种情况是不同的<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> video v <span class="keyword">join</span> <span class="keyword">user</span> u <span class="keyword">on</span> v.user_id = u.id</span><br></pre></td></tr></table></figure></p>
-<p>因为不是等于关系的Join，所以无法根据Hash(user.id) = Hash(u.id)进行partition分发着Join<br>最多只允许一个表去partition，另外一个表是replicated的。<br>那左边的表replicated还是右边的replicated，对于最终的结果是没有区别的。<br>但是在某些情况下并不等同，这个我们留到下面reorder再讲。</p>
-<h2 id="Probe和Build"><a href="#Probe和Build" class="headerlink" title="Probe和Build"></a>Probe和Build</h2><p>对于Presto而言，其实只有一个Join模式。<br>那就是<br>pipeLine0: 读左表 -&gt; LookUpJoin<br>pipeLine1: 读右边 -&gt; HashBuilder</p>
-<p>其中是pipeLine1的任务先行，把右表读出来，然后建立一个bucket为N的HashTable。<br>pipeLine0的任务是先读取左边的数据，然后等待HashTable的建立完成，然后进行Join操作。</p>
-<p>其实更细节的话，在pipeLine0的读左表和建立HashTable是两个pipeLine的操作，中间还需要进行数据Hash到Bucket的操作和建立PageIndex的操作。</p>
-<p>那么抽象就是左表是Probe表，然后右表是Build表。<br>永远是右表去Build一个东西，然后左表是Probe数据。</p>
-<p>那你发现问题了吗？<br>如果是这种sql语句呢<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> video v <span class="keyword">right</span> <span class="keyword">join</span> <span class="keyword">user</span> u <span class="keyword">on</span> v.user_id = u.id</span><br></pre></td></tr></table></figure></p>
-<p>对于right join而言，肯定是右表出的是全量的数据，它如果还是build的话，那肯定是不行的。<br>那么怎么解决呢? 那就是进行Reorder</p>
-<h2 id="Merge-Join和NestLoopJoin"><a href="#Merge-Join和NestLoopJoin" class="headerlink" title="Merge Join和NestLoopJoin"></a>Merge Join和NestLoopJoin</h2><p>我们分析下可以发现Presto不管对于什么情况的Join，都是由HashBuilderOperator类去进行Build的。<br>这很容易让人理解为Presto中只有Hash Join。<br>但是理论上Hash Join并不是万能的，有些情况是不能解决的。<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> video v <span class="keyword">join</span> <span class="keyword">user</span> u <span class="keyword">on</span> v.user_id &gt; u.is</span><br></pre></td></tr></table></figure></p>
-<p>这种情况，肯定是不可能用HashBuilder去完成的，或者更准确点，不能用HashJoin去完成的。<br>那么肯定是需要NestedLoop Join和Merge Join的存在的。<br>这个其实蕴含在了Hash Join的具体的实现中了。<br>只不过是HashBuilderOperator算子的实现是相同的而已。</p>
-
-      
-    </div>
-    
-    <div class="article-info article-info-index">
-      
-      
-
-      
-    <div class="article-tag tagcloud">
-        <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Presto/">Presto</a></li></ul>
     </div>
 
       

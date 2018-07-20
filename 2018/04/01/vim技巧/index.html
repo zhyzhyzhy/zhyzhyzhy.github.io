@@ -15,18 +15,18 @@
 
 
 
-<meta name="description" content="前言其实我们不一定所有配置都要写在.vimrc里面的偶尔在vim的命令行里执行一些小程序也是很方便的 改tab为space12:set expandtab:%retab 翻半页1234# 下半页&amp;lt;C-d&amp;gt;# 上半页&amp;lt;C-u&amp;gt;">
+<meta name="description" content="前言其实我们不一定所有配置都要写在.vimrc里面的偶尔在vim的命令行里执行一些小程序也是很方便的 改tab为space12:set expandtab:%retab 翻半页1234# 下半页&amp;lt;C-d&amp;gt;# 上半页&amp;lt;C-u&amp;gt; 工作进展：  移植原生的Presto UI中的查看pipeline页面到rmui_mpp  学习进展：  Ads的Join中的left_replica">
 <meta name="keywords" content="Vim">
 <meta property="og:type" content="article">
 <meta property="og:title" content="Vim技巧">
 <meta property="og:url" content="http://zhyzhyzhy.github.io/2018/04/01/vim技巧/index.html">
 <meta property="og:site_name" content="LoveZhy">
-<meta property="og:description" content="前言其实我们不一定所有配置都要写在.vimrc里面的偶尔在vim的命令行里执行一些小程序也是很方便的 改tab为space12:set expandtab:%retab 翻半页1234# 下半页&amp;lt;C-d&amp;gt;# 上半页&amp;lt;C-u&amp;gt;">
+<meta property="og:description" content="前言其实我们不一定所有配置都要写在.vimrc里面的偶尔在vim的命令行里执行一些小程序也是很方便的 改tab为space12:set expandtab:%retab 翻半页1234# 下半页&amp;lt;C-d&amp;gt;# 上半页&amp;lt;C-u&amp;gt; 工作进展：  移植原生的Presto UI中的查看pipeline页面到rmui_mpp  学习进展：  Ads的Join中的left_replica">
 <meta property="og:locale" content="default">
-<meta property="og:updated_time" content="2018-07-15T08:03:49.000Z">
+<meta property="og:updated_time" content="2018-07-20T09:27:12.000Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Vim技巧">
-<meta name="twitter:description" content="前言其实我们不一定所有配置都要写在.vimrc里面的偶尔在vim的命令行里执行一些小程序也是很方便的 改tab为space12:set expandtab:%retab 翻半页1234# 下半页&amp;lt;C-d&amp;gt;# 上半页&amp;lt;C-u&amp;gt;">
+<meta name="twitter:description" content="前言其实我们不一定所有配置都要写在.vimrc里面的偶尔在vim的命令行里执行一些小程序也是很方便的 改tab为space12:set expandtab:%retab 翻半页1234# 下半页&amp;lt;C-d&amp;gt;# 上半页&amp;lt;C-u&amp;gt; 工作进展：  移植原生的Presto UI中的查看pipeline页面到rmui_mpp  学习进展：  Ads的Join中的left_replica">
 
 <link rel="apple-touch-icon" href= "/apple-touch-icon.png">
 
@@ -239,6 +239,33 @@
         <h3 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h3><p>其实我们不一定所有配置都要写在.vimrc里面的<br>偶尔在vim的命令行里执行一些小程序也是很方便的</p>
 <h3 id="改tab为space"><a href="#改tab为space" class="headerlink" title="改tab为space"></a>改tab为space</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">:<span class="built_in">set</span> expandtab</span><br><span class="line">:%retab</span><br></pre></td></tr></table></figure>
 <h3 id="翻半页"><a href="#翻半页" class="headerlink" title="翻半页"></a>翻半页</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 下半页</span></span><br><span class="line">&lt;C<span class="_">-d</span>&gt;</span><br><span class="line"><span class="comment"># 上半页</span></span><br><span class="line">&lt;C-u&gt;</span><br></pre></td></tr></table></figure>
+<p>工作进展：</p>
+<ul>
+<li>移植原生的Presto UI中的查看pipeline页面到rmui_mpp</li>
+</ul>
+<p>学习进展：</p>
+<ul>
+<li><p>Ads的Join中的left_replicated条件</p>
+</li>
+<li><p>Presto中right join的LookupOuterOperator执行过程</p>
+</li>
+<li><p>Presto中ExchangClient和OutputBuffer的执行过程和PageReference的作用，token机制，</p>
+<ul>
+<li>失败重试等待时长控制</li>
+<li>PageReference</li>
+</ul>
+</li>
+<li><p>Slice实现</p>
+<ul>
+<li>Unsafe运用</li>
+<li>FixedWidthBlockBuilder和VariableWidthBlockBuilder实现</li>
+</ul>
+</li>
+<li><p>HashBuilder中的SortedPositionLinks作用和实现</p>
+</li>
+<li><p>CoefficientBasedCostCalculator</p>
+</li>
+</ul>
 
       
     </div>
@@ -250,7 +277,7 @@
         <p><span>本文标题:</span><a href="/2018/04/01/vim技巧/">Vim技巧</a></p>
         <p><span>文章作者:</span><a href="/" title="回到主页">zhy</a></p>
         <p><span>发布时间:</span>2018-04-01, 00:00:00</p>
-        <!--<p><span>最后更新:</span>2018-07-15, 16:03:49</p>-->
+        <!--<p><span>最后更新:</span>2018-07-20, 17:27:12</p>-->
         <p>
             <span>原始链接:</span><a class="post-url" href="/2018/04/01/vim技巧/" title="Vim技巧">http://zhyzhyzhy.github.io/2018/04/01/vim技巧/</a>
             <span class="copy-path" data-clipboard-text="原文: http://zhyzhyzhy.github.io/2018/04/01/vim技巧/　　作者: zhy" title="点击复制文章链接"><i class="fa fa-clipboard"></i></span>
@@ -266,15 +293,15 @@
     <nav id="article-nav">
         
             <div id="article-nav-newer" class="article-nav-title">
-                <a href="/2018/04/11/brpc-doc笔记/">
-                    brpc-doc笔记
+                <a href="/2018/04/01/在ubuntu16.04上搭建hadoop环境/">
+                    在ubunut16.04上搭建hadoop环境
                 </a>
             </div>
         
         
             <div id="article-nav-older" class="article-nav-title">
-                <a href="/2018/04/01/在ubuntu16.04上搭建hadoop环境/">
-                    在ubunut16.04上搭建hadoop环境
+                <a href="/2018/03/03/spi和破坏双亲委派/">
+                    spi和破坏双亲委派
                 </a>
             </div>
         
@@ -339,7 +366,7 @@
 
     <div class="scroll" id="post-nav-button">
         
-            <a href="/2018/04/11/brpc-doc笔记/" title="上一篇: brpc-doc笔记">
+            <a href="/2018/04/01/在ubuntu16.04上搭建hadoop环境/" title="上一篇: 在ubunut16.04上搭建hadoop环境">
                 <i class="fa fa-angle-left"></i>
             </a>
         
@@ -347,13 +374,13 @@
         <a title="文章列表"><i class="fa fa-bars"></i><i class="fa fa-times"></i></a>
 
         
-            <a href="/2018/04/01/在ubuntu16.04上搭建hadoop环境/" title="下一篇: 在ubunut16.04上搭建hadoop环境">
+            <a href="/2018/03/03/spi和破坏双亲委派/" title="下一篇: spi和破坏双亲委派">
                 <i class="fa fa-angle-right"></i>
             </a>
         
     </div>
 
-    <ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/2018/07/20/Presto源码-ExchangeClient和OutputBuffer详解/">Presto源码-ExchangeClient和OutputBuffer详解</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/07/19/Presto源码解析-Slice实现/">Presto源码解析 - Slice实现</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/07/15/Guava库学习之Collections/">Guava库学习之Collections</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/07/15/数据库Join算法/">数据库Join算法</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/07/10/presto执行流程/">Presto执行流程</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/07/10/Presto的Join细节研究/">Presto的Join的细节研究</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/07/10/Presto的分段源码解析/">Presto的分段源码解析</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/06/16/Presto和Hive的区别/">Presto和Hive的区别</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/06/05/行列存储的区别/">行列存储的区别</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/06/03/Presto基本概念/">Presto基本概念</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/05/23/OLAP基本知识/">OLAP基本知识</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/05/01/分布式基础知识/">分布式基础知识</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/04/15/CSRF和XSS/">CSRF和XSS攻击</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/04/11/brpc-doc笔记/">brpc-doc笔记</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/04/01/vim技巧/">Vim技巧</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/04/01/在ubuntu16.04上搭建hadoop环境/">在ubunut16.04上搭建hadoop环境</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/03/03/spi和破坏双亲委派/">spi和破坏双亲委派</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/02/24/AQS和ReentrantLock/">AQS和ReentrantLock</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/02/23/LongAdder解析/">LongAdder解析</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/02/18/pigeon一些细节的具体实现/">pigeon一些细节的具体实现</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/02/18/pigeon的服务注册与发现/">pigeon的服务注册与发现</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/02/18/pigeon中的核心类和作用/">pigeon中的核心类和作用</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/02/10/fat-jar/">fat-jar配置</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/02/07/log4j和slf4j配置/">log4j和slf4j配置</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/12/21/ThreadLocal源码分析/">ThreadLocal源码分析</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/12/18/ConcurrentHashMap源码分析/">ConcurrentHashMap源码分析</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/12/10/LinkedList源码分析/">LinkedList源码分析</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/12/09/HashSet源码分析/">HashSet源码解析</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/12/07/ArrayList源码分析/">ArrayList源码分析</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/11/18/jsessionid的生成/">JsessionId的生成</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/10/24/哪些可以作为GCRoots/">哪些可以作为GC Roots</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/09/10/动态代理的缓存实现/">动态代理的缓存实现</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/08/20/IO之同步，阻塞，非阻塞/">同步，阻塞，非阻塞</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/08/09/Java泛型数组/">Java泛型</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/08/05/Java内部类/">Java内部类</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/08/02/libevent简单使用/">libevent简单使用</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/07/26/叶子/">叶子</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/07/21/HashMap源码解析/">HashMap源码解析</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/07/21/PathVariable及route设计/">PathVariable及路由设计</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/07/07/hello-world/">Hello World</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/05/28/use_AuthenticationProvider_in_springSec/">使用AuthenticationProvider进行自定义登陆配置</a></li></ul>
+    <ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/2018/07/20/Presto源码-ExchangeClient和OutputBuffer详解/">Presto源码-ExchangeClient和OutputBuffer详解</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/07/19/Presto源码解析-Slice实现/">Presto源码解析 - Slice实现</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/07/15/Guava库学习之Collections/">Guava库学习之Collections</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/07/15/数据库Join算法/">数据库Join算法</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/07/10/Presto的Join细节研究/">Presto的Join的细节研究</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/07/10/presto执行流程/">Presto执行流程</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/07/10/Presto的分段源码解析/">Presto的分段源码解析</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/06/16/Presto和Hive的区别/">Presto和Hive的区别</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/06/05/行列存储的区别/">行列存储的区别</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/06/03/Presto基本概念/">Presto基本概念</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/05/23/OLAP基本知识/">OLAP基本知识</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/05/01/分布式基础知识/">分布式基础知识</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/04/15/CSRF和XSS/">CSRF和XSS攻击</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/04/11/brpc-doc笔记/">brpc-doc笔记</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/04/01/在ubuntu16.04上搭建hadoop环境/">在ubunut16.04上搭建hadoop环境</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/04/01/vim技巧/">Vim技巧</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/03/03/spi和破坏双亲委派/">spi和破坏双亲委派</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/02/24/AQS和ReentrantLock/">AQS和ReentrantLock</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/02/23/LongAdder解析/">LongAdder解析</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/02/18/pigeon的服务注册与发现/">pigeon的服务注册与发现</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/02/18/pigeon中的核心类和作用/">pigeon中的核心类和作用</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/02/18/pigeon一些细节的具体实现/">pigeon一些细节的具体实现</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/02/10/fat-jar/">fat-jar配置</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/02/07/log4j和slf4j配置/">log4j和slf4j配置</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/12/21/ThreadLocal源码分析/">ThreadLocal源码分析</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/12/18/ConcurrentHashMap源码分析/">ConcurrentHashMap源码分析</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/12/10/LinkedList源码分析/">LinkedList源码分析</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/12/09/HashSet源码分析/">HashSet源码解析</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/12/07/ArrayList源码分析/">ArrayList源码分析</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/11/18/jsessionid的生成/">JsessionId的生成</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/10/24/哪些可以作为GCRoots/">哪些可以作为GC Roots</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/09/10/动态代理的缓存实现/">动态代理的缓存实现</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/08/20/IO之同步，阻塞，非阻塞/">同步，阻塞，非阻塞</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/08/09/Java泛型数组/">Java泛型</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/08/05/Java内部类/">Java内部类</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/08/02/libevent简单使用/">libevent简单使用</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/07/26/叶子/">叶子</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/07/21/PathVariable及route设计/">PathVariable及路由设计</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/07/21/HashMap源码解析/">HashMap源码解析</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/07/07/hello-world/">Hello World</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/05/28/use_AuthenticationProvider_in_springSec/">使用AuthenticationProvider进行自定义登陆配置</a></li></ul>
 
 
 

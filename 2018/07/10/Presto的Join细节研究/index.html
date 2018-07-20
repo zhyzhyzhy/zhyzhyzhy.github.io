@@ -23,7 +23,7 @@
 <meta property="og:site_name" content="LoveZhy">
 <meta property="og:description" content="前言Presto的Join操作可以说是极为复杂的几个步骤之一加上又无其文档和注释，所以想要了解其细节需要自己去耐心的阅读源码笔者进行了一些研究后，进行了一些自己的理解的整理总结出来，希望对你有用 Partition和Broadcast站在整个Presto的体系中，其实数据到底是Partition的分发还是Broadcast的分发在很多环节都有的。那么对于Join而言，Partition肯定是有的。">
 <meta property="og:locale" content="default">
-<meta property="og:updated_time" content="2018-07-15T09:24:03.000Z">
+<meta property="og:updated_time" content="2018-07-20T07:53:28.000Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Presto的Join的细节研究">
 <meta name="twitter:description" content="前言Presto的Join操作可以说是极为复杂的几个步骤之一加上又无其文档和注释，所以想要了解其细节需要自己去耐心的阅读源码笔者进行了一些研究后，进行了一些自己的理解的整理总结出来，希望对你有用 Partition和Broadcast站在整个Presto的体系中，其实数据到底是Partition的分发还是Broadcast的分发在很多环节都有的。那么对于Join而言，Partition肯定是有的。">
@@ -256,7 +256,7 @@
 <p>对于right join而言，肯定是右表出的是全量的数据，它如果还是build的话，那肯定是不行的。<br>那么怎么解决呢? 那就是进行Reorder</p>
 <h2 id="Merge-Join和NestLoopJoin"><a href="#Merge-Join和NestLoopJoin" class="headerlink" title="Merge Join和NestLoopJoin"></a>Merge Join和NestLoopJoin</h2><p>我们分析下可以发现Presto不管对于什么情况的Join，都是由HashBuilderOperator类去进行Build的。<br>这很容易让人理解为Presto中只有Hash Join。<br>但是理论上Hash Join并不是万能的，有些情况是不能解决的。<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> video v <span class="keyword">join</span> <span class="keyword">user</span> u <span class="keyword">on</span> v.user_id &gt; u.is</span><br></pre></td></tr></table></figure></p>
 <p>这种情况，肯定是不可能用HashBuilder去完成的，或者更准确点，不能用HashJoin去完成的。<br>那么肯定是需要NestedLoop Join和Merge Join的存在的。<br>这个其实蕴含在了Hash Join的具体的实现中了。<br>只不过是HashBuilderOperator算子的实现是相同的而已。</p>
-
+<h2 id="Right-Join和"><a href="#Right-Join和" class="headerlink" title="Right Join和"></a>Right Join和</h2>
       
     </div>
     
@@ -267,7 +267,7 @@
         <p><span>本文标题:</span><a href="/2018/07/10/Presto的Join细节研究/">Presto的Join的细节研究</a></p>
         <p><span>文章作者:</span><a href="/" title="回到主页">zhy</a></p>
         <p><span>发布时间:</span>2018-07-10, 00:00:00</p>
-        <!--<p><span>最后更新:</span>2018-07-15, 17:24:03</p>-->
+        <!--<p><span>最后更新:</span>2018-07-20, 15:53:28</p>-->
         <p>
             <span>原始链接:</span><a class="post-url" href="/2018/07/10/Presto的Join细节研究/" title="Presto的Join的细节研究">http://zhyzhyzhy.github.io/2018/07/10/Presto的Join细节研究/</a>
             <span class="copy-path" data-clipboard-text="原文: http://zhyzhyzhy.github.io/2018/07/10/Presto的Join细节研究/　　作者: zhy" title="点击复制文章链接"><i class="fa fa-clipboard"></i></span>
@@ -283,15 +283,15 @@
     <nav id="article-nav">
         
             <div id="article-nav-newer" class="article-nav-title">
-                <a href="/2018/07/10/presto执行流程/">
-                    Presto执行流程
+                <a href="/2018/07/15/数据库Join算法/">
+                    数据库Join算法
                 </a>
             </div>
         
         
             <div id="article-nav-older" class="article-nav-title">
-                <a href="/2018/07/10/Presto的分段源码解析/">
-                    Presto的分段源码解析
+                <a href="/2018/07/10/presto执行流程/">
+                    Presto执行流程
                 </a>
             </div>
         
@@ -303,7 +303,7 @@
     <div id="toc" class="toc-article">
         <strong class="toc-title">文章目录</strong>
         
-            <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#前言"><span class="toc-number">1.</span> <span class="toc-text">前言</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Partition和Broadcast"><span class="toc-number">2.</span> <span class="toc-text">Partition和Broadcast</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#DistributionType"><span class="toc-number">3.</span> <span class="toc-text">DistributionType</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Probe和Build"><span class="toc-number">4.</span> <span class="toc-text">Probe和Build</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Merge-Join和NestLoopJoin"><span class="toc-number">5.</span> <span class="toc-text">Merge Join和NestLoopJoin</span></a></li></ol>
+            <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#前言"><span class="toc-number">1.</span> <span class="toc-text">前言</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Partition和Broadcast"><span class="toc-number">2.</span> <span class="toc-text">Partition和Broadcast</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#DistributionType"><span class="toc-number">3.</span> <span class="toc-text">DistributionType</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Probe和Build"><span class="toc-number">4.</span> <span class="toc-text">Probe和Build</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Merge-Join和NestLoopJoin"><span class="toc-number">5.</span> <span class="toc-text">Merge Join和NestLoopJoin</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Right-Join和"><span class="toc-number">6.</span> <span class="toc-text">Right Join和</span></a></li></ol>
         
     </div>
     <style>
@@ -356,7 +356,7 @@
 
     <div class="scroll" id="post-nav-button">
         
-            <a href="/2018/07/10/presto执行流程/" title="上一篇: Presto执行流程">
+            <a href="/2018/07/15/数据库Join算法/" title="上一篇: 数据库Join算法">
                 <i class="fa fa-angle-left"></i>
             </a>
         
@@ -364,13 +364,13 @@
         <a title="文章列表"><i class="fa fa-bars"></i><i class="fa fa-times"></i></a>
 
         
-            <a href="/2018/07/10/Presto的分段源码解析/" title="下一篇: Presto的分段源码解析">
+            <a href="/2018/07/10/presto执行流程/" title="下一篇: Presto执行流程">
                 <i class="fa fa-angle-right"></i>
             </a>
         
     </div>
 
-    <ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/2018/07/20/Presto源码-ExchangeClient和OutputBuffer详解/">Presto源码-ExchangeClient和OutputBuffer详解</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/07/19/Presto源码解析-Slice实现/">Presto源码解析 - Slice实现</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/07/15/Guava库学习之Collections/">Guava库学习之Collections</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/07/15/数据库Join算法/">数据库Join算法</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/07/10/presto执行流程/">Presto执行流程</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/07/10/Presto的Join细节研究/">Presto的Join的细节研究</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/07/10/Presto的分段源码解析/">Presto的分段源码解析</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/06/16/Presto和Hive的区别/">Presto和Hive的区别</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/06/05/行列存储的区别/">行列存储的区别</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/06/03/Presto基本概念/">Presto基本概念</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/05/23/OLAP基本知识/">OLAP基本知识</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/05/01/分布式基础知识/">分布式基础知识</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/04/15/CSRF和XSS/">CSRF和XSS攻击</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/04/11/brpc-doc笔记/">brpc-doc笔记</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/04/01/vim技巧/">Vim技巧</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/04/01/在ubuntu16.04上搭建hadoop环境/">在ubunut16.04上搭建hadoop环境</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/03/03/spi和破坏双亲委派/">spi和破坏双亲委派</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/02/24/AQS和ReentrantLock/">AQS和ReentrantLock</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/02/23/LongAdder解析/">LongAdder解析</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/02/18/pigeon一些细节的具体实现/">pigeon一些细节的具体实现</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/02/18/pigeon的服务注册与发现/">pigeon的服务注册与发现</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/02/18/pigeon中的核心类和作用/">pigeon中的核心类和作用</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/02/10/fat-jar/">fat-jar配置</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/02/07/log4j和slf4j配置/">log4j和slf4j配置</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/12/21/ThreadLocal源码分析/">ThreadLocal源码分析</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/12/18/ConcurrentHashMap源码分析/">ConcurrentHashMap源码分析</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/12/10/LinkedList源码分析/">LinkedList源码分析</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/12/09/HashSet源码分析/">HashSet源码解析</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/12/07/ArrayList源码分析/">ArrayList源码分析</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/11/18/jsessionid的生成/">JsessionId的生成</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/10/24/哪些可以作为GCRoots/">哪些可以作为GC Roots</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/09/10/动态代理的缓存实现/">动态代理的缓存实现</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/08/20/IO之同步，阻塞，非阻塞/">同步，阻塞，非阻塞</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/08/09/Java泛型数组/">Java泛型</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/08/05/Java内部类/">Java内部类</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/08/02/libevent简单使用/">libevent简单使用</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/07/26/叶子/">叶子</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/07/21/HashMap源码解析/">HashMap源码解析</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/07/21/PathVariable及route设计/">PathVariable及路由设计</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/07/07/hello-world/">Hello World</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/05/28/use_AuthenticationProvider_in_springSec/">使用AuthenticationProvider进行自定义登陆配置</a></li></ul>
+    <ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/2018/07/20/Presto源码-ExchangeClient和OutputBuffer详解/">Presto源码-ExchangeClient和OutputBuffer详解</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/07/19/Presto源码解析-Slice实现/">Presto源码解析 - Slice实现</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/07/15/Guava库学习之Collections/">Guava库学习之Collections</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/07/15/数据库Join算法/">数据库Join算法</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/07/10/Presto的Join细节研究/">Presto的Join的细节研究</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/07/10/presto执行流程/">Presto执行流程</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/07/10/Presto的分段源码解析/">Presto的分段源码解析</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/06/16/Presto和Hive的区别/">Presto和Hive的区别</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/06/05/行列存储的区别/">行列存储的区别</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/06/03/Presto基本概念/">Presto基本概念</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/05/23/OLAP基本知识/">OLAP基本知识</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/05/01/分布式基础知识/">分布式基础知识</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/04/15/CSRF和XSS/">CSRF和XSS攻击</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/04/11/brpc-doc笔记/">brpc-doc笔记</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/04/01/在ubuntu16.04上搭建hadoop环境/">在ubunut16.04上搭建hadoop环境</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/04/01/vim技巧/">Vim技巧</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/03/03/spi和破坏双亲委派/">spi和破坏双亲委派</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/02/24/AQS和ReentrantLock/">AQS和ReentrantLock</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/02/23/LongAdder解析/">LongAdder解析</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/02/18/pigeon的服务注册与发现/">pigeon的服务注册与发现</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/02/18/pigeon中的核心类和作用/">pigeon中的核心类和作用</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/02/18/pigeon一些细节的具体实现/">pigeon一些细节的具体实现</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/02/10/fat-jar/">fat-jar配置</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/02/07/log4j和slf4j配置/">log4j和slf4j配置</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/12/21/ThreadLocal源码分析/">ThreadLocal源码分析</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/12/18/ConcurrentHashMap源码分析/">ConcurrentHashMap源码分析</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/12/10/LinkedList源码分析/">LinkedList源码分析</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/12/09/HashSet源码分析/">HashSet源码解析</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/12/07/ArrayList源码分析/">ArrayList源码分析</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/11/18/jsessionid的生成/">JsessionId的生成</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/10/24/哪些可以作为GCRoots/">哪些可以作为GC Roots</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/09/10/动态代理的缓存实现/">动态代理的缓存实现</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/08/20/IO之同步，阻塞，非阻塞/">同步，阻塞，非阻塞</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/08/09/Java泛型数组/">Java泛型</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/08/05/Java内部类/">Java内部类</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/08/02/libevent简单使用/">libevent简单使用</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/07/26/叶子/">叶子</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/07/21/PathVariable及route设计/">PathVariable及路由设计</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/07/21/HashMap源码解析/">HashMap源码解析</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/07/07/hello-world/">Hello World</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/05/28/use_AuthenticationProvider_in_springSec/">使用AuthenticationProvider进行自定义登陆配置</a></li></ul>
 
 
 
