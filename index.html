@@ -198,11 +198,11 @@
 </nav>
       <div class="body-wrap">
   
-    <article id="post-Guava学习之异步编程" class="article article-type-post" itemscope itemprop="blogPost">
+    <article id="post-Presto的Join细节研究" class="article article-type-post" itemscope itemprop="blogPost">
   
     <div class="article-meta">
-      <a href="/2018/07/21/Guava学习之异步编程/" class="article-date">
-      <time datetime="2018-07-20T16:00:00.000Z" itemprop="datePublished">2018-07-21</time>
+      <a href="/2018/07/22/Presto的Join细节研究/" class="article-date">
+      <time datetime="2018-07-21T16:00:00.000Z" itemprop="datePublished">2018-07-22</time>
 </a>
 
 
@@ -217,7 +217,212 @@
         
   
     <h1 itemprop="name">
-      <a class="article-title" href="/2018/07/21/Guava学习之异步编程/">Guava学习之异步编程</a>
+      <a class="article-title" href="/2018/07/22/Presto的Join细节研究/">Presto的Join的细节研究</a>
+    </h1>
+  
+
+      </header>
+      
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+          
+        <h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>Presto的Join操作可以说是极为复杂的几个步骤之一<br>加上又无其文档和注释，所以想要了解其细节需要自己去耐心的阅读源码<br>笔者进行了一些研究后，进行了一些自己的理解的整理<br>总结出来，希望对你有用</p>
+<h2 id="Partition和Broadcast"><a href="#Partition和Broadcast" class="headerlink" title="Partition和Broadcast"></a>Partition和Broadcast</h2><p>站在整个Presto的体系中，其实数据到底是Partition的分发还是Broadcast的分发在很多环节都有的。<br>那么对于Join而言，Partition肯定是有的。<br>想象对于下面一句话<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> video v <span class="keyword">join</span> <span class="keyword">user</span> u <span class="keyword">on</span> v.user_id = u.id</span><br></pre></td></tr></table></figure></p>
+<p>那么对于整个分布式环境而言，完全可以把video和user表的数据根据join的key按照Hash的方式partition到不同的节点上去进行运算<br>这样提高整体的效率是极好的。  </p>
+<p>那么Join需要Broadcast吗<br>想象下面一句话<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> video v <span class="keyword">left</span> <span class="keyword">join</span> <span class="keyword">user</span> u <span class="keyword">on</span> v.user_id = u.id</span><br></pre></td></tr></table></figure></p>
+<p>那么对于这么一句话，两个表还可以根据key按照Hash的方法partition到不同的节点上去吗？<br>肯定是不行的</p>
+<p>我们可以对左边的表进行partition到不同的节点上，但是对于右边的表，partition肯定是不行了，只有进行Broadcast才能保证数据Join出来是正确的结果  </p>
+<h2 id="DistributionType"><a href="#DistributionType" class="headerlink" title="DistributionType"></a>DistributionType</h2><p>对应到源码级别的就是在JoinNode中<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">enum</span> DistributionType</span><br><span class="line">&#123;</span><br><span class="line">	PARTITIONED,</span><br><span class="line">	REPLICATED</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>这个<code>DistributionType</code>的意思就是针对于右表而言的分发方式，那么是怎么进行判断的呢<br>在<code>DetermineJoinDistributionType</code>类<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> JoinNode.<span class="function">DistributionType <span class="title">getTargetJoinDistributionType</span><span class="params">(JoinNode node)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	</span><br><span class="line">	JoinNode.Type type = node.getType();</span><br><span class="line">	<span class="keyword">if</span> (type == RIGHT || type == FULL || (isDistributedJoinEnabled(session) &amp;&amp; !mustBroadcastJoin(node))) &#123;</span><br><span class="line">		<span class="keyword">return</span> JoinNode.DistributionType.PARTITIONED;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> JoinNode.DistributionType.REPLICATED;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">boolean</span> <span class="title">mustBroadcastJoin</span><span class="params">(JoinNode node)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="keyword">return</span> isScalar(node.getRight()) || isCrossJoin(node);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">boolean</span> <span class="title">isCrossJoin</span><span class="params">(JoinNode node)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="keyword">return</span> node.getType() == INNER &amp;&amp; node.getCriteria().isEmpty();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>整体逻辑其实很挺好懂的<br>如果是right join或者是full join，那么右表肯定就是partition的了<br>因为如果是replicated的话，那么肯定就会多出数据来  </p>
+<p>如果是cross join的话，那么也只能是replicated的方式了。<br>这个其实也不难理解，想象下面这句sql<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> video v <span class="keyword">join</span> <span class="keyword">user</span> u <span class="keyword">on</span> v.user_id &gt; u.id</span><br></pre></td></tr></table></figure></p>
+<p>这种情况和下面这种情况是不同的<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> video v <span class="keyword">join</span> <span class="keyword">user</span> u <span class="keyword">on</span> v.user_id = u.id</span><br></pre></td></tr></table></figure></p>
+<p>因为不是等于关系的Join，所以无法根据Hash(user.id) = Hash(u.id)进行partition分发着Join<br>最多只允许一个表去partition，另外一个表是replicated的。<br>那左边的表replicated还是右边的replicated，对于最终的结果是没有区别的。<br>但是在某些情况下并不等同，这个我们留到下面reorder再讲。</p>
+<h2 id="Probe和Build"><a href="#Probe和Build" class="headerlink" title="Probe和Build"></a>Probe和Build</h2><p>对于Presto而言，其实只有一个Join模式。<br>那就是<br>pipeLine0: 读左表 -&gt; LookupJoin<br>pipeLine1: 读右边 -&gt; HashBuilder</p>
+<p>其中是pipeLine1的任务先行，把右表读出来，然后建立一个bucket为N的HashTable。<br>pipeLine0的任务是先读取左边的数据，然后等待HashTable的建立完成，然后进行Join操作。</p>
+<p>其实更细节的话，在pipeLine0的读左表和建立HashTable是两个pipeLine的操作，中间还需要进行数据Hash到Bucket的操作和建立PageIndex的操作。</p>
+<p>那么抽象就是左表是Probe表，然后右表是Build表。<br>永远是右表去Build一个东西，然后左表是Probe数据。</p>
+<p>那你发现问题了吗？<br>如果是这种sql语句呢<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> video v <span class="keyword">right</span> <span class="keyword">join</span> <span class="keyword">user</span> u <span class="keyword">on</span> v.user_id = u.id</span><br></pre></td></tr></table></figure></p>
+<p>对于right join而言，肯定是右表出的是全量的数据，它如果还是build的话，那肯定是不行的。<br>那么怎么解决呢? </p>
+<p><strong>方案：</strong><br>当然这也不是个致命的问题，可选方案也是有好几个。</p>
+<p><strong>1.</strong><br>Reorder<br>就是调换两边的Join顺序<br>把上面的Join变成<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> <span class="keyword">user</span> u <span class="keyword">left</span> <span class="keyword">join</span> video v <span class="keyword">on</span> v.user_id = u.id</span><br></pre></td></tr></table></figure></p>
+<p>这样把左表变成右表，然后把right join变成Left join，可以解决这个问题。</p>
+<p><strong>2.</strong><br>Tracker<br>当然Presto并没有选择上面这种方法，他在build端增加了一个Tracker。<br>这个Tracker的作用就是记录没有被Probe到的行，然后LookupJoin结束后，把那些没有Join扫过的一把抓回去。</p>
+<h2 id="Merge-Join和NestLoopJoin"><a href="#Merge-Join和NestLoopJoin" class="headerlink" title="Merge Join和NestLoopJoin"></a>Merge Join和NestLoopJoin</h2><p>我们分析下可以发现Presto不管对于什么情况的Join，都是由HashBuilderOperator类去进行Build的。<br>这很容易让人理解为Presto中只有Hash Join。<br>但是理论上Hash Join并不是万能的，有些情况是不能解决的。<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> video v <span class="keyword">join</span> <span class="keyword">user</span> u <span class="keyword">on</span> v.user_id &gt; u.is</span><br></pre></td></tr></table></figure></p>
+<p>这种情况，肯定是不可能用HashBuilder去完成的，或者更准确点，不能用HashJoin去完成的。<br>那么肯定是需要NestedLoop Join和Merge Join的存在的。<br>这个其实蕴含在了Hash Join的具体的实现中了。<br>只不过是HashBuilderOperator算子的实现是相同的而已。</p>
+<h2 id="Join流程"><a href="#Join流程" class="headerlink" title="Join流程"></a>Join流程</h2><p>Presto的Join流程还是稍微有点复杂，我花了一天的时间大致梳理一下。<br>这里涉及到几个比较重要的类<br><code>HashBuilderOperator</code><br><code>PagesIndex</code><br><code>PositionLinks</code></p>
+<p>我们假设有这么两张表进行Join，而且Join的语句是这样<br><img src="/images/presto-join/demo1.png" alt=""></p>
+<p>这时候右表的数据以Page为单位进入到HashBuilderOperaor中<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">addInput</span><span class="params">(Page page)</span></span></span><br><span class="line"><span class="function">    </span>&#123;</span><br><span class="line">        requireNonNull(page, <span class="string">"page is null"</span>);</span><br><span class="line">        checkState(!isFinished(), <span class="string">"Operator is already finished"</span>);</span><br><span class="line"></span><br><span class="line">        index.addPage(page);</span><br><span class="line">        <span class="keyword">if</span> (!operatorContext.trySetMemoryReservation(index.getEstimatedSize().toBytes())) &#123;</span><br><span class="line">            index.compact();</span><br><span class="line">        &#125;</span><br><span class="line">        operatorContext.setMemoryReservation(index.getEstimatedSize().toBytes());</span><br><span class="line">        operatorContext.recordGeneratedOutput(page.getSizeInBytes(), page.getPositionCount());</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure></p>
+<p>我们假设右表分为了两个Page进入。<br><img src="/images/presto-join/demo2.png" alt=""></p>
+<p>从代码里可以看到的是HashBuilderOperator直接把Page加到了PagesIndex中，从类的名字中我们就可以看出来，这个类是为了建立索引用的。<br>但是具体是如何建立索引呢。让我们再来看看源码<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">addPage</span><span class="params">(Page page)</span></span></span><br><span class="line"><span class="function">   </span>&#123;</span><br><span class="line">       <span class="comment">// ignore empty pages</span></span><br><span class="line">       <span class="keyword">if</span> (page.getPositionCount() == <span class="number">0</span>) &#123;</span><br><span class="line">           <span class="keyword">return</span>;</span><br><span class="line">       &#125;</span><br><span class="line"></span><br><span class="line">       positionCount += page.getPositionCount();</span><br><span class="line"></span><br><span class="line">       <span class="keyword">int</span> pageIndex = (channels.length &gt; <span class="number">0</span>) ? channels[<span class="number">0</span>].size() : <span class="number">0</span>;</span><br><span class="line">       <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; channels.length; i++) &#123;</span><br><span class="line">           Block block = page.getBlock(i);</span><br><span class="line">           channels[i].add(block);</span><br><span class="line">           pagesMemorySize += block.getRetainedSizeInBytes();</span><br><span class="line">       &#125;</span><br><span class="line"></span><br><span class="line">       <span class="keyword">for</span> (<span class="keyword">int</span> position = <span class="number">0</span>; position &lt; page.getPositionCount(); position++) &#123;</span><br><span class="line">           <span class="keyword">long</span> sliceAddress = encodeSyntheticAddress(pageIndex, position);</span><br><span class="line">           valueAddresses.add(sliceAddress);</span><br><span class="line">       &#125;</span><br><span class="line"></span><br><span class="line">       estimatedSize = calculateEstimatedSize();</span><br><span class="line">   &#125;</span><br></pre></td></tr></table></figure></p>
+<p>这里比较让人困惑的就是valueAddresses了，这个类是建立Page到channels的索引的类。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">final</span> <span class="class"><span class="keyword">class</span> <span class="title">SyntheticAddress</span></span></span><br><span class="line"><span class="class"></span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="title">SyntheticAddress</span><span class="params">()</span></span></span><br><span class="line"><span class="function">    </span>&#123;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">long</span> <span class="title">encodeSyntheticAddress</span><span class="params">(<span class="keyword">int</span> sliceIndex, <span class="keyword">int</span> sliceOffset)</span></span></span><br><span class="line"><span class="function">    </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> (((<span class="keyword">long</span>) sliceIndex) &lt;&lt; <span class="number">32</span>) | sliceOffset;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">int</span> <span class="title">decodeSliceIndex</span><span class="params">(<span class="keyword">long</span> sliceAddress)</span></span></span><br><span class="line"><span class="function">    </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> ((<span class="keyword">int</span>) (sliceAddress &gt;&gt; <span class="number">32</span>));</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">int</span> <span class="title">decodePosition</span><span class="params">(<span class="keyword">long</span> sliceAddress)</span></span></span><br><span class="line"><span class="function">    </span>&#123;</span><br><span class="line">        <span class="comment">// low order bits contain the raw offset, so a simple cast here will suffice</span></span><br><span class="line">        <span class="keyword">return</span> (<span class="keyword">int</span>) sliceAddress;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>我们直接看整个类，就是把Page和每一个Page中的Position进行了编码，编成了一个long类型的字段，前32位为Page的Index，后32位为PostionIndex。<br>那么我们把右表的两个Page加进去的时候，addresses数组和channels就变成了这个样子<br><img src="/images/presto-join/demo3.png" alt=""></p>
+<p><strong>HashRow</strong><br>到上面这一步其实都是为下面做准备的，因为Join而言，如果左表的每个字段都来和右表的每个字段进行比对，那么效率是很低的，这里既然我们准备了t1.col1 = t2.col1，那么不如把col1进行Hash一下好了。</p>
+<p>我们创建一个Key的数据，长度就是所有行数。这里就是4个。<br>然后把col1进行Hash，把addresses的index塞到key数组中，<br><img src="/images/presto-join/demo4.png" alt=""><br>比如图中，第一行的col1是1，我们进行Hash，等于1，于是把addresses对应的数据index放在Key数组中。</p>
+<p>那么下面就是查找了。查找的流程其实和Build的过程类似，先把col1进行Hash，然后去key数组中查找，如果能查到，那么就是拿到了addresses的index，因为addresses中的value是对应的实例的值的pageIndex和PositionIndex的索引，所以再去channels中查找就行。<br>如下图所示<br><img src="/images/presto-join/demo5.png" alt=""></p>
+<p>但是这么还是不够，我们如何处理Hash碰撞的情况呢？<br><img src="/images/presto-join/demo6.png" alt=""><br>像上面这种情况，col1有多个都是1，那么key只是个一维数组，肯定是不行的。<br>那么PositionLinks就排上用场了，思路就是为key的每个Index维护一个一维的链表，<br>在Join的时候，Hash(row)之后去一个一个的找那个链表中的值。</p>
+<p>那么，到现在为止已经很完美了，还有优化的空间吗？<br>答案是有的，看下文。</p>
+<h2 id="FastInequalityJoin"><a href="#FastInequalityJoin" class="headerlink" title="FastInequalityJoin"></a>FastInequalityJoin</h2><p>我们在扩展一下情况，假设col1相等的情况异常的多。</p>
+<p><img src="/images/presto-join/demo7.png" alt=""><br>让我们假设有一千万个，那么单链表就会异常的长，每一行都要去遍历链表吗？<br>显然我们可以再优化一下。</p>
+<p><img src="/images/presto-join/demo8.png" alt=""><br>和图中讲的一样，如果我们修改为Sort，那么在进行col2的查找的时候，直接进行二分查找就行了。</p>
+<p>这个优化在Presto中是默认开启的，叫做<code>fast_inequality_join</code><br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">## JoinHashSupplier</span><br><span class="line">PositionLinks.FactoryBuilder positionLinksFactoryBuilder;</span><br><span class="line">        <span class="keyword">if</span> (sortChannel.isPresent() &amp;&amp;</span><br><span class="line">                isFastInequalityJoin(session)) &#123;</span><br><span class="line">            checkArgument(filterFunctionFactory.isPresent(), <span class="string">"filterFunctionFactory not set while sortChannel set"</span>);</span><br><span class="line">            positionLinksFactoryBuilder = SortedPositionLinks.builder(</span><br><span class="line">                    addresses.size(),</span><br><span class="line">                    pagesHashStrategy,</span><br><span class="line">                    addresses);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">else</span> &#123;</span><br><span class="line">            positionLinksFactoryBuilder = ArrayPositionLinks.builder(addresses.size());</span><br><span class="line">        &#125;</span><br></pre></td></tr></table></figure></p>
+<p>我们可以看到在JoinHashSupplier的源码中，如果开启了fast_inequality_join，那么默认就会创建<br>SortedPositionLinks，这个和ArrayPositionLinks区别从名字就可以看出是会进行排序的。</p>
+
+      
+    </div>
+    
+    <div class="article-info article-info-index">
+      
+      
+
+      
+    <div class="article-tag tagcloud">
+        <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Presto/">Presto</a></li></ul>
+    </div>
+
+      
+      <div class="clearfix"></div>
+    </div>
+    
+  </div>
+  
+</article>
+
+
+
+
+
+
+
+
+
+  
+    <article id="post-Guava库学习之Collections" class="article article-type-post" itemscope itemprop="blogPost">
+  
+    <div class="article-meta">
+      <a href="/2018/07/21/Guava库学习之Collections/" class="article-date">
+      <time datetime="2018-07-21T07:57:01.000Z" itemprop="datePublished">2018-07-21</time>
+</a>
+
+
+    </div>
+  
+  <div class="article-inner">
+    
+      <input type="hidden" class="isFancy" />
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/2018/07/21/Guava库学习之Collections/">Guava库学习之Collections</a>
+    </h1>
+  
+
+      </header>
+      
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+          
+        <h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p><code>Collections</code>应该是最最常用的了</p>
+<h2 id="MultiMap"><a href="#MultiMap" class="headerlink" title="MultiMap"></a>MultiMap</h2><p><code>MultiMap</code>是一个接口，形象的用JDK中的形式解释就是<code>Map&lt;K, Collection&lt;V&gt;&gt;</code></p>
+<p><code>MultiMap</code>有很多的实现类  </p>
+<h3 id="HashMultiMap"><a href="#HashMultiMap" class="headerlink" title="HashMultiMap"></a>HashMultiMap</h3><p>需要注意的是，<code>HashMultimap</code>每个<code>key</code>对应的<code>value</code>的集合是一个Set<br>所以下面这个输出是</p>
+<blockquote>
+<p>{World=[2], Hello=[1, 3]}</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">Multimap&lt;String, Integer&gt; multimap = HashMultimap.create();</span><br><span class="line">multimap.put(<span class="string">"Hello"</span>, <span class="number">1</span>);</span><br><span class="line">multimap.put(<span class="string">"World"</span>, <span class="number">2</span>);</span><br><span class="line">multimap.put(<span class="string">"Hello"</span>, <span class="number">3</span>);</span><br><span class="line">multimap.put(<span class="string">"Hello"</span>, <span class="number">3</span>);</span><br><span class="line">System.out.println(multimap);</span><br></pre></td></tr></table></figure>
+<h3 id="LinkedListMultimap"><a href="#LinkedListMultimap" class="headerlink" title="LinkedListMultimap"></a>LinkedListMultimap</h3><p>上面的<code>value</code>是个<code>Set</code>集合，但是如果我们需要是个<code>List</code>集合呢<br>就可以使用<code>LinkedListMultimap</code>这个方法<br>输出</p>
+<blockquote>
+<p>{Hello=[1, 3, 3], World=[2]}</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">Multimap&lt;String, Integer&gt; multimap = LinkedListMultimap.create();</span><br><span class="line">multimap.put(<span class="string">"Hello"</span>, <span class="number">1</span>);</span><br><span class="line">multimap.put(<span class="string">"World"</span>, <span class="number">2</span>);</span><br><span class="line">multimap.put(<span class="string">"Hello"</span>, <span class="number">3</span>);</span><br><span class="line">multimap.put(<span class="string">"Hello"</span>, <span class="number">3</span>);</span><br><span class="line">System.out.println(multimap);</span><br></pre></td></tr></table></figure>
+<h3 id="TreeMultimap"><a href="#TreeMultimap" class="headerlink" title="TreeMultimap"></a>TreeMultimap</h3><p>和<code>HashMultiMap</code>一样，也是<code>value</code>存的是个<code>Set</code>集合，只是这个使用的是红黑树为底层节点。</p>
+<h2 id="MultiSet"><a href="#MultiSet" class="headerlink" title="MultiSet"></a>MultiSet</h2><p>这个接口的作用大概和<code>Apache Common</code>的<code>Bag</code>的概念类似。<br>虽然名字里带<code>Set</code>，但是其实没有实现Set接口。<br>比如<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">Multiset&lt;String&gt; multiset = LinkedHashMultiset.create();</span><br><span class="line">multiset.add(<span class="string">"1"</span>);</span><br><span class="line">multiset.add(<span class="string">"1"</span>);</span><br><span class="line">multiset.add(<span class="string">"1"</span>);</span><br><span class="line">multiset.add(<span class="string">"2"</span>);</span><br><span class="line">multiset.add(<span class="string">"2"</span>);</span><br><span class="line">multiset.add(<span class="string">"3"</span>);</span><br><span class="line">System.out.println(multiset.count(<span class="string">"1"</span>)); <span class="comment">// 3</span></span><br><span class="line">System.out.println(multiset.elementSet()); <span class="comment">// 1 2 3</span></span><br></pre></td></tr></table></figure></p>
+<p>理解为<code>Bag</code>，我们往包里放了3个1，2个2，1个3。<br>调用<code>Count</code>我们可以得到里面究竟有多少1。</p>
+<p><code>MultiSet</code>的主要实现有三个类</p>
+<ul>
+<li><code>HashMultiSet</code> 底层使用<code>HashMap</code></li>
+<li><code>LinkedHashMultiSet</code> 底层使用<code>LinkedHashMap</code>，就是元素顺序就依次添加进去的</li>
+<li><code>TreeMultiSet</code> 底层使用的<code>TreeMap</code> </li>
+</ul>
+<h2 id="BiMap"><a href="#BiMap" class="headerlink" title="BiMap"></a>BiMap</h2><p>正常我们维护一个<code>K,V</code>的关系是选用一个<code>Map</code>，但是如果我们不仅仅需要K,V 还需要一个V,K的关系呢 也就是正向是个Map，全部反过来也是个Map。<br>很多人会New两个Map，然后正着放一遍，反着再放一遍<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">Map&lt;String, Integer&gt; nameToId = Maps.newHashMap();</span><br><span class="line">Map&lt;Integer, String&gt; idToName = Maps.newHashMap();</span><br><span class="line"></span><br><span class="line">nameToId.put(<span class="string">"Bob"</span>, <span class="number">42</span>);</span><br><span class="line">idToName.put(<span class="number">42</span>, <span class="string">"Bob"</span>);</span><br></pre></td></tr></table></figure></p>
+<p>但是这样会有问题，因为<code>Map</code>中的<code>value</code>并不保证是个<code>Set</code>集合。</p>
+<p><code>Guava</code>提供了<code>BiMap</code>接口，使得我们不需要创建两个<code>Map</code>，而且也保证<code>Value</code>是个<code>Set</code>集合。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">BiMap&lt;String, Integer&gt; biMap = HashBiMap.create();</span><br><span class="line">biMap.put(<span class="string">"Hello"</span>, <span class="number">2</span>);</span><br><span class="line">biMap.put(<span class="string">"World"</span>, <span class="number">3</span>);</span><br><span class="line">biMap.put(<span class="string">"Java"</span>, <span class="number">4</span>);</span><br><span class="line">System.out.println(biMap);</span><br><span class="line"></span><br><span class="line">BiMap&lt;Integer, String&gt; inverse = biMap.inverse();</span><br><span class="line">System.out.println(inverse);</span><br></pre></td></tr></table></figure></p>
+<p>如果我们需要反过来的<code>Map</code>，只需要调用<code>inverse</code>方法就行。</p>
+<h2 id="Immutable-Collections"><a href="#Immutable-Collections" class="headerlink" title="Immutable Collections"></a>Immutable Collections</h2><p>在原生的<code>JDK</code>中，似乎并没有想严格的区分可变集合和不可变集合。<br>但是如果你阅读过<code>Effective Java</code>的话，里面在<strong>第十五条</strong>有提到不可变的对象的好处</p>
+<ul>
+<li>不可变的类比可变类更加易于设计、实现和使用</li>
+<li>不可变对象本质上是线程安全的，它们不要求同步<ul>
+<li>首先作为Map的key等这种场景，肯定是适用的</li>
+<li>因为无法修改，所以在多线程下的迭代不会抛出异常</li>
+</ul>
+</li>
+</ul>
+<p>就像<code>String</code>推荐作为<code>Map</code>的<code>key</code>一样，<code>String</code>天生是不可变类，易用且不会出现什么问题。</p>
+<p>那么怎么理解不可变集合类的用法呢<br>个人觉得就像<code>StringBuilder</code>和<code>String</code>的用法一样</p>
+<h3 id="ImmutableList"><a href="#ImmutableList" class="headerlink" title="ImmutableList"></a>ImmutableList</h3><p>创建不可变的<code>List</code><br>同时这个类的声明中还带有<code>RandomAccess</code>接口<br>所以底层是使用了<code>Array</code>来存储元素</p>
+<p>如果不清楚我们需要多少元素，可以先创建一个<code>builder</code><br><strong>builder()</strong><br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">ArrayList&lt;String&gt; arrayList = <span class="keyword">new</span> ArrayList&lt;&gt;();</span><br><span class="line">arrayList.add(<span class="string">"Hello"</span>);</span><br><span class="line">arrayList.add(<span class="string">"World"</span>);</span><br><span class="line">arrayList.add(<span class="string">"Java"</span>);</span><br><span class="line"></span><br><span class="line">ImmutableList.Builder&lt;String&gt; stringBuilder = ImmutableList.&lt;String&gt;builder()</span><br><span class="line">    .add(<span class="string">"Hello"</span>)</span><br><span class="line">    .add(<span class="string">"world"</span>);</span><br><span class="line">    .addAll(arrayList);</span><br><span class="line">stringBuilder.add(<span class="string">"Java"</span>);</span><br><span class="line">ImmutableList&lt;String&gt; strings = stringBuilder.build();</span><br></pre></td></tr></table></figure></p>
+<p><strong>of()</strong><br>或者我们可以直接调用<code>of</code>方法如果我们知道已经知道成员变量。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ImmutableList&lt;String&gt; list = ImmutableList.of(<span class="string">"Hello"</span>, <span class="string">"World"</span>, <span class="string">"Java"</span>);</span><br></pre></td></tr></table></figure></p>
+<p>因为<code>ImmutableList</code>是实现了<code>List</code>接口，所以我们这样也行<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">List&lt;String&gt; list = ImmutableList.of(<span class="string">"Hello"</span>, <span class="string">"World"</span>, <span class="string">"Java"</span>);</span><br></pre></td></tr></table></figure></p>
+<p>如果我们拿到的是<code>List</code>方法，那么他的企图修改List的方法已经被标记为<code>@Deprecated</code><br>并且如果强行调用会抛出<strong><code>UnsupportedOperationException</code></strong></p>
+<p><strong>copyOf()</strong><br>如果我们已经有了一个List，想要根据他来创建一个不可变的<code>List</code><br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">ArrayList&lt;String&gt; arrayList = <span class="keyword">new</span> ArrayList&lt;&gt;();</span><br><span class="line">arrayList.add(<span class="string">"Hello"</span>);</span><br><span class="line">arrayList.add(<span class="string">"World"</span>);</span><br><span class="line">arrayList.add(<span class="string">"Java"</span>);</span><br><span class="line">ImmutableList&lt;String&gt; immutableList = ImmutableList.copyOf(arrayList);</span><br></pre></td></tr></table></figure></p>
+<p><strong>sortedCopyOf()</strong><br>之前的<code>List</code>是可以进行<code>Collections.sort()</code>方法进行修改的<br>但是<code>ImmutableList</code>是不可变的，所以不可以进行<code>sort</code>，或者说在<code>build</code>完成之前是不可以进行<code>sort</code>的<br>那么我们可以调用<code>sortedCopyOf()</code>方法进行构建<br>那么如果我使用的是<code>Builder</code>方法进行构建，可不可以在<code>build()</code>之前对里面的元素进行排序呢？<br>似乎没看到方法。</p>
+<h3 id="ImmutableSet"><a href="#ImmutableSet" class="headerlink" title="ImmutableSet"></a>ImmutableSet</h3><p>其实和上面的<code>ImmutableList</code>差不是很多，就不讲了。</p>
+<h3 id="ImmutableBiMap"><a href="#ImmutableBiMap" class="headerlink" title="ImmutableBiMap"></a>ImmutableBiMap</h3><p>同时<code>BiMap</code>也提供了不可变的类型<br>我们可以使用<code>Builder</code>类方法或者<code>of</code>方法去进行创建<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">ImmutableBiMap.Builder&lt;String, Integer&gt; builder = ImmutableBiMap.builder();</span><br><span class="line">        builder.put(<span class="string">"Hello"</span>, <span class="number">2</span>);</span><br><span class="line">        builder.put(<span class="string">"World"</span>, <span class="number">3</span>);</span><br><span class="line">        builder.put(<span class="string">"Java"</span>, <span class="number">4</span>);</span><br><span class="line">        ImmutableBiMap&lt;String, Integer&gt; biMap = builder.build();</span><br><span class="line">        System.out.println(biMap);</span><br><span class="line">        BiMap&lt;Integer, String&gt; inverse = biMap.inverse();</span><br><span class="line">        System.out.println(inverse);</span><br></pre></td></tr></table></figure></p>
+
+      
+    </div>
+    
+    <div class="article-info article-info-index">
+      
+      
+
+      
+    <div class="article-tag tagcloud">
+        <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Guava/">Guava</a></li></ul>
+    </div>
+
+      
+      <div class="clearfix"></div>
+    </div>
+    
+  </div>
+  
+</article>
+
+
+
+
+
+
+
+
+
+  
+    <article id="post-Guava学习之异步编程" class="article article-type-post" itemscope itemprop="blogPost">
+  
+    <div class="article-meta">
+      <a href="/2018/07/20/Guava学习之异步编程/" class="article-date">
+      <time datetime="2018-07-19T16:00:00.000Z" itemprop="datePublished">2018-07-20</time>
+</a>
+
+
+    </div>
+  
+  <div class="article-inner">
+    
+      <input type="hidden" class="isFancy" />
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/2018/07/20/Guava学习之异步编程/">Guava学习之异步编程</a>
     </h1>
   
 
@@ -309,14 +514,14 @@
     <div class="article-entry" itemprop="articleBody">
       
           
-        <h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>Presto在数据进行shuffle的时候，并不是PPT中经常看到的Push模式，而是Pull模式。<br>在两端负责分发和交换数据的类分别是ExchangClient和OutputBuffer。</p>
-<p>比如：<br>Source Stage把数据从Connector中拉取出来，这时候需要给下一个FixedStage进行处理。<br>他会先把数据放在OutputBuffer中，等待上游把数据请求过去，而上游请求数据的类就是ExchangeClient。</p>
+        <h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p><code>Presto</code>在数据进行<code>shuffle</code>的时候，并不是<code>PPT</code>中经常看到的<code>Push</code>模式，而是<code>Pull</code>模式。<br>在两端负责分发和交换数据的类分别是<code>ExchangClient</code>和<code>OutputBuffer</code>。</p>
+<p>比如：<br><code>Source Stage</code>把数据从<code>Connector</code>中拉取出来，这时候需要给下一个<code>FixedStage</code>进行处理。<br>他会先把数据放在<code>OutputBuffer</code>中，等待上游把数据请求过去，而上游请求数据的类就是<code>ExchangeClient</code>。</p>
 <h2 id="ExchangeClient"><a href="#ExchangeClient" class="headerlink" title="ExchangeClient"></a>ExchangeClient</h2><p><img src="/images/presto-exchangeclient/ExchangeClient.png" alt=""><br>大体的过程是这样，但是一些细节还是没发画出来，尽力了。<br>下面详细解释下。</p>
-<h3 id="ExchangOperator"><a href="#ExchangOperator" class="headerlink" title="ExchangOperator"></a>ExchangOperator</h3><p>一般来说负责从下游的<code>Stage</code>拉数据有个专门的<code>Operator</code>是<code>ExchangeOperator</code>。<br>在创建ExchangeOperator的时候，会加上一个ExchangClient。<br>所以和图中不同的是，这个ExchangeClient其实是在ExchangeOperator里面。</p>
-<p>在PipeLine的下一个Operator和ExchangeClient拉数据的时候，会调用上一个的getOutput()，返回的是一个Page。<br>在ExchangeOperator的getOutput()方法中<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> Page <span class="title">getOutput</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    SerializedPage page = exchangeClient.pollPage();</span><br><span class="line">    <span class="keyword">if</span> (page == <span class="keyword">null</span>) &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">null</span>;</span><br><span class="line">    &#125;</span><br><span class="line">operatorContext.recordGeneratedInput(page.getSizeInBytes(), page.getPositionCount());</span><br><span class="line">    <span class="keyword">return</span> serde.deserialize(page);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
-<p>就是调用的exchangeClient的pollPage()方法得到一个Page。</p>
-<h3 id="RemoteSplit"><a href="#RemoteSplit" class="headerlink" title="RemoteSplit"></a>RemoteSplit</h3><p>RemoteSplit是Source Stage的Task在生成的时候，会添加给FixedStage的。<br>成员变量特别简单，就是一个标记数据位置的URL。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">RemoteSplit</span></span></span><br><span class="line"><span class="class">        <span class="keyword">implements</span> <span class="title">ConnectorSplit</span></span></span><br><span class="line"><span class="class"></span>&#123;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">final</span> URI location;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
-<h3 id="HttpPageBufferClient"><a href="#HttpPageBufferClient" class="headerlink" title="HttpPageBufferClient"></a>HttpPageBufferClient</h3><p>在进行addSplit到ExchangOperator的时候，会把每个URL封装成一个HttpPageBufferClient，同时传递进去的还有</p>
+<h3 id="ExchangOperator"><a href="#ExchangOperator" class="headerlink" title="ExchangOperator"></a>ExchangOperator</h3><p>一般来说负责从下游的<code>Stage</code>拉数据有个专门的<code>Operator</code>是<code>ExchangeOperator</code>。<br>在创建<code>ExchangeOperator</code>的时候，会加上一个<code>ExchangClient</code>。<br>所以和图中不同的是，这个<code>ExchangeClient</code>其实是在<code>ExchangeOperator</code>里面。</p>
+<p>在<code>PipeLine</code>的下一个<code>Operator</code>和<code>ExchangeClient</code>拉数据的时候，会调用上一个的<code>getOutput()</code>，返回的是一个<code>Page</code>。<br>在<code>ExchangeOperator</code>的<code>getOutput()</code>方法中<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> Page <span class="title">getOutput</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    SerializedPage page = exchangeClient.pollPage();</span><br><span class="line">    <span class="keyword">if</span> (page == <span class="keyword">null</span>) &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">null</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    operatorContext.recordGeneratedInput(page.getSizeInBytes(), page.getPositionCount());</span><br><span class="line">    <span class="keyword">return</span> serde.deserialize(page);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>就是调用的<code>exchangeClient</code>的<code>pollPage()</code>方法得到一个Page。</p>
+<h3 id="RemoteSplit"><a href="#RemoteSplit" class="headerlink" title="RemoteSplit"></a>RemoteSplit</h3><p><code>RemoteSplit</code>是<code>Source Stage</code>的<code>Task</code>在生成的时候，会添加给<code>FixedStage</code>的。<br>成员变量特别简单，就是一个标记数据位置的URL。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">RemoteSplit</span></span></span><br><span class="line"><span class="class">        <span class="keyword">implements</span> <span class="title">ConnectorSplit</span></span></span><br><span class="line"><span class="class"></span>&#123;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">final</span> URI location;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h3 id="HttpPageBufferClient"><a href="#HttpPageBufferClient" class="headerlink" title="HttpPageBufferClient"></a>HttpPageBufferClient</h3><p>在进行<code>addSplit</code>到<code>ExchangOperator</code>的时候，会把每个<code>URL</code>封装成一个<code>HttpPageBufferClient</code>，同时传递进去的还有</p>
 <ul>
 <li>httpClient 整个Task共享的一个，用于发送请求的。</li>
 <li>maxResponseSize 一次相应最多的数据量大小，默认是1M</li>
@@ -325,11 +530,11 @@
 <li>minErrorDuration </li>
 <li>maxErrorDuration<br>上面这两个参数会随之构建一个Backoff的对象。</li>
 </ul>
-<h3 id="HttpSchedule"><a href="#HttpSchedule" class="headerlink" title="HttpSchedule"></a>HttpSchedule</h3><p>如果我们进入到<code>HttpPageBufferClient</code>的<code>scheduleRequest</code>方法，会发现里面并不是立即发送请求，而是运用了一个schedule方法<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">synchronized</span> <span class="keyword">void</span> <span class="title">scheduleRequest</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">long</span> delayNanos = backoff.getBackoffDelayNanos();</span><br><span class="line">    executor.schedule(() -&gt; &#123;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            initiateRequest();</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">catch</span> (Throwable t) &#123;</span><br><span class="line">            <span class="comment">// should not happen, but be safe and fail the operator</span></span><br><span class="line">            clientCallback.clientFailed(HttpPageBufferClient.<span class="keyword">this</span>, t);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;, delayNanos, NANOSECONDS);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
-<p>这就涉及了请求的失败重试的问题。<br>简单的说，每一次请求失败，会有一个等待时间，而且随着失败次数的增加，这个等待的时间会越来越长。在这个等待的时间内，不会再去进行请求。<br>我们看创建<code>backoff</code>的代码。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">this</span>.backoff = <span class="keyword">new</span> Backoff(</span><br><span class="line">            minErrorDuration,</span><br><span class="line">            maxErrorDuration,</span><br><span class="line">            ticker,</span><br><span class="line">            <span class="keyword">new</span> Duration(<span class="number">0</span>, MILLISECONDS),</span><br><span class="line">            <span class="keyword">new</span> Duration(<span class="number">50</span>, MILLISECONDS),</span><br><span class="line">            <span class="keyword">new</span> Duration(<span class="number">100</span>, MILLISECONDS),</span><br><span class="line">            <span class="keyword">new</span> Duration(<span class="number">200</span>, MILLISECONDS),</span><br><span class="line">            <span class="keyword">new</span> Duration(<span class="number">500</span>, MILLISECONDS));</span><br></pre></td></tr></table></figure></p>
+<h3 id="HttpSchedule"><a href="#HttpSchedule" class="headerlink" title="HttpSchedule"></a>HttpSchedule</h3><p>如果我们进入到<code>HttpPageBufferClient</code>的<code>scheduleRequest</code>方法，会发现里面并不是立即发送请求，而是运用了一个<code>schedule</code>方法<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">synchronized</span> <span class="keyword">void</span> <span class="title">scheduleRequest</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">long</span> delayNanos = backoff.getBackoffDelayNanos();</span><br><span class="line">    executor.schedule(() -&gt; &#123;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            initiateRequest();</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">catch</span> (Throwable t) &#123;</span><br><span class="line">            <span class="comment">// should not happen, but be safe and fail the operator</span></span><br><span class="line">            clientCallback.clientFailed(HttpPageBufferClient.<span class="keyword">this</span>, t);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;, delayNanos, NANOSECONDS);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>这就涉及了请求的失败重试的问题。<br>简单的说，每一次请求失败，会有一个等待时间，而且随着失败次数的增加，这个等待的时间会越来越长。在这个等待的时间内，不会再去进行请求。<br>我们看创建<code>backoff</code>的代码。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">this</span>.backoff = <span class="keyword">new</span> Backoff(</span><br><span class="line">    minErrorDuration,</span><br><span class="line">    maxErrorDuration,</span><br><span class="line">    ticker,</span><br><span class="line">    <span class="keyword">new</span> Duration(<span class="number">0</span>, MILLISECONDS),</span><br><span class="line">    <span class="keyword">new</span> Duration(<span class="number">50</span>, MILLISECONDS),</span><br><span class="line">    <span class="keyword">new</span> Duration(<span class="number">100</span>, MILLISECONDS),</span><br><span class="line">    <span class="keyword">new</span> Duration(<span class="number">200</span>, MILLISECONDS),</span><br><span class="line">    <span class="keyword">new</span> Duration(<span class="number">500</span>, MILLISECONDS));</span><br></pre></td></tr></table></figure></p>
 <p>分别是50MS，100MS，200MS和500MS。<br>同时有个最小时间和最大时间，防止传递了一个超长的时间，那么就永远挂在这儿了。</p>
 <p>这在一定的程度上缓解了请求的压力，同时为节约了下游的<code>cpu</code>资源。因为如果那台服务器挂了，那么一直无意义的<code>http</code>请求是毫无意义的，还会一直浪费cpu资源。<br>但是这个</p>
-<h3 id="流控"><a href="#流控" class="headerlink" title="流控"></a>流控</h3><p>如果上游的数据来不及消费会怎么样。<br>那么，上游来不及消费的信号是什么呢？<br>整个buffer肯定有个阈值的。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">ExchangeClientConfig</span></span></span><br><span class="line"><span class="class"></span>&#123;</span><br><span class="line">    <span class="keyword">private</span> DataSize maxBufferSize = <span class="keyword">new</span> DataSize(<span class="number">32</span>, Unit.MEGABYTE);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h3 id="流控"><a href="#流控" class="headerlink" title="流控"></a>流控</h3><p>如果上游的数据来不及消费会怎么样。<br>那么，上游来不及消费的信号是什么呢？<br>整个<code>buffer</code>肯定有个阈值的。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">ExchangeClientConfig</span></span></span><br><span class="line"><span class="class"></span>&#123;</span><br><span class="line">    <span class="keyword">private</span> DataSize maxBufferSize = <span class="keyword">new</span> DataSize(<span class="number">32</span>, Unit.MEGABYTE);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
 <p>这个阈值就是最大的bufferSize，默认是32M。</p>
 <p>在<code>ExchangClient</code>中，有一个<code>long</code>类型的<code>bufferBytes</code>，用来标记当前的<code>buffer</code>中有多少<code>buffer</code>。<br>在<code>scheduleRequestIfNecessary()</code>方法中，会把<code>bufferBytes</code>和<code>maxBufferSize</code>进行比较，如果已经满足了，那么就不会请求<code>HttpPageBufferClient</code>去请求数据。</p>
 <p>同时<code>HttpPageBufferClient</code>不是划了个定时任务去做拉数据的，整个拉取入口函数都是<code>scheduleRequestIfNecessary()</code>中，需要进行手动调用的。</p>
@@ -342,28 +547,28 @@
 <p>其中保证第三个条件是最重要的。</p>
 <h2 id="OutputBuffer"><a href="#OutputBuffer" class="headerlink" title="OutputBuffer"></a>OutputBuffer</h2><p><img src="/images/presto-exchangeClient/SqlTask.png" alt=""></p>
 <p>大体的创建流程如上。</p>
-<h3 id="TaskResource"><a href="#TaskResource" class="headerlink" title="TaskResource"></a>TaskResource</h3><p>一般来说创建Task和更新Task的信息的接口都是<code>/v1/task/{TaskId}</code>。<br>所以Presto使用了一个Guava Cache来进行SqlTask的cache，当是第一次来的时候，会自动创建一个新的SqlTask，而当是进行update的时候，就从cache中拿出来之前创建的。</p>
+<h3 id="TaskResource"><a href="#TaskResource" class="headerlink" title="TaskResource"></a>TaskResource</h3><p>一般来说创建Task和更新Task的信息的接口都是<code>/v1/task/{TaskId}</code>。<br>所以<code>Presto</code>使用了一个<code>Guava Cache</code>来进行<code>SqlTask</code>的<code>cache</code>，当是第一次来的时候，会自动创建一个新的<code>SqlTask</code>，而当是进行<code>update</code>的时候，就从<code>cache</code>中拿出来之前创建的。</p>
 <h3 id="LazyOutputBuffer"><a href="#LazyOutputBuffer" class="headerlink" title="LazyOutputBuffer"></a>LazyOutputBuffer</h3><p>当一个请求过来的时候，会从Cache中拿出对应的SqlTask，创建LazyOutputBuffer，这个OutputBuffer只是对外的一个封装，里面还包含了一个类别不同的OutputBuffer。</p>
-<h3 id="BroadcastOutputBuffer和PartitionedOutputBuffer"><a href="#BroadcastOutputBuffer和PartitionedOutputBuffer" class="headerlink" title="BroadcastOutputBuffer和PartitionedOutputBuffer"></a>BroadcastOutputBuffer和PartitionedOutputBuffer</h3><p>具体是哪一种，要根据OutputBuffer的类别来判定。<br>如果是Broadcast类别的，就会创建BroadcastOutputBuffer，如果是Partition类别的，就会创建PartitionedOutputBuffer。<br>然后就会根据OutputBuffers的个数具体创建ClientBuffer。</p>
-<p>然后在TaskOutputOperator或者是PartitionOutputOperator进行finish的时候，都是把Page放到ClientBuffer中。</p>
-<p>如果是BroadcastOutputBuffer类别的，就是把PageReference放到所有的ClientBuffer中，如果是Partition类别的，就是放到指定的ClientBuffer中。</p>
-<h3 id="token机制"><a href="#token机制" class="headerlink" title="token机制"></a>token机制</h3><p>Presto的数据传输怎么保证可靠性呢？<br>Page什么时候会从下游的OutputBuffer中Remove呢？<br>这个就需要了解一下Presto拿数据时的Token机制。<br>我们查看下游去上游的Stage拿数据的接口是<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">@GET</span><br><span class="line">@Path(&quot;&#123;taskId&#125;/results/&#123;bufferId&#125;/&#123;token&#125;&quot;)</span><br></pre></td></tr></table></figure></p>
-<p>这里的TaskId很好理解，bufferId就是下游的Task的Id，也就是标记下游的哪个Task来拿的数据，那么这个Token是怎么回事呢？</p>
-<p>我们想象纯粹的没有token这个参数。<br>来一次请求，从Buffer中取出一部分数据回送回去，然后把这部分Page进行Remove。<br>那么问题来了，如果对方接收失败了这部分数据呢？<br>最终问题就是，你怎么知道对方已经拿到了多少数据？<br>要是接收失败，你怎么处理这种失败的情况。</p>
-<p>解答是Presto模拟了Tcp中的Seq和Ack机制。<br>但是因为只有上游需要把数据传送给下游，所以是半双工的。<br><img src="/images/presto-exchangeClient/token.png" alt=""></p>
+<h3 id="BroadcastOutputBuffer和PartitionedOutputBuffer"><a href="#BroadcastOutputBuffer和PartitionedOutputBuffer" class="headerlink" title="BroadcastOutputBuffer和PartitionedOutputBuffer"></a>BroadcastOutputBuffer和PartitionedOutputBuffer</h3><p>具体是哪一种，要根据<code>OutputBuffer</code>的类别来判定。<br>如果是<code>Broadcast</code>类别的，就会创建<code>BroadcastOutputBuffer</code>，如果是<code>Partition</code>类别的，就会创建<code>PartitionedOutputBuffer</code>。<br>然后就会根据<code>OutputBuffers</code>的个数具体创建<code>ClientBuffer</code>。</p>
+<p>然后在<code>TaskOutputOperator</code>或者是<code>PartitionOutputOperator</code>进行<code>finish</code>的时候，都是把<code>Page</code>放到<code>ClientBuffer</code>中。</p>
+<p>如果是<code>BroadcastOutputBuffer</code>类别的，就是把<code>PageReference</code>放到所有的<code>ClientBuffer</code>中，如果是<code>Partition</code>类别的，就是放到指定的<code>ClientBuffer</code>中。</p>
+<h3 id="token机制"><a href="#token机制" class="headerlink" title="token机制"></a>token机制</h3><p><code>Presto</code>的数据传输怎么保证可靠性呢？<br><code>Page</code>什么时候会从下游的<code>OutputBuffer</code>中<code>Remove</code>呢？<br>这个就需要了解一下<code>Presto</code>拿数据时的<code>Token</code>机制。<br>我们查看下游去上游的<code>Stage</code>拿数据的接口是<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">@GET</span><br><span class="line">@Path(&quot;&#123;taskId&#125;/results/&#123;bufferId&#125;/&#123;token&#125;&quot;)</span><br></pre></td></tr></table></figure></p>
+<p>这里的<code>TaskId</code>很好理解，<code>bufferId</code>就是下游的<code>Task</code>的<code>Id</code>，也就是标记下游的哪个<code>Task</code>来拿的数据，那么这个<code>Token</code>是怎么回事呢？</p>
+<p>我们想象纯粹的没有<code>token</code>这个参数。<br>来一次请求，从<code>Buffer</code>中取出一部分数据回送回去，然后把这部分<code>Page</code>进行<code>Remove</code>。<br>那么问题来了，如果对方接收失败了这部分数据呢？<br>最终问题就是，你怎么知道对方已经拿到了多少数据？<br>要是接收失败，你怎么处理这种失败的情况。</p>
+<p>解答是<code>Presto</code>模拟了<code>Tcp</code>中的<code>Seq</code>和<code>Ack</code>机制。<br>但是因为只有上游需要把数据传送给下游，所以是半双工的。<br><img src="/images/presto-exchangeClient/token.png" alt=""></p>
 <p>首先下游请求数据的时候，会带上Token，也就是Start，然后还会标记你最多给我多少数据，对应图中的就是MaxSize，其中每个Buffer会有一个叫curSeq的游标。</p>
 <p>假设第一次来的时候，上游的队列中有很多Page，前三个大小分别是8，2，6。因为start = 0，也就是从0开始，MaxSize = 12。所以上游会回送前两个Page给下游，同时回送一个NextStart = 2，告诉下游下一次的数据从什么地方开始请求。</p>
-<p>第二次请求，start就是上一次上游回送的2，maxSize依然是12。这时候请求发过来时，上游会把前2个Page给Remove掉。然后把下两个Page回送回去，同时标记下一个从4开始。</p>
-<p>同样的，当第三次请求过来，start = 4，上游继续把4之前的Page给Remove掉。</p>
-<p>那么假设第二次的回复对方没有接收到，那么游标curSeq还是不会变，等下游再次请求的时候，还是从Start=2开始的，就是不会受到影响。</p>
-<p>这就是Presto的传输数据的Token机制，类似于Tcp中的Seq和Ack，保证了数据传输的可靠性。</p>
-<h3 id="流控-1"><a href="#流控-1" class="headerlink" title="流控"></a>流控</h3><p>上次提到了ExchangeClient端的流控，当数据来不及消费的时候，那么ExchangClient就不会来请求数据了。<br>那么这时候OutputBuffer端会出现什么样子的情况呢？</p>
+<p>第二次请求，start就是上一次上游回送的2，<code>maxSize</code>依然是12。这时候请求发过来时，上游会把前2个<code>Page</code>给<code>Remove</code>掉。然后把下两个<code>Page</code>回送回去，同时标记下一个从4开始。</p>
+<p>同样的，当第三次请求过来，<code>start = 4</code>，上游继续把4之前的<code>Page</code>给<code>Remove</code>掉。</p>
+<p>那么假设第二次的回复对方没有接收到，那么游标<code>curSeq</code>还是不会变，等下游再次请求的时候，还是从<code>Start=2</code>开始的，就是不会受到影响。</p>
+<p>这就是<code>Presto</code>的传输数据的<code>Token</code>机制，类似于<code>Tcp</code>中的<code>Seq</code>和<code>Ack</code>，保证了数据传输的可靠性。</p>
+<h3 id="流控-1"><a href="#流控-1" class="headerlink" title="流控"></a>流控</h3><p>上次提到了<code>ExchangeClient</code>端的流控，当数据来不及消费的时候，那么<code>ExchangClient</code>就不会来请求数据了。<br>那么这时候<code>OutputBuffer</code>端会出现什么样子的情况呢？</p>
 <p>同样的，也是有一个配置标记一个Task的Buffer最大能存多少。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">OutputBufferMemoryManager</span></span></span><br><span class="line"><span class="class"></span>&#123;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">final</span> <span class="keyword">long</span> maxBufferedBytes;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
-<p>这个类，每一个BroadcastOutputBuffer或者PartitionedOutputBuffer都会含有一个，用来监控当前已经的buffer的大小。</p>
-<p>如果我们简单的想一想其实监控已经很简单，每来一个Page，把大小加进去，每出一个Page把大小减去，如果当前攒着的大小超过了阈值，那么就返回Blocked，把整个Driver给Block掉，不去执行了。</p>
-<p>这种想法其实没错，实现起来也不是很难，足以应付partition的情形，因为每一个Page进来，只会分到<strong>指定</strong>的<strong>一个</strong>ClientBuffer中，移除的时候直接减去就行了。<br><img src="/images/presto-exchangeClient/partition.png" alt=""></p>
-<p>但是如果是broadcast情形呢。<br>每个ClientBuffer中其实都有一个Page的引用，只有当所有的下游Task把对应的ClientBuffer里面的Page取走了才能把大小给减去，那么你怎么知道已经被所有的Task取走了呢？<br><img src="/images/presto-exchangeClient/broadcast.png" alt=""></p>
-<p>如果我们看代码，其实Presto并没有直接把Page放进Buffer中，而是包装了一个PageReference类，传递进去原先的Page和一个回调，这个回调就是把当前的BufferSize减去CurPageSize。<br>再进去看发现这是个引用计数的实现，每add到Buffer中一次，计数就加一，每从buffer中移除一次，计数就减一，当为0的时候，就调用回调把size减去。<br>这真的是很精妙了。</p>
+<p>这个类，每一个<code>BroadcastOutputBuffer</code>或者<code>PartitionedOutputBuffer</code>都会含有一个，用来监控当前已经的<code>buffer</code>的大小。</p>
+<p>如果我们简单的想一想其实监控已经很简单，每来一个<code>Page</code>，把大小加进去，每出一个<code>Page</code>把大小减去，如果当前攒着的大小超过了阈值，那么就返回<code>Blocked</code>，把整个<code>Driver</code>给<code>Block</code>掉，不去执行了。</p>
+<p>这种想法其实没错，实现起来也不是很难，足以应付<code>partition</code>的情形，因为每一个<code>Page</code>进来，只会分到<strong>指定</strong>的<strong>一个</strong><code>ClientBuffer</code>中，移除的时候直接减去就行了。<br><img src="/images/presto-exchangeClient/partition.png" alt=""></p>
+<p>但是如果是<code>broadcast</code>情形呢。<br>每个<code>ClientBuffer</code>中其实都有一个<code>Page</code>的引用，只有当所有的下游<code>Task</code>把对应的<code>ClientBuffer</code>里面的<code>Page</code>取走了才能把大小给减去，那么你怎么知道已经被所有的<code>Task</code>取走了呢？<br><img src="/images/presto-exchangeClient/broadcast.png" alt=""></p>
+<p>如果我们看代码，其实<code>Presto</code>并没有直接把<code>Page</code>放进<code>Buffer</code>中，而是包装了一个<code>PageReference</code>类，传递进去原先的<code>Page</code>和一个回调，这个回调就是把当前的<code>BufferSize</code>减去<code>CurPageSize</code>。<br>再进去看发现这是个引用计数的实现，每<code>add</code>到<code>Buffer</code>中一次，计数就加一，每从<code>buffer</code>中移除一次，计数就减一，当为0的时候，就调用回调把<code>size</code>减去。<br>这真的是很精妙了。</p>
 
       
     </div>
@@ -469,165 +674,6 @@
 
 
   
-    <article id="post-Guava库学习之Collections" class="article article-type-post" itemscope itemprop="blogPost">
-  
-    <div class="article-meta">
-      <a href="/2018/07/15/Guava库学习之Collections/" class="article-date">
-      <time datetime="2018-07-15T08:30:29.000Z" itemprop="datePublished">2018-07-15</time>
-</a>
-
-
-    </div>
-  
-  <div class="article-inner">
-    
-      <input type="hidden" class="isFancy" />
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/2018/07/15/Guava库学习之Collections/">Guava库学习之Collections</a>
-    </h1>
-  
-
-      </header>
-      
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-          
-        <h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>Collections应该是最最常用的了</p>
-<h2 id="MultiMap"><a href="#MultiMap" class="headerlink" title="MultiMap"></a>MultiMap</h2><p>MultiMap是一个接口，形象的用JDK中的形式解释就是<code>Map&lt;K, Collection&lt;V&gt;&gt;</code></p>
-<p>MultiMap有很多的实现类  </p>
-<h3 id="HashMultiMap"><a href="#HashMultiMap" class="headerlink" title="HashMultiMap"></a>HashMultiMap</h3><p>需要注意的是，HashMultimap每个key对应的value的集合是一个Set<br>所以下面这个输出是</p>
-<blockquote>
-<p>{World=[2], Hello=[1, 3]}</p>
-</blockquote>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">Multimap&lt;String, Integer&gt; multimap = HashMultimap.create();</span><br><span class="line">multimap.put(<span class="string">"Hello"</span>, <span class="number">1</span>);</span><br><span class="line">multimap.put(<span class="string">"World"</span>, <span class="number">2</span>);</span><br><span class="line">multimap.put(<span class="string">"Hello"</span>, <span class="number">3</span>);</span><br><span class="line">multimap.put(<span class="string">"Hello"</span>, <span class="number">3</span>);</span><br><span class="line">System.out.println(multimap);</span><br></pre></td></tr></table></figure>
-<h3 id="LinkedListMultimap"><a href="#LinkedListMultimap" class="headerlink" title="LinkedListMultimap"></a>LinkedListMultimap</h3><p>上面的value是个Set集合，但是如果我们需要是个List集合呢<br>就可以使用LinkedListMultimap这个方法<br>输出</p>
-<blockquote>
-<p>{Hello=[1, 3, 3], World=[2]}</p>
-</blockquote>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">Multimap&lt;String, Integer&gt; multimap = LinkedListMultimap.create();</span><br><span class="line">multimap.put(<span class="string">"Hello"</span>, <span class="number">1</span>);</span><br><span class="line">multimap.put(<span class="string">"World"</span>, <span class="number">2</span>);</span><br><span class="line">multimap.put(<span class="string">"Hello"</span>, <span class="number">3</span>);</span><br><span class="line">multimap.put(<span class="string">"Hello"</span>, <span class="number">3</span>);</span><br><span class="line">System.out.println(multimap);</span><br></pre></td></tr></table></figure>
-<h3 id="TreeMultimap"><a href="#TreeMultimap" class="headerlink" title="TreeMultimap"></a>TreeMultimap</h3><p>和HashMultiMap一样，也是value存的是个Set集合，只是这个使用的是红黑树为底层节点。</p>
-<h2 id="MultiSet"><a href="#MultiSet" class="headerlink" title="MultiSet"></a>MultiSet</h2><p>这个接口的作用大概和Apache Common的Bag的概念类似。<br>虽然名字里带Set，但是其实没有实现Set接口。<br>比如<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">Multiset&lt;String&gt; multiset = LinkedHashMultiset.create();</span><br><span class="line">multiset.add(<span class="string">"1"</span>);</span><br><span class="line">multiset.add(<span class="string">"1"</span>);</span><br><span class="line">multiset.add(<span class="string">"1"</span>);</span><br><span class="line">multiset.add(<span class="string">"2"</span>);</span><br><span class="line">multiset.add(<span class="string">"2"</span>);</span><br><span class="line">multiset.add(<span class="string">"3"</span>);</span><br><span class="line">System.out.println(multiset.count(<span class="string">"1"</span>)); <span class="comment">// 3</span></span><br><span class="line">System.out.println(multiset.elementSet()); <span class="comment">// 1 2 3</span></span><br></pre></td></tr></table></figure></p>
-<p>理解为Bag，我们往包里放了3个1，2个2，1个3。<br>调用Count我们可以得到里面究竟有多少1。</p>
-<p>MultiSet的主要实现有三个类</p>
-<ul>
-<li>HashMultiSet 底层使用HashMap</li>
-<li>LinkedHashMultiSet 底层使用LinkedHashMap，就是元素顺序就依次添加进去的</li>
-<li>TreeMultiSet 底层使用的TreeMap</li>
-</ul>
-<h2 id="Immutable-Collections"><a href="#Immutable-Collections" class="headerlink" title="Immutable Collections"></a>Immutable Collections</h2><p>在原生的JDK中，似乎并没有想严格的区分可变集合和不可变集合。<br>但是如果你阅读过Effective Java的话，里面在<strong>第十五条</strong>有提到不可变的对象的好处</p>
-<ul>
-<li>不可变的类比可变类更加易于设计、实现和使用</li>
-<li>不可变对象本质上是线程安全的，它们不要求同步<ul>
-<li>首先作为Map的key等这种场景，肯定是适用的</li>
-<li>因为无法修改，所以在多线程下的迭代不会抛出异常</li>
-</ul>
-</li>
-</ul>
-<p>就像String推荐作为Map的key一样，String天生是不可变类，易用且不会出现什么问题。</p>
-<p>那么怎么理解不可变集合类的用法呢<br>个人觉得就像<code>StringBuilder</code>和<code>String</code>的用法一样</p>
-<h3 id="ImmutableList"><a href="#ImmutableList" class="headerlink" title="ImmutableList"></a>ImmutableList</h3><p>创建不可变的<code>List</code><br>同时这个类的声明中还带有<code>RandomAccess</code>接口<br>所以底层是使用了Array来存储元素</p>
-<p>如果不清楚我们需要多少元素，可以先创建一个builder<br><strong>builder()</strong><br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">ArrayList&lt;String&gt; arrayList = <span class="keyword">new</span> ArrayList&lt;&gt;();</span><br><span class="line">arrayList.add(<span class="string">"Hello"</span>);</span><br><span class="line">arrayList.add(<span class="string">"World"</span>);</span><br><span class="line">arrayList.add(<span class="string">"Java"</span>);</span><br><span class="line"></span><br><span class="line">ImmutableList.Builder&lt;String&gt; stringBuilder = ImmutableList.&lt;String&gt;builder()</span><br><span class="line">    .add(<span class="string">"Hello"</span>)</span><br><span class="line">    .add(<span class="string">"world"</span>);</span><br><span class="line">    .addAll(arrayList);</span><br><span class="line">stringBuilder.add(<span class="string">"Java"</span>);</span><br><span class="line">ImmutableList&lt;String&gt; strings = stringBuilder.build();</span><br></pre></td></tr></table></figure></p>
-<p><strong>of()</strong><br>或者我们可以直接调用<code>of</code>方法如果我们知道已经知道成员变量。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ImmutableList&lt;String&gt; list = ImmutableList.of(<span class="string">"Hello"</span>, <span class="string">"World"</span>, <span class="string">"Java"</span>);</span><br></pre></td></tr></table></figure></p>
-<p>因为ImmutableList是实现了List接口，所以我们这样也行<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">List&lt;String&gt; list = ImmutableList.of(<span class="string">"Hello"</span>, <span class="string">"World"</span>, <span class="string">"Java"</span>);</span><br></pre></td></tr></table></figure></p>
-<p>如果我们拿到的是List方法，那么他的企图修改List的方法已经被标记为<code>@Deprecated</code><br>并且如果强行调用会抛出<strong><code>UnsupportedOperationException</code></strong></p>
-<p><strong>copyOf()</strong><br>如果我们已经有了一个List，想要根据他来创建一个不可变的List<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">ArrayList&lt;String&gt; arrayList = <span class="keyword">new</span> ArrayList&lt;&gt;();</span><br><span class="line">arrayList.add(<span class="string">"Hello"</span>);</span><br><span class="line">arrayList.add(<span class="string">"World"</span>);</span><br><span class="line">arrayList.add(<span class="string">"Java"</span>);</span><br><span class="line">ImmutableList&lt;String&gt; immutableList = ImmutableList.copyOf(arrayList);</span><br></pre></td></tr></table></figure></p>
-<p><strong>sortedCopyOf()</strong><br>之前的<code>List</code>是可以进行<code>Collections.sort()</code>方法进行修改的<br>但是<code>ImmutableList</code>是不可变的，所以不可以进行<code>sort</code>，或者说在<code>build</code>完成之前是不可以进行<code>sort</code>的<br>那么我们可以调用<code>sortedCopyOf()</code>方法进行构建<br>那么如果我使用的是<code>Builder</code>方法进行构建，可不可以在<code>build()</code>之前对里面的元素进行排序呢？<br>似乎没看到方法。</p>
-<h3 id="ImmutableSet"><a href="#ImmutableSet" class="headerlink" title="ImmutableSet"></a>ImmutableSet</h3><p>其实和上面的ImmutableList差不是很多，就不讲了。</p>
-
-      
-    </div>
-    
-    <div class="article-info article-info-index">
-      
-      
-
-      
-    <div class="article-tag tagcloud">
-        <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Guava/">Guava</a></li></ul>
-    </div>
-
-      
-      <div class="clearfix"></div>
-    </div>
-    
-  </div>
-  
-</article>
-
-
-
-
-
-
-
-
-
-  
-    <article id="post-数据库Join算法" class="article article-type-post" itemscope itemprop="blogPost">
-  
-    <div class="article-meta">
-      <a href="/2018/07/15/数据库Join算法/" class="article-date">
-      <time datetime="2018-07-14T16:00:00.000Z" itemprop="datePublished">2018-07-15</time>
-</a>
-
-
-    </div>
-  
-  <div class="article-inner">
-    
-      <input type="hidden" class="isFancy" />
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/2018/07/15/数据库Join算法/">数据库Join算法</a>
-    </h1>
-  
-
-      </header>
-      
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-          
-        <h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><h2 id="分类"><a href="#分类" class="headerlink" title="分类"></a>分类</h2><h2 id="NestedLoop-Join"><a href="#NestedLoop-Join" class="headerlink" title="NestedLoop Join"></a>NestedLoop Join</h2><h2 id="Hash-Join"><a href="#Hash-Join" class="headerlink" title="Hash Join"></a>Hash Join</h2><h2 id="Merge-Join"><a href="#Merge-Join" class="headerlink" title="Merge Join"></a>Merge Join</h2><h2 id="Index-Join"><a href="#Index-Join" class="headerlink" title="Index Join"></a>Index Join</h2>
-      
-    </div>
-    
-    <div class="article-info article-info-index">
-      
-      
-
-      
-    <div class="article-tag tagcloud">
-        <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/数据库/">数据库</a></li></ul>
-    </div>
-
-      
-      <div class="clearfix"></div>
-    </div>
-    
-  </div>
-  
-</article>
-
-
-
-
-
-
-
-
-
-  
     <article id="post-Presto的分段源码解析" class="article article-type-post" itemscope itemprop="blogPost">
   
     <div class="article-meta">
@@ -684,329 +730,6 @@
 <p>那么这样的话，原先是这样的结构。<br><img src="/images/presto-stage/JoinStage1.png" alt=""></p>
 <p>那么就可以变成这样的结构<br><img src="/images/presto-stage/JoinStage2.png" alt=""><br>如果左表特别大的话，那么就省去了很多的shuffle时间。</p>
 
-      
-    </div>
-    
-    <div class="article-info article-info-index">
-      
-      
-
-      
-    <div class="article-tag tagcloud">
-        <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Presto/">Presto</a></li></ul>
-    </div>
-
-      
-      <div class="clearfix"></div>
-    </div>
-    
-  </div>
-  
-</article>
-
-
-
-
-
-
-
-
-
-  
-    <article id="post-presto执行流程" class="article article-type-post" itemscope itemprop="blogPost">
-  
-    <div class="article-meta">
-      <a href="/2018/07/10/presto执行流程/" class="article-date">
-      <time datetime="2018-07-09T16:00:00.000Z" itemprop="datePublished">2018-07-10</time>
-</a>
-
-
-    </div>
-  
-  <div class="article-inner">
-    
-      <input type="hidden" class="isFancy" />
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/2018/07/10/presto执行流程/">Presto执行流程</a>
-    </h1>
-  
-
-      </header>
-      
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-          
-        <h2 id="整体概念"><a href="#整体概念" class="headerlink" title="整体概念"></a>整体概念</h2><h3 id="statement"><a href="#statement" class="headerlink" title="statement"></a>statement</h3><p>statement语句就是我们输入的sql语句  </p>
-<h3 id="query"><a href="#query" class="headerlink" title="query"></a>query</h3><p>查询执行，和statement的区别可以理解为一个是抽象的，一个是具体的。<br>presto接收到一个statement，会进行解析，然后生成具体的查询计划。<br>一个查询是有多个worker之间的stages组成的</p>
-<h3 id="Stage"><a href="#Stage" class="headerlink" title="Stage"></a>Stage</h3><p>查询的执行阶段  </p>
-<ul>
-<li>Source Stage 从数据源读取数据</li>
-<li>Fixed Stage 中间阶段的Stage，从上游读取数据，执行计算，然后发送给下游</li>
-<li>Single Stage 也称Root Stage，汇总最终的数据，发送给Coodinator</li>
-<li>Coordiantor_Only 用于执行DDL或者DML语句中的表结构更改之类  </li>
-</ul>
-<h3 id="Task"><a href="#Task" class="headerlink" title="Task"></a>Task</h3><ul>
-<li>Stage是抽象的查询计划，由Coordinator进行划分</li>
-<li>Task则是进行了具象划分，当需要传递到Worker上时，就封装为Task请求过去</li>
-<li>一个Stage可以被分解为多个Task在不同的节点并发执行，每个Task的功能是一样的</li>
-</ul>
-<h3 id="exchange"><a href="#exchange" class="headerlink" title="exchange"></a>exchange</h3><p>stage之间的数据交换</p>
-<ul>
-<li>OutPutbuffer  生产数据的通过OutPutbuffer发送给下游</li>
-<li>Exchange Client 接收上游数据</li>
-</ul>
-<h3 id="Driver"><a href="#Driver" class="headerlink" title="Driver"></a>Driver</h3><ul>
-<li>Task的划分，一个Task可分为多个Driver并行执行  </li>
-<li>Driver通过Pipeline串联多个Operator</li>
-</ul>
-<h3 id="Operator"><a href="#Operator" class="headerlink" title="Operator"></a>Operator</h3><ul>
-<li>代表对数据的一种具体操作  </li>
-<li>以page为最小的处理单位  <ul>
-<li>LimitOperator</li>
-<li>OrderByOperator</li>
-</ul>
-</li>
-</ul>
-<h3 id="Split"><a href="#Split" class="headerlink" title="Split"></a>Split</h3><ul>
-<li>大的数据集中的一个小的子集 </li>
-<li>分配给Task的数据单位</li>
-<li>当Presto执行一个查询的时候，首先会从Coordinator得到一个表对应的所有的Split，</li>
-<li>然后Presto就会根据查询执行计划，选择合适的节点运行相应的Task处理Split  </li>
-</ul>
-<h3 id="page"><a href="#page" class="headerlink" title="page"></a>page</h3><p>最小的处理单元<br>一个page对象包含多个block对象，而每个block对象是一个字节数组，存储一个字段的若干行  </p>
-<h2 id="presto-cli"><a href="#presto-cli" class="headerlink" title="presto-cli"></a>presto-cli</h2><p>presto-cli和server之间使用restful接口传递信息  </p>
-<p><code>--server localhost:8080 --catalog mysql --schema mv</code><br>这个localhost:8080就是coodinator暴露出去的rest接口。  </p>
-<p>其中cli使用的io.airline库用来进行cli参数的传递之类的工作<br>整个presto的依赖注入使用了guice库。</p>
-<p>整个客户端的参数在com.facebook.presto.cli中  </p>
-<p>首先进行了参数的解析生成了一个com.facebook.presto.cli.Console对象之后。<br>调用run方法<br>判断执行方式是–execute还是file还是console，执行不同的策略。   </p>
-<p>如果是console，则继续进入到runConsole方法中。<br>在<code>String line = reader.readLine(commandPrompt);</code>中等待我们的输入  </p>
-<p>假设我们输入了<code>show tables</code><br>则进入<code>process(queryRunner, split.statement(), outputFormat, tableNameCompleter::populateCache, true);</code>中  </p>
-<p>首先进行了<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">finalSql = preprocessQuery(</span><br><span class="line">		Optional.ofNullable(queryRunner.getSession().getCatalog()),</span><br><span class="line">        Optional.ofNullable(queryRunner.getSession().getSchema()),</span><br><span class="line">        sql);</span><br></pre></td></tr></table></figure></p>
-<p>得到一个finalSql。<br>// 这个finalSql就是加上了Catalog和Schema。<br>不准确，不知道做了啥，好像是把catalog和schema设置到了什么环境变量里。</p>
-<p>下面就是开始执行sql<br><code>Query query = queryRunner.startQuery(finalSql)</code><br>然后就会通过http发请求发送给coordinator获取结果<br><code>boolean success = query.renderOutput(System.out, outputFormat, interactive);</code><br>其中结果的获取是循环的，并不是一次性的<br>参见<code>StatementClientV1.advance()</code>方法  这个方法就是循环的发送查询结果的请求，等待数据的到来。</p>
-<p>请求是通过okhttp发送给coodinator。<br>接口的话是statement。<br><code>return newStatementClient(client, session, query);</code><br>在<code>StatementClientV1</code>这个class中<br>构造函数<br><code>StatementClientV1(OkHttpClient httpClient, ClientSession session, String query)</code><br>其中的query，就是<code>show tables; select * from table_name;</code>这种。</p>
-<p>路由是<br><code>url = url.newBuilder().encodedPath(&quot;/v1/statement&quot;).build();</code><br>方法是POST</p>
-<p>提交是在<br><code>JsonResponse.execute(QUERY_RESULTS_CODEC, httpClient, request);</code>中；</p>
-<p><code>/v1/statement</code>的路由在<code>coordinator</code>的<br><code>com.facebook.presto.server.protocol.StatementResource</code>中</p>
-<p>server把这个query请求放在一个Map中<br><code>queries.put(query.getQueryId(), query);</code><br>然后进行toResponse的时候，把queryId发送给cli，cli要获取下面的信息就要使用这个queryId。<br>@Path(“{queryId}/{token}”)<br>这个路由就是用来进行下面结果的get的<br>queryId就是提交请求的时候返回的。<br>token貌似是记录当前数据传输到那个阶段的意思。<br>因为这儿有这么一段<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (token &lt; resultId.get()) &#123;</span><br><span class="line">  <span class="keyword">throw</span> <span class="keyword">new</span> WebApplicationException(Response.Status.GONE);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
-<p>小于的话，大概是表示这段数据已经传输过的意思。</p>
-<p>在new Query的时候，<br><code>submissionFuture = new QuerySubmissionFuture(queryId, query, sessionContext, queryManager);</code>   </p>
-<p>这个<code>QuerySubmissionFuture</code>有个<code>submitQuery</code>方法。<br>在<code>submitQuery</code>方法中，执行了<br><code>querySubmissionFuture = queryManager.createQuery(queryId, sessionContext, this.query);</code><br>这个<code>queryManager</code>是一个<code>com.facebook.presto.execution.SqlQueryManager</code>的实例<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> ListenableFuture&lt;?&gt; createQuery(QueryId queryId, SessionContext sessionContext, String query)</span><br><span class="line">   &#123;</span><br><span class="line">       QueryCreationFuture queryCreationFuture = <span class="keyword">new</span> QueryCreationFuture();</span><br><span class="line">       queryExecutor.submit(() -&gt; &#123;</span><br><span class="line">           <span class="keyword">try</span> &#123;</span><br><span class="line">               createQueryInternal(queryId, sessionContext, query);</span><br><span class="line">               queryCreationFuture.set(<span class="keyword">null</span>);</span><br><span class="line">           &#125;</span><br><span class="line">           <span class="keyword">catch</span> (Throwable e) &#123;</span><br><span class="line">               queryCreationFuture.setException(e);</span><br><span class="line">           &#125;</span><br><span class="line">       &#125;);</span><br><span class="line">       <span class="keyword">return</span> queryCreationFuture;</span><br><span class="line">   &#125;</span><br></pre></td></tr></table></figure></p>
-<p>进入到createQueryInternal方法中  </p>
-<p>进行了一系列的判断之后<br>执行<br><code>queryExecution = queryExecutionFactory.createQueryExecution(queryId, query, session, statement, parameters);</code>方法  </p>
-<p><code>SqlQueryExecution类中</code><br>最后<br><code>// start the query in the background
-        resourceGroupManager.submit(statement, queryExecution, selectionContext, queryExecutor);</code></p>
-<p><code>InternalResourceGroup.run</code><br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (canRun) &#123;</span><br><span class="line">     startInBackground(query);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">startInBackground</span><span class="params">(QueryExecution query)</span></span></span><br><span class="line"><span class="function">    </span>&#123;</span><br><span class="line">        checkState(Thread.holdsLock(root), <span class="string">"Must hold lock to start a query"</span>);</span><br><span class="line">        <span class="keyword">synchronized</span> (root) &#123;</span><br><span class="line">            runningQueries.add(query);</span><br><span class="line">            InternalResourceGroup group = <span class="keyword">this</span>;</span><br><span class="line">            <span class="keyword">while</span> (group.parent.isPresent()) &#123;</span><br><span class="line">                group.parent.get().descendantRunningQueries++;</span><br><span class="line">                group.parent.get().dirtySubGroups.add(group);</span><br><span class="line">                group = group.parent.get();</span><br><span class="line">            &#125;</span><br><span class="line">            updateEligibility();</span><br><span class="line">            executor.execute(query::start);</span><br><span class="line">        &#125;</span><br></pre></td></tr></table></figure>
-<p>然后执行SqlQueryExecution的start方法<br>SqlQueryExecution表示一次查询执行，用于启动，停止与管理一个查询以及统计这个查询的相关信息<br>SqlQueryQueueManager.submit用于提交SqlQueryExecution到匹配的队列中</p>
-<p>先构建plan<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Override</span></span><br><span class="line">   <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">start</span><span class="params">()</span></span></span><br><span class="line"><span class="function">   </span>&#123;</span><br><span class="line">       <span class="keyword">try</span> (SetThreadName ignored = <span class="keyword">new</span> SetThreadName(<span class="string">"Query-%s"</span>, stateMachine.getQueryId())) &#123;</span><br><span class="line">           <span class="keyword">try</span> &#123;</span><br><span class="line">               <span class="comment">// transition to planning</span></span><br><span class="line">               <span class="keyword">if</span> (!stateMachine.transitionToPlanning()) &#123;</span><br><span class="line">                   <span class="comment">// query already started or finished</span></span><br><span class="line">                   <span class="keyword">return</span>;</span><br><span class="line">               &#125;</span><br><span class="line"></span><br><span class="line">               <span class="comment">// analyze query</span></span><br><span class="line">               PlanRoot plan = analyzeQuery();</span><br><span class="line"></span><br><span class="line">               metadata.beginQuery(getSession(), plan.getConnectors());</span><br><span class="line"></span><br><span class="line">               <span class="comment">// plan distribution of query</span></span><br><span class="line">               planDistribution(plan);</span><br><span class="line"></span><br><span class="line">               <span class="comment">// transition to starting</span></span><br><span class="line">               <span class="keyword">if</span> (!stateMachine.transitionToStarting()) &#123;</span><br><span class="line">                   <span class="comment">// query already started or finished</span></span><br><span class="line">                   <span class="keyword">return</span>;</span><br><span class="line">               &#125;</span><br><span class="line"></span><br><span class="line">               <span class="comment">// if query is not finished, start the scheduler, otherwise cancel it</span></span><br><span class="line">               SqlQueryScheduler scheduler = queryScheduler.get();</span><br><span class="line"></span><br><span class="line">               <span class="keyword">if</span> (!stateMachine.isDone()) &#123;</span><br><span class="line">                   scheduler.start();</span><br><span class="line">               &#125;</span><br><span class="line">           &#125;</span><br><span class="line">           <span class="keyword">catch</span> (Throwable e) &#123;</span><br><span class="line">               fail(e);</span><br><span class="line">               throwIfInstanceOf(e, Error.class);</span><br><span class="line">           &#125;</span><br><span class="line">       &#125;</span><br><span class="line">   &#125;</span><br></pre></td></tr></table></figure></p>
-<p>这其中会进行metadata APi的调用</p>
-<p>LogicalPlanner类会根据针对sql语句分析得出的结果，生成逻辑执行计划<br>执行计划是一个数  </p>
-<ul>
-<li>AggregationNode用于聚合操作的节点</li>
-<li>DeleteNode 用于delete操作的节点</li>
-<li>ExchangeNode 用于在执行计划中不同的stage之间交换数据的节点，出现在逻辑执行计划中 </li>
-<li>FilterNode 过滤节点</li>
-<li>IndexJoinNode</li>
-<li>。。。</li>
-</ul>
-<p>生成完plan后，进行<code>metadata.beginQuery(getSession(), plan.getConnectors());</code>操作<br>//TODO</p>
-<p>还要进行执行计划的分段<br><code>SubPlan fragmentedPlan = PlanFragmenter.createSubPlans(stateMachine.getSession(), metadata, nodePartitioningManager, plan, false);</code><br>分为以下几个阶段</p>
-<ul>
-<li>source 就是从数据源读数据，一般分为TableScanNode和ProjectNode</li>
-<li>Fixed 包括聚合join等</li>
-<li>Single 在单个节点上执行，汇总所有的处理结果  </li>
-</ul>
-<p>SqlQueryScheduler就是用管理stage的<br>最终执行的<code>SqlQueryScheduler.schedule</code>方法<br>调用了SqlStageExecution.beginScheduling方法。</p>
-<p>SqlTaskExecution</p>
-<p>java.util.OptionalLong<br>java.util.OptionalInt<br>这几个optional的封装类，可以看看</p>
-<p>查询调度<br>每个stage的调度过程是基于split分配Worker Node的过程<br>不同的stage有不同的调度策略  </p>
-<p>对于每一个stage，presto都会生成一个对应的SqlStageExecution<br>SqlQueryExecution -&gt; subplan -&gt; StageExecutionPlan -&gt; SqlStageExecution<br>过程详细：</p>
-<p>查询调度过程</p>
-<p>SqlStageExecution内部组成  </p>
-<ul>
-<li>NodeScheduler，把task分配给node的核心模块，包含<ul>
-<li>NodeManager，获取存活的节点列表 保存在NodeMap中，并且定时更新列表中的内容，缓存时长为5s</li>
-<li>NodeMap 存储Presto的节点信息</li>
-<li>NodeSchedulerConfig 配置了调度的相关参数</li>
-<li>NodeSelector 提供了各个Stage中task分配节点的算法</li>
-</ul>
-</li>
-<li>NodeTaskMap  保存了当前Stage分配的task和节点的映射列表 NodeTasks维护了一个节点对应的task列表  </li>
-<li>RemoteTaskFactory 生成RemoteTask的工厂类</li>
-<li>StageStateMachine Stage状态的监听类  </li>
-</ul>
-<p>NodeManager<br>presto调度task时要确保候选node都在可工作状态，NodeManager定义了统一的获取节点入口<br>在CoordinatorModule类中  </p>
-<p>NodeSelector<br>NodeScheduler.createNodeSelector方法<br>byHostAndPort和byHost两个集合的目的是为了在Source stage分配split时，实现数据本地性而设置的<br>single和FixedStage节点都是随机选择<br>每个查询请求都会包含一个或者多个Source Stage，一个table会对应一个Source Stage Source stage节点的选择策略与single和fixed完全不同，选择节点的个数是根据组成table的split的个数决定的。 数据本地性不是必须的 需要开参数允许 不然就是随机  </p>
-<p>整体查询流程</p>
-<ul>
-<li>客户端通过coordinator的restful服务发送请求</li>
-<li>coordinator解析sql语句生成statement</li>
-<li>coordinator根据statement对象生成相应的QueueExecution对象</li>
-<li>coordinator把QueueExecution放到队列中并且调度执行</li>
-<li>coordinator生成查询执行计划，依次调度各个stage并执行</li>
-<li>根据stage的分类分别调度不同的worker阶段执行stage的task任务  </li>
-<li>coordiantor向worker提供的restful服务发起请求，启动task，并执行计算  </li>
-<li>worker：从上游读取数据并把产生的数据输出给下游task</li>
-<li>worker：整个查询输出最终汇总到singe stage worker节点上的task</li>
-<li>coordinator：exchangeclient获得single worker节点上的task的输出</li>
-<li>coordinator-&gt;cli:周期性的输出结果  </li>
-</ul>
-<p>presto的查询<br>SqlQueryExecution -&gt; SqlStageEx.. -&gt; SqlTaskExe…<br>每个SqlTaskExe运行在一个worker上  d</p>
-<p>看</p>
-<p>source task -&gt; scheduleSourcePartitionedNodes()  node split的对应关系<br>            assignSplits</p>
-<p>fixed task -&gt; scheduleFixedNodeCount join的hash分配</p>
-<p>task的创建</p>
-<ul>
-<li>HttpRemoteTask</li>
-<li><code>/v1/task</code></li>
-</ul>
-<p>​      </p>
-
-      
-    </div>
-    
-    <div class="article-info article-info-index">
-      
-      
-
-      
-    <div class="article-tag tagcloud">
-        <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Java/">Java</a></li></ul>
-    </div>
-
-      
-      <div class="clearfix"></div>
-    </div>
-    
-  </div>
-  
-</article>
-
-
-
-
-
-
-
-
-
-  
-    <article id="post-Presto的Join细节研究" class="article article-type-post" itemscope itemprop="blogPost">
-  
-    <div class="article-meta">
-      <a href="/2018/07/10/Presto的Join细节研究/" class="article-date">
-      <time datetime="2018-07-09T16:00:00.000Z" itemprop="datePublished">2018-07-10</time>
-</a>
-
-
-    </div>
-  
-  <div class="article-inner">
-    
-      <input type="hidden" class="isFancy" />
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/2018/07/10/Presto的Join细节研究/">Presto的Join的细节研究</a>
-    </h1>
-  
-
-      </header>
-      
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-          
-        <h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>Presto的Join操作可以说是极为复杂的几个步骤之一<br>加上又无其文档和注释，所以想要了解其细节需要自己去耐心的阅读源码<br>笔者进行了一些研究后，进行了一些自己的理解的整理<br>总结出来，希望对你有用</p>
-<h2 id="Partition和Broadcast"><a href="#Partition和Broadcast" class="headerlink" title="Partition和Broadcast"></a>Partition和Broadcast</h2><p>站在整个Presto的体系中，其实数据到底是Partition的分发还是Broadcast的分发在很多环节都有的。<br>那么对于Join而言，Partition肯定是有的。<br>想象对于下面一句话<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> video v <span class="keyword">join</span> <span class="keyword">user</span> u <span class="keyword">on</span> v.user_id = u.id</span><br></pre></td></tr></table></figure></p>
-<p>那么对于整个分布式环境而言，完全可以把video和user表的数据根据join的key按照Hash的方式partition到不同的节点上去进行运算<br>这样提高整体的效率是极好的。  </p>
-<p>那么Join需要Broadcast吗<br>想象下面一句话<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> video v <span class="keyword">left</span> <span class="keyword">join</span> <span class="keyword">user</span> u <span class="keyword">on</span> v.user_id = u.id</span><br></pre></td></tr></table></figure></p>
-<p>那么对于这么一句话，两个表还可以根据key按照Hash的方法partition到不同的节点上去吗？<br>肯定是不行的</p>
-<p>我们可以对左边的表进行partition到不同的节点上，但是对于右边的表，partition肯定是不行了，只有进行Broadcast才能保证数据Join出来是正确的结果  </p>
-<h2 id="DistributionType"><a href="#DistributionType" class="headerlink" title="DistributionType"></a>DistributionType</h2><p>对应到源码级别的就是在JoinNode中<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">enum</span> DistributionType</span><br><span class="line">&#123;</span><br><span class="line">	PARTITIONED,</span><br><span class="line">	REPLICATED</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
-<p>这个<code>DistributionType</code>的意思就是针对于右表而言的分发方式，那么是怎么进行判断的呢<br>在<code>DetermineJoinDistributionType</code>类<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> JoinNode.<span class="function">DistributionType <span class="title">getTargetJoinDistributionType</span><span class="params">(JoinNode node)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	</span><br><span class="line">	JoinNode.Type type = node.getType();</span><br><span class="line">	<span class="keyword">if</span> (type == RIGHT || type == FULL || (isDistributedJoinEnabled(session) &amp;&amp; !mustBroadcastJoin(node))) &#123;</span><br><span class="line">		<span class="keyword">return</span> JoinNode.DistributionType.PARTITIONED;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> JoinNode.DistributionType.REPLICATED;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">boolean</span> <span class="title">mustBroadcastJoin</span><span class="params">(JoinNode node)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="keyword">return</span> isScalar(node.getRight()) || isCrossJoin(node);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">boolean</span> <span class="title">isCrossJoin</span><span class="params">(JoinNode node)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="keyword">return</span> node.getType() == INNER &amp;&amp; node.getCriteria().isEmpty();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
-<p>整体逻辑其实很挺好懂的<br>如果是right join或者是full join，那么右表肯定就是partition的了<br>因为如果是replicated的话，那么肯定就会多出数据来  </p>
-<p>如果是cross join的话，那么也只能是replicated的方式了。<br>这个其实也不难理解，想象下面这句sql<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> video v <span class="keyword">join</span> <span class="keyword">user</span> u <span class="keyword">on</span> v.user_id &gt; u.id</span><br></pre></td></tr></table></figure></p>
-<p>这种情况和下面这种情况是不同的<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> video v <span class="keyword">join</span> <span class="keyword">user</span> u <span class="keyword">on</span> v.user_id = u.id</span><br></pre></td></tr></table></figure></p>
-<p>因为不是等于关系的Join，所以无法根据Hash(user.id) = Hash(u.id)进行partition分发着Join<br>最多只允许一个表去partition，另外一个表是replicated的。<br>那左边的表replicated还是右边的replicated，对于最终的结果是没有区别的。<br>但是在某些情况下并不等同，这个我们留到下面reorder再讲。</p>
-<h2 id="Probe和Build"><a href="#Probe和Build" class="headerlink" title="Probe和Build"></a>Probe和Build</h2><p>对于Presto而言，其实只有一个Join模式。<br>那就是<br>pipeLine0: 读左表 -&gt; LookUpJoin<br>pipeLine1: 读右边 -&gt; HashBuilder</p>
-<p>其中是pipeLine1的任务先行，把右表读出来，然后建立一个bucket为N的HashTable。<br>pipeLine0的任务是先读取左边的数据，然后等待HashTable的建立完成，然后进行Join操作。</p>
-<p>其实更细节的话，在pipeLine0的读左表和建立HashTable是两个pipeLine的操作，中间还需要进行数据Hash到Bucket的操作和建立PageIndex的操作。</p>
-<p>那么抽象就是左表是Probe表，然后右表是Build表。<br>永远是右表去Build一个东西，然后左表是Probe数据。</p>
-<p>那你发现问题了吗？<br>如果是这种sql语句呢<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> video v <span class="keyword">right</span> <span class="keyword">join</span> <span class="keyword">user</span> u <span class="keyword">on</span> v.user_id = u.id</span><br></pre></td></tr></table></figure></p>
-<p>对于right join而言，肯定是右表出的是全量的数据，它如果还是build的话，那肯定是不行的。<br>那么怎么解决呢? 那就是进行Reorder</p>
-<h2 id="Merge-Join和NestLoopJoin"><a href="#Merge-Join和NestLoopJoin" class="headerlink" title="Merge Join和NestLoopJoin"></a>Merge Join和NestLoopJoin</h2><p>我们分析下可以发现Presto不管对于什么情况的Join，都是由HashBuilderOperator类去进行Build的。<br>这很容易让人理解为Presto中只有Hash Join。<br>但是理论上Hash Join并不是万能的，有些情况是不能解决的。<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> video v <span class="keyword">join</span> <span class="keyword">user</span> u <span class="keyword">on</span> v.user_id &gt; u.is</span><br></pre></td></tr></table></figure></p>
-<p>这种情况，肯定是不可能用HashBuilder去完成的，或者更准确点，不能用HashJoin去完成的。<br>那么肯定是需要NestedLoop Join和Merge Join的存在的。<br>这个其实蕴含在了Hash Join的具体的实现中了。<br>只不过是HashBuilderOperator算子的实现是相同的而已。</p>
-<h2 id="Right-Join和"><a href="#Right-Join和" class="headerlink" title="Right Join和"></a>Right Join和</h2>
-      
-    </div>
-    
-    <div class="article-info article-info-index">
-      
-      
-
-      
-    <div class="article-tag tagcloud">
-        <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Presto/">Presto</a></li></ul>
-    </div>
-
-      
-      <div class="clearfix"></div>
-    </div>
-    
-  </div>
-  
-</article>
-
-
-
-
-
-
-
-
-
-  
-    <article id="post-Presto和Hive的区别" class="article article-type-post" itemscope itemprop="blogPost">
-  
-    <div class="article-meta">
-      <a href="/2018/06/16/Presto和Hive的区别/" class="article-date">
-      <time datetime="2018-06-15T16:00:00.000Z" itemprop="datePublished">2018-06-16</time>
-</a>
-
-
-    </div>
-  
-  <div class="article-inner">
-    
-      <input type="hidden" class="isFancy" />
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/2018/06/16/Presto和Hive的区别/">Presto和Hive的区别</a>
-    </h1>
-  
-
-      </header>
-      
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-          
-        <h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2>
       
     </div>
     
@@ -1178,9 +901,346 @@
 
 
   
+    <article id="post-Presto基本概念" class="article article-type-post" itemscope itemprop="blogPost">
+  
+    <div class="article-meta">
+      <a href="/2018/06/03/Presto基本概念/" class="article-date">
+      <time datetime="2018-06-02T16:00:00.000Z" itemprop="datePublished">2018-06-03</time>
+</a>
+
+
+    </div>
+  
+  <div class="article-inner">
+    
+      <input type="hidden" class="isFancy" />
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/2018/06/03/Presto基本概念/">Presto基本概念</a>
+    </h1>
+  
+
+      </header>
+      
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+          
+        <h2 id="基本介绍"><a href="#基本介绍" class="headerlink" title="基本介绍"></a>基本介绍</h2><p>Presto是FaceBook开源的一个分布式的Sql Engine。<br>对标的是Impala之类的Mpp引擎。<br>主打的是实时分析和多数据源支持。<br>更详细的介绍和同类框架的对于可以参见 </p>
+<p><a href="http://www.ouyangchen.com/wp-content/uploads/2017/03/Meetup-Druid%E5%92%8CKylin%E5%9C%A8%E7%BE%8E%E5%9B%A2%E7%82%B9%E8%AF%84%E7%9A%84%E9%80%89%E5%9E%8B%E4%B8%8E%E5%AE%9E%E8%B7%B5.pdf" target="_blank" rel="noopener">Druid和Kylin在美团点评的选型与实践</a></p>
+<p>这个PPT总结的很好</p>
+<h2 id="基本抽象"><a href="#基本抽象" class="headerlink" title="基本抽象"></a>基本抽象</h2><h3 id="Stage"><a href="#Stage" class="headerlink" title="Stage"></a>Stage</h3><blockquote>
+<p>Stage: unit of work that does not require shuffling</p>
+</blockquote>
+<p>这是内部分享总结的，仔细品味一下还是很有道理的。<br>正常的讲，Stage就是查询的执行阶段。<br>一般分为四种Stage:</p>
+<ul>
+<li>Source Stage: 从数据源读取数据</li>
+<li>Fixed Stage: 进行中间的运算</li>
+<li>Single Stage: 也称为Root Stage，这个是必不可少的，用于最后把数据汇总给Coordinator</li>
+<li>Coordinator_Only：用于执行DDL语句等不需要进行计算的语句</li>
+</ul>
+<h3 id="Task"><a href="#Task" class="headerlink" title="Task"></a>Task</h3><p>Task是Stage的具体分布式查询计划，由Coordinator进行划分<br>Task需要通过Http接口发送到具体的Node上去，然后生成对应的本地执行计划<br>一个Stage可以分解为多个<strong>同构</strong>的Task</p>
+<h3 id="Driver"><a href="#Driver" class="headerlink" title="Driver"></a>Driver</h3><p>Task是发送到本地的执行计划<br>Task被分为<strong>多种</strong>Driver去并发的执行</p>
+<h3 id="Operator"><a href="#Operator" class="headerlink" title="Operator"></a>Operator</h3><p>一个Driver内包含多个Operator<br>真正操作Page数据的是Operator<br>一个Operator代表一种操作，比如Scan-&gt;读取数据, Filter -&gt; 过滤数据</p>
+<h3 id="Block和Page"><a href="#Block和Page" class="headerlink" title="Block和Page"></a>Block和Page</h3><p><img src="/images/presto-basic/page.png" alt=""><br>Block是一张表的一个字段对应的队列<br>Page由Block构成，一个Page包含多个Block，多个Block横切为一行。</p>
+
+      
+    </div>
+    
+    <div class="article-info article-info-index">
+      
+      
+
+      
+    <div class="article-tag tagcloud">
+        <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Presto/">Presto</a></li></ul>
+    </div>
+
+      
+      <div class="clearfix"></div>
+    </div>
+    
+  </div>
+  
+</article>
+
+
+
+
+
+
+
+
+
+  
+    <article id="post-OLAP基本知识" class="article article-type-post" itemscope itemprop="blogPost">
+  
+    <div class="article-meta">
+      <a href="/2018/05/23/OLAP基本知识/" class="article-date">
+      <time datetime="2018-05-22T16:00:00.000Z" itemprop="datePublished">2018-05-23</time>
+</a>
+
+
+    </div>
+  
+  <div class="article-inner">
+    
+      <input type="hidden" class="isFancy" />
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/2018/05/23/OLAP基本知识/">OLAP基本知识</a>
+    </h1>
+  
+
+      </header>
+      
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+          
+        <h2 id="OLAP和OLTP"><a href="#OLAP和OLTP" class="headerlink" title="OLAP和OLTP"></a>OLAP和OLTP</h2><p><code>OLTP</code>（<code>OnLine Transaction Processing</code> ，联机事务处理），如<code>MySQL</code>, <code>MicroSoft SQL Server</code>等关系数据库系统，这些关系数据库系统擅长事务处理，在数据操作中保持着很强的一致性和原子性，能够很好的支持频繁的数据插入和修改，但是，一旦需要进行计算的数据量过大，达到数千万甚至数十亿条，或需要进行的计算非常复杂的情况下，<code>OLTP</code>类数据库系统便力不从心了。</p>
+<p>这个时候，我们便需要<code>OLAP</code>（<code>On-Line Analytical Processing</code>，联机分析处理）系统，来进行处理。从广义上，<code>OLAP</code>系统是针对<code>OLTP</code>系统而言的，暨不特别关心对数据进行输入、修改等事务性处理，而是关心对已有的大量数据进行多维度的、复杂的分析的一类数据系统。</p>
+<h2 id="数据仓库"><a href="#数据仓库" class="headerlink" title="数据仓库"></a>数据仓库</h2><blockquote>
+<p>英文名称为Data Warehouse，可简写为DW或DWH。</p>
+<p>是为企业所有级别的决策制定过程，提供所有类型数据支持的战略集合。它是单个数据存储，出于分析性报告和决策支持目的而创建。</p>
+</blockquote>
+<p>简单的理解就是把OLTP的数据抽取出来，按照主题分类，存到数据仓库里，然后通过OLAP进行分析。<br>所以数据仓库的数据一般都很大很大，因为包含了很多的历史数据</p>
+<p>当然更深的理论我还要继续去学习。<br>等我学到了再来补充这个。</p>
+<h2 id="实时数据仓库"><a href="#实时数据仓库" class="headerlink" title="实时数据仓库"></a>实时数据仓库</h2><p>我去实习的组有个业务是实时数据仓库。<br>说实话一开始我是懵逼的，因为我看到的概念里，数据仓库的查询一般是很慢的，但是现在加上实时两个字是啥意思。<br>后来我去百度了一下，发现还真有这个概念。 </p>
+<p>实时数仓的实时主要体现在两个方面</p>
+<ul>
+<li>实时插入：数据除了可以通过离线Batch的行为导入仓库，还可以像Mysql那样进行实时的插入。</li>
+<li>查询快速：运用Mpp等大规模的分布式的查询引擎，可以在秒级或者毫秒级返回结果。</li>
+</ul>
+<h2 id="Ad-hoc"><a href="#Ad-hoc" class="headerlink" title="Ad-hoc"></a>Ad-hoc</h2><p>Ad-hoc是数据仓库领域的专业术语。<br>表示没有预先计划或者按很低的计划或不可预期的事件。</p>
+<p>即席查询与通常查询从SQL语句上来说，并没有本质的差别。<br>它们之间的差别在于，通常的查询在系统设计和实施时是已知的，所有我们可以在系统实施时通过建立索引、分区等技术来优化这些查询，使这些查询的效率很高。<br>而即席查询是用户在使用时临时生产的，系统无法预先优化这些查询，所以即席查询也是评估数据仓库的一个重要指标</p>
+<p>所以Ad-hoc查询对数据仓库的要求很高。</p>
+<h2 id="MPP"><a href="#MPP" class="headerlink" title="MPP"></a>MPP</h2><p>Mpp：大规模并行处理 (Massively Parallel Processor)<br>简单的说就是分布式计算。<br>一般像Presto这种，可以处理PB级别的数据</p>
+<h2 id="维度表和事实表"><a href="#维度表和事实表" class="headerlink" title="维度表和事实表"></a>维度表和事实表</h2><p>是数据仓库中或者BI中的概念</p>
+<p>比如描述人可以有两个维度：姓名和年级。<br>我们又有这个人的大学表。<br>这时候我们可以做一个表是姓名 - 年级 - 大学<br>那么这个表就是事实表，而单独的姓名和年级和大学表都是维度表。</p>
+<h2 id="数据库分区"><a href="#数据库分区" class="headerlink" title="数据库分区"></a>数据库分区</h2><p>之前只听过分库分表，但是分区真的没听过。<br>查了一下其实Mysql也是支持分区的。</p>
+<p>一般来说分区需要指名一个字段和分区数。<br>每插入一条数据，根据分区列进行Hash，然后插入<strong>指定分区</strong>。</p>
+<p>Mysql的分区大多是指的分文件，几个分区就会被分成几个文件。</p>
+<p>但是真正在分布式数据库中的分区就不仅仅是这样了。<br>相当于一个文件就代表着一个数据节点。<br>每插入一个数据，根据分区列进行Hash，然后插入<strong>指定Node</strong>。</p>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a href="https://help.aliyun.com/document_detail/26387.html?spm=a2c4g.11186623.6.566.xHxTVZ" target="_blank" rel="noopener">https://help.aliyun.com/document_detail/26387.html?spm=a2c4g.11186623.6.566.xHxTVZ</a></p>
+<p>(<a href="https://help.aliyun.com/document_detail/64020.html?spm=a2c4g.11186623.6.632.S3SGxf)[https://help.aliyun.com/document_detail/64020.html?spm=a2c4g.11186623.6.632.S3SGxf" target="_blank" rel="noopener">https://help.aliyun.com/document_detail/64020.html?spm=a2c4g.11186623.6.632.S3SGxf)[https://help.aliyun.com/document_detail/64020.html?spm=a2c4g.11186623.6.632.S3SGxf</a>]</p>
+
+      
+    </div>
+    
+    <div class="article-info article-info-index">
+      
+      
+
+      
+    <div class="article-tag tagcloud">
+        <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/大数据/">大数据</a></li></ul>
+    </div>
+
+      
+      <div class="clearfix"></div>
+    </div>
+    
+  </div>
+  
+</article>
+
+
+
+
+
+
+
+
+
+  
+    <article id="post-分布式基础知识" class="article article-type-post" itemscope itemprop="blogPost">
+  
+    <div class="article-meta">
+      <a href="/2018/05/01/分布式基础知识/" class="article-date">
+      <time datetime="2018-04-30T16:00:00.000Z" itemprop="datePublished">2018-05-01</time>
+</a>
+
+
+    </div>
+  
+  <div class="article-inner">
+    
+      <input type="hidden" class="isFancy" />
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/2018/05/01/分布式基础知识/">分布式基础知识</a>
+    </h1>
+  
+
+      </header>
+      
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+          
+        <h2 id="分布式，集群，单点问题"><a href="#分布式，集群，单点问题" class="headerlink" title="分布式，集群，单点问题"></a>分布式，集群，单点问题</h2><p>与分布式相对应的就是单机的概念。<br>比如一个服务，依赖<code>nginx</code>，<code>tomcat</code>，<code>mysql</code>，<code>redis</code> 这么多组件。<br>单机的话可能就部署在一个服务器上。<br>这样的话容易服务器挂了，整个服务就不可用了。<br>同时可扩展性不是很好，一台普通的机器用来跑简单的服务还是可以的，万一是个需要高并发的，数据量比较大的呢，那就只能去买大型机了，但是大型机价格昂贵。同时还是避免不了如果机器挂了，整个服务就不可用的问题。</p>
+<p>好，那我们从单机的状态下转移出来<br>现在我们<code>Redis</code>，<code>Tomcat</code>，<code>Mysql</code>，<code>Nginx</code>都是单独在一台服务器上。<br>那么整个服务就可以称为是分布式的。</p>
+<p>那么集群是怎么回事呢？<br>就比如跑<code>Nginx</code>这个服务器挂了，<code>Nginx</code>也就挂了，那么即使<code>Mysql</code>没挂，整个服务还是不能正常运行。<br>这个<code>Nginx</code>服务器就是个单点问题。<br>所以即使把服务都分开部署，还是无法解决不可用的问题，那么怎么提高服务的可用性呢。</p>
+<p>那就是使用集群了。<br>我们部署三个机器都是跑<code>Nginx</code>，那么一台挂了不至于导致整个服务不可用。<br>当然<code>Nginx</code>一般来说是无状态的，如果整个集群是有状态的呢。<br>那就需要一些一致性协议来进行实现。<br>真正做起来还是比较复杂的。</p>
+<h2 id="CAP"><a href="#CAP" class="headerlink" title="CAP"></a>CAP</h2><p>CAP理论由Eric Brewer教授在2000年提出的<br>主要说明了一点，在一个分布式环境中<br>Consistency一致性、Availability可用性、Partition-tolerance分区容错性<br>这三个条件不能同时满足，最多只能满足其中的两个。</p>
+<p>其实我们在仔细斟酌下，按照我的理解，其实这个是针对集群的，比如Zookeeper集群，称为是分布式环境中的其实不太准确。<br>再而这个针对的是什么集群呢，nginx集群吗，显然不是，看第一条，一致性，nginx需要什么一致性？那么在仔细想下，这个理论应该是针对提供数据相关功能的服务的。比如数据库之类。  </p>
+<p><img src="images/分布式/cap.png" alt=""></p>
+<p>从上图我们可以看到，一个服务最多满足<code>CAP</code>中的两个而放弃另外一个，像<code>Redis</code>放弃了可用性，选择了一致性和分区容错性。当然这是单机的Redis。</p>
+<p>那么这三个条件具体是什么意思呢</p>
+<ul>
+<li><p>一致性  简单的说，同样的数据在多个集群的所有机器上是否是一样的<br>或者这么说，同一个请求在一个集群中所有的机器上的结果应当是一样的。不允许出现不一样的状态。</p>
+</li>
+<li><p>可用性  整个集群对于别的服务的请求必须在有限时间内返回结果。</p>
+</li>
+<li><p>分区容错性  这个比较难理解，首先什么是分区呢，正常来说，整个集群应该是一个整体，每台机器可以通过网络互相沟通，但是可能因为网络分区的原因，出现了两个分区，每个分区的机器都可以互相沟通，但是跨分区的机器不能沟通。<br>如果数据项只在一个节点中，那么分区出现后，和这个节点之前连通的部分就访问不到这个数据了，那么这就是分区不容忍的。<br>提高分区容忍性的办法就是一个数据项复制到多个节点上，那么出现分区之后，这一数据项就可能分布到各个区里。容忍性就提高了。<br>然而，要把数据复制到多个节点，就会带来一致性的问题，就是多个节点上面的数据可能是不一致的。要保证一致，每次写操作就都要等待全部节点写成功，而这等待又会带来可用性的问题。总的来说就是，数据存在的节点越多，分区容忍性越高，但要复制更新的数据就越多，一致性就越难保证。为了保证一致性，更新所有节点数据所需要的时间就越长，可用性就会降低。  </p>
+</li>
+</ul>
+<p>所以正常情况下，分布式系统中，都要满足分区容错性，然后在一致性和可用性之间做出权衡。  </p>
+<h2 id="BASE"><a href="#BASE" class="headerlink" title="BASE"></a>BASE</h2><p>BASE理论在CAP提出之后，因为CAP提出三个条件，提供数据服务的集群最多保证其中两个。<br>同时一般来说我们P是不可能放弃的，基本都是在C和A之间权衡。<br>那么具体怎么权衡呢，BASE就是一种讨论的结果。</p>
+<p>BASE是Basically Available, Soft state, Eventually consistent三个短语的缩写。<br>也就是基本可用，软状态，最终一致性。</p>
+<h3 id="基本可用"><a href="#基本可用" class="headerlink" title="基本可用"></a>基本可用</h3><p>基本可用不代表不可用，而是在一些情况下在高可用上有稍许的宽松<br>比较典型的就是</p>
+<ul>
+<li>响应时间上的损失  </li>
+<li>功能上的损失，降级等。</li>
+</ul>
+<h3 id="弱状态"><a href="#弱状态" class="headerlink" title="弱状态"></a>弱状态</h3><p>允许系统出现中间状态<br>即允许数据同步的过程中存在延迟</p>
+<h3 id="最终一致性"><a href="#最终一致性" class="headerlink" title="最终一致性"></a>最终一致性</h3><p>强一致性的条件比较严格，就比如我提出了一个写请求，那么我写完之后，必须保证每个机器上都能得到体现，数据必须是一样的。这是强一致性。</p>
+<p>最终一致性就是允许中间有延迟时间，但是保证一定会达到一致，至于多久，这个并没有严格的限制。</p>
+<h2 id="2PC"><a href="#2PC" class="headerlink" title="2PC"></a>2PC</h2><p>2PC =&gt;  Two Phase Commitment Protocol<br>也就是二阶段提交协议  </p>
+<p>在分布式事务中，事务协调器和资源管理器进行事务的过程。  </p>
+<p><img src="images/分布式/2pc.png" alt=""></p>
+<p>第一阶段<br>TM像所有的RM发送prepare指令，相当于执行start transection并执行sql语句，但是并不提交。<br>RM执行完之后会向TM发送反馈。</p>
+<p>第二阶段<br>接收完RM的反馈后，如果有返回NO的，那么TM向所有的RM发送abort指令，放弃事务提交<br>如果反馈全是Yes，那么发送commit指令。</p>
+<p>整个过程很简单，各个书上对这个过程的描述也是一致的。</p>
+<h2 id="3PC"><a href="#3PC" class="headerlink" title="3PC"></a>3PC</h2><p>由2PC的名字可以联想到，其实这个是三阶段提交协议的意思</p>
+<p>三阶段提交协议主要把2PC的第二阶段拆分为两个阶段 preCommit和doCommit阶段</p>
+<p><img src="images/分布式/3pc.png" alt=""></p>
+<h2 id="2PC和3PC对比"><a href="#2PC和3PC对比" class="headerlink" title="2PC和3PC对比"></a>2PC和3PC对比</h2><p>首先对一下细节的探究。</p>
+<ul>
+<li><p>2PC中TM有主备机制吗？<br>这个问题困扰了我很久，最后得到的结论是没有的，只有一个TM，挂了就全局阻塞。<br>参见文章<a href="https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/tr-2003-96.pdf" target="_blank" rel="noopener">链接</a><br>文章的3.3节中提到</p>
+<blockquote>
+<p>They have usually attempted to “fix” the Two-Phase Commit protocol by<br>choosing another TM if the first TM fails.</p>
+</blockquote>
+</li>
+<li><p>2PC中如果TM挂了，那么RM有超时机制吗<br>从众多描述中可以发现是没有的<br>参见问题<br><a href="https://stackoverflow.com/questions/44301852/why-is-two-phase-commit-2pc-blocking" target="_blank" rel="noopener">链接1</a><br><a href="https://cs.stackexchange.com/questions/76192/why-is-two-phase-commit-2pc-blocking" target="_blank" rel="noopener">链接2</a><br>注意这种情况是TM挂了的情况，如果是RM挂了，TM是可以具有超时abort机制的。</p>
+</li>
+<li><p>2PC的数据不一致的情况<br><a href="https://blog.csdn.net/yyd19921214/article/details/68953629" target="_blank" rel="noopener">链接</a></p>
+<blockquote>
+<p>2PC协议中，如果出现协调者和参与者都挂了的情况，有可能导致数据不一致。<br>这里解释一下他说的不一致是什么情景，就是协调者进入第二阶段，发送Commit请求了，当发给第一个RM时挂了，第一个RM收到请求，Commit后也挂了。</p>
+</blockquote>
+</li>
+</ul>
+<p>但是如果这么想的话，因为RM没有超时机制，下面就只有等TM被repair，这时候其实并不是严格处于一个数据不一致的状态。</p>
+<ul>
+<li>3PC怎么解决这么问题的<br>其实仔细看的话，3PC确实解决了一些问题，但是3PC本身还是有问题的。<ul>
+<li>引入RM超时机制，如果发出canCommit后TM挂了，那么RM超时后会自动取消事务，同样的，如果preCommit后TM挂了，那么RM超时后会自动提交事务，一部分情况下避免了无线阻塞。</li>
+<li>引入TM重新选举</li>
+</ul>
+</li>
+</ul>
+<p>但是3PC解决了2PC的问题了吗，阻塞问题算了解决了一下，但是数据不一致的问题确实依然存在的。<br>加入TM发出一个preCommit后挂了，然后一个RM接收到preCommit，其他的没接收到，超时后其他的abort了，只有一个commit了，那么数据不一致还是存在的，而且似乎更严重了一些。</p>
+<p>下面是一些资料：<br>摘自维基百科 <a href="https://en.wikipedia.org/wiki/Two-phase_commit_protocol#Disadvantages" target="_blank" rel="noopener">链接</a></p>
+<blockquote>
+<p>The greatest disadvantage of the two-phase commit protocol is that it is a blocking protocol. If the coordinator fails permanently, some cohorts will never resolve their transactions: After a cohort has sent an agreement message to the coordinator, it will block until a commit or rollback is received.</p>
+</blockquote>
+<p><a href="https://en.wikipedia.org/wiki/Three-phase_commit_protocol" target="_blank" rel="noopener">链接</a></p>
+<blockquote>
+<p>A two-phase commit protocol cannot dependably recover from a failure of both the coordinator and a cohort member during the Commit phase. If only the coordinator had failed, and no cohort members had received a commit message, it could safely be inferred that no commit had happened. If, however, both the coordinator and a cohort member failed, it is possible that the failed cohort member was the first to be notified, and had actually done the commit. Even if a new coordinator is selected, it cannot confidently proceed with the operation until it has received an agreement from all cohort members, and hence must block until all cohort members respond.</p>
+</blockquote>
+<p><a href="https://blog.csdn.net/yyd19921214/article/details/68953629" target="_blank" rel="noopener">链接</a></p>
+<blockquote>
+<p>2PC协议中，如果出现协调者和参与者都挂了的情况，有可能导致数据不一致。<br>这里解释一下他说的不一致是什么情景，就是协调者进入第二阶段，发送Commit请求了，当发给第一个RM时挂了，第一个RM收到请求，Commit后也挂了。</p>
+</blockquote>
+<p><a href="http://www.win.tue.nl/~atif/reports/paper4ICET.pdf" target="_blank" rel="noopener">链接</a></p>
+<blockquote>
+<p>Blocking: The Two-Phase Commit Protocol goes to a<br>blocking state by the failure of the coordinator when the<br>participants are in uncertain state. The participants keep<br>locks on resources until they receive the next message<br>from the coordinator after its recovery.</p>
+</blockquote>
+<p><a href="https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/tr-2003-96.pdf" target="_blank" rel="noopener">链接</a></p>
+<blockquote>
+<p>In a transaction commit protocol, if one or more RMs fail, the transaction<br>is usually aborted. For example, in the Two-Phase Commit protocol, if the<br>TM does not receive a Prepared message from some RM soon enough after<br>sending the Prepare message, then it will abort the transaction by sending<br>Abort messages to the other RMs. However, the failure of the TM can cause<br>the protocol to block until the TM is repaired. In particular, if the TM fails<br>right after every RM has sent a Prepared message, then the other RMs have<br>no way of knowing whether the TM committed or aborted the transaction.</p>
+</blockquote>
+<p>总结一下，主要还是两个问题</p>
+<ul>
+<li>阻塞问题</li>
+<li>数据不一致问题<br>但是优点也是显而易见的</li>
+<li>容易实现</li>
+</ul>
+<h2 id="XA协议"><a href="#XA协议" class="headerlink" title="XA协议"></a>XA协议</h2><p>XA是一个分布式事务的规范，由X/Open组织提出的。<br>X/Open组织定义了分布式事务处理模型 -&gt; X/Open DTP模型。<br>在DTP模型中定义了三个组件</p>
+<ul>
+<li>Application Program (AP)，应用程序，使用DTP模型的程序</li>
+<li>Resource Manager (RM)，资源管理器，可以理解未一个DBMS系统，或者消息服务器管理系统，应用程序通过资源管理器对资源进行控制，资源必须实现XA定义的接口。</li>
+<li>Transaction Manager(TM)，事务管理器，负责协调和管理事务，提供给AP应用程序变成接口并管理资源管理器。事务管理器向事务指定标识，监视它们的进程，并负责处理事务的完成和失败。</li>
+</ul>
+<p><img src="images/分布式/XA.png" alt=""></p>
+<p><img src="images/分布式/XA1.png" alt=""></p>
+<p>一个例子:</p>
+<ul>
+<li>AP与RM之间，可以使用RM自身提供的native API进行交互，这种方式就是使用RM的传统方式，并且这个交互不在TM的管理范围内，另外，当AP和RM之间需要进行分布式事务的时候，AP需要得到对RM的链接(此链接由TM管理)，然后使用XA的native API来进行交互。</li>
+<li>AP和TM之间，该例子中使用的是TX接口，也是由X/Open所规范的。它用于对事务进行控制，包括事务启动，提交事务和回滚事务。</li>
+<li>TM与RM之间是通过XA接口进行交互。TM管理了到RM的连接，并实现了两阶段提交。</li>
+</ul>
+<p>总结：2PC和3PC一定程度上其实是实现了XA协议的。</p>
+<h2 id="Paxos"><a href="#Paxos" class="headerlink" title="Paxos"></a>Paxos</h2><h3 id="Paxos和2PC"><a href="#Paxos和2PC" class="headerlink" title="Paxos和2PC"></a>Paxos和2PC</h3><p>上文提到了数据服务集群的一致性问题，那么怎么保证数据的强一致性呢。<br>这里就需要用到Paxos算法。<br>很多人会认为2PC和Paxos解决了同样的问题，Paxos更为先进，可以放弃2PC了。<br>但是这个其实也是不准确的。<br>因为2PC和Paxos本质上解决的不是同一个问题。<br>2PC是为了分布式事务，Paxos是维持多个副本之间的数据一致。 </p>
+<h2 id="Raft和Zab"><a href="#Raft和Zab" class="headerlink" title="Raft和Zab"></a>Raft和Zab</h2><p>Raft和Zab也是一致性算法。</p>
+<p>上文说我们已经有了Paxos，那么为什么还提出Raft和Zab呢，因为Paxos的理解较为复杂，也没有提出技术细节的解决方案，较为理论，虽然解决的一致性问题很通用，对于一些细节的阐述不是很清晰。</p>
+<p>为了需要一个能实现的算法，于是有了Raft和Zab。</p>
+<p>Raft和Zab的区别其实不是很大，Zab主要是用在Zookeeper上。</p>
+<p>下面主要说说Raft协议。</p>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><ul>
+<li><p>CAP部分的分区容错性 =&gt;<br><a href="https://www.zhihu.com/question/54105974/answer/139037688" target="_blank" rel="noopener">https://www.zhihu.com/question/54105974/answer/139037688</a></p>
+</li>
+<li><p>BASE部分参考=&gt; 《从Paxos到Zookeeper，分布式一致性原理与实践》  </p>
+</li>
+<li><p>XA协议部分参考=&gt; 《大型网站系统与JAVA中间件实践》</p>
+</li>
+</ul>
+<h2 id="课外阅读"><a href="#课外阅读" class="headerlink" title="课外阅读"></a>课外阅读</h2><p><a href="https://martin.kleppmann.com/2015/05/11/please-stop-calling-databases-cp-or-ap.html" target="_blank" rel="noopener">https://martin.kleppmann.com/2015/05/11/please-stop-calling-databases-cp-or-ap.html</a></p>
+
+      
+    </div>
+    
+    <div class="article-info article-info-index">
+      
+      
+
+      
+    <div class="article-tag tagcloud">
+        <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/分布式/">分布式</a></li></ul>
+    </div>
+
+      
+      <div class="clearfix"></div>
+    </div>
+    
+  </div>
+  
+</article>
+
+
+
+
+
+
+
+
+
+  
   
     <nav id="page-nav">
-      <span class="page-number current">1</span><a class="page-number" href="/page/2/">2</a><a class="page-number" href="/page/3/">3</a><span class="space">&hellip;</span><a class="page-number" href="/page/5/">5</a><a class="extend next" rel="next" href="/page/2/">Next &raquo;</a>
+      <span class="page-number current">1</span><a class="page-number" href="/page/2/">2</a><a class="page-number" href="/page/3/">3</a><a class="page-number" href="/page/4/">4</a><a class="extend next" rel="next" href="/page/2/">Next &raquo;</a>
     </nav>
   
 </div>
