@@ -15,18 +15,21 @@
 
 
 
-<meta name="description" content="项目源码@PathVariable在web后端框架中，路由设计是很重要的一步。各个框架对接口设计的支持大多差不多，其中必然有 12@GET(&amp;quot;/users/&amp;#123;id&amp;#125;/&amp;quot;)   @GET(&amp;quot;/users/:id/&amp;quot;) 这样的标准。 其中{id}和:id表示是一个不确定的值，这个随着rustful的兴起也变得常用起来比如我想要查看id = 1">
-<meta name="keywords" content="Web">
+<meta name="description" content="前言用Netty写一个应用，写到Client端的代码，因为之前的模板都是ChannelFuture channelFuture = bootstrap.connect().sync();这个Connect会阻塞在这儿，但是我不想让他阻塞，于是天经地义的写成了12ChannelFuture channelFuture = bootstrap.connect();future.complete(cha">
+<meta name="keywords" content="Netty">
 <meta property="og:type" content="article">
-<meta property="og:title" content="PathVariable及路由设计">
-<meta property="og:url" content="http://zhyzhyzhy.github.io/2017/07/21/PathVariable及route设计/index.html">
+<meta property="og:title" content="从Netty的Connect到lookupAllHostAddr">
+<meta property="og:url" content="http://zhyzhyzhy.github.io/2018/08/27/从Netty的Connect到lookupAllHostAddr/index.html">
 <meta property="og:site_name" content="LoveZhy">
-<meta property="og:description" content="项目源码@PathVariable在web后端框架中，路由设计是很重要的一步。各个框架对接口设计的支持大多差不多，其中必然有 12@GET(&amp;quot;/users/&amp;#123;id&amp;#125;/&amp;quot;)   @GET(&amp;quot;/users/:id/&amp;quot;) 这样的标准。 其中{id}和:id表示是一个不确定的值，这个随着rustful的兴起也变得常用起来比如我想要查看id = 1">
+<meta property="og:description" content="前言用Netty写一个应用，写到Client端的代码，因为之前的模板都是ChannelFuture channelFuture = bootstrap.connect().sync();这个Connect会阻塞在这儿，但是我不想让他阻塞，于是天经地义的写成了12ChannelFuture channelFuture = bootstrap.connect();future.complete(cha">
 <meta property="og:locale" content="default">
-<meta property="og:updated_time" content="2017-08-04T15:43:40.000Z">
+<meta property="og:image" content="http://zhyzhyzhy.github.io/images/netty-connect/1.png">
+<meta property="og:image" content="http://zhyzhyzhy.github.io/images/netty-connect/2.png">
+<meta property="og:updated_time" content="2018-08-27T09:10:53.000Z">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="PathVariable及路由设计">
-<meta name="twitter:description" content="项目源码@PathVariable在web后端框架中，路由设计是很重要的一步。各个框架对接口设计的支持大多差不多，其中必然有 12@GET(&amp;quot;/users/&amp;#123;id&amp;#125;/&amp;quot;)   @GET(&amp;quot;/users/:id/&amp;quot;) 这样的标准。 其中{id}和:id表示是一个不确定的值，这个随着rustful的兴起也变得常用起来比如我想要查看id = 1">
+<meta name="twitter:title" content="从Netty的Connect到lookupAllHostAddr">
+<meta name="twitter:description" content="前言用Netty写一个应用，写到Client端的代码，因为之前的模板都是ChannelFuture channelFuture = bootstrap.connect().sync();这个Connect会阻塞在这儿，但是我不想让他阻塞，于是天经地义的写成了12ChannelFuture channelFuture = bootstrap.connect();future.complete(cha">
+<meta name="twitter:image" content="http://zhyzhyzhy.github.io/images/netty-connect/1.png">
 
 <link rel="apple-touch-icon" href= "/apple-touch-icon.png">
 
@@ -58,7 +61,7 @@
 <link href="//cdn.bootcss.com/font-awesome/4.6.3/css/font-awesome.min.css" rel="stylesheet">
 
 
-<title>PathVariable及路由设计 | LoveZhy</title>
+<title>从Netty的Connect到lookupAllHostAddr | LoveZhy</title>
 
 <script src="//cdn.bootcss.com/jquery/2.2.4/jquery.min.js"></script>
 <script src="//cdn.bootcss.com/clipboard.js/1.5.10/clipboard.min.js"></script>
@@ -196,11 +199,11 @@
     </div>
     <link class="menu-list" tags="标签" friends="友情链接" about="关于我"/>
 </nav>
-      <div class="body-wrap"><article id="post-PathVariable及route设计" class="article article-type-post" itemscope itemprop="blogPost">
+      <div class="body-wrap"><article id="post-从Netty的Connect到lookupAllHostAddr" class="article article-type-post" itemscope itemprop="blogPost">
   
     <div class="article-meta">
-      <a href="/2017/07/21/PathVariable及route设计/" class="article-date">
-      <time datetime="2017-07-20T16:00:00.000Z" itemprop="datePublished">2017-07-21</time>
+      <a href="/2018/08/27/从Netty的Connect到lookupAllHostAddr/" class="article-date">
+      <time datetime="2018-08-26T16:00:00.000Z" itemprop="datePublished">2018-08-27</time>
 </a>
 
 
@@ -215,7 +218,7 @@
         
   
     <h1 class="article-title" itemprop="name">
-      PathVariable及路由设计
+      从Netty的Connect到lookupAllHostAddr
     </h1>
   
 
@@ -226,7 +229,7 @@
 
         
     <div class="article-tag tagcloud">
-        <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Web/">Web</a></li></ul>
+        <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Netty/">Netty</a></li></ul>
     </div>
 
         <div class="clearfix"></div>
@@ -236,27 +239,27 @@
     <div class="article-entry" itemprop="articleBody">
       
           
-        <h3 id="项目源码"><a href="#项目源码" class="headerlink" title="项目源码"></a><a href="https://github.com/zhyzhyzhy/NoName/tree/master/src/main/java/com/noname/web/route" target="_blank" rel="noopener">项目源码</a></h3><h4 id="PathVariable"><a href="#PathVariable" class="headerlink" title="@PathVariable"></a><code>@PathVariable</code></h4><p>在web后端框架中，路由设计是很重要的一步。<br>各个框架对接口设计的支持大多差不多，其中必然有</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">@GET(&quot;/users/&#123;id&#125;/&quot;)   </span><br><span class="line">@GET(&quot;/users/:id/&quot;)</span><br></pre></td></tr></table></figure>
-<p>这样的标准。</p>
-<p>其中<code>{id}</code>和<code>:id</code>表示是一个不确定的值，这个随着<code>rustful</code>的兴起也变得常用起来<br>比如我想要查看<code>id = 1</code>的用户的信息，那么我的请求便是<code>/users/1</code><br>如果查看<code>id = 321</code>的用户信息，请求的便是<code>/users/321</code>。</p>
-<p>那么这个id便是一个不确定量。  </p>
-<p>于是对于这个方法而言这个id值便是参数，在我们调用时需要传进去。  </p>
-<p>在<code>Spring MVC</code>中，完整的方法是这样 </p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@GetMapping</span>(<span class="string">"/employer/&#123;phoneNumber&#125;"</span>)  </span><br><span class="line"><span class="keyword">public</span> ResponseEntity&lt;?&gt; findByPhoneNumber(<span class="meta">@PathVariable</span> String phoneNumber) &#123;  </span><br><span class="line">  </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>所以这就要求我们在设计框架时还需要利用反射把请求的uri的特定路径值作为参数传进方法中。</p>
-<h4 id="route设计"><a href="#route设计" class="headerlink" title="route设计"></a>route设计</h4><p>正常我们进行反射调用时，像这样</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">method().invoke(object(), paramters());</span><br></pre></td></tr></table></figure>
-<p>首先<code>route</code>中需要有这个对应的<code>Method</code>，其次对应的对象也应该在其中，然后是参数。  </p>
-<p>于是我设计为</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Route</span> </span>&#123;</span><br><span class="line">	<span class="comment">//对应的uri</span></span><br><span class="line">	<span class="keyword">private</span> String path;</span><br><span class="line">	<span class="comment">//method所在的对象</span></span><br><span class="line">	<span class="keyword">private</span> Object object;</span><br><span class="line">	<span class="comment">//对应的路由method</span></span><br><span class="line">	<span class="keyword">private</span> Method method;</span><br><span class="line">	<span class="comment">//对应的方法，比如GET，POST等</span></span><br><span class="line">	<span class="keyword">private</span> HttpMethod httpMethod;</span><br><span class="line">	<span class="comment">//对应的参数</span></span><br><span class="line">	<span class="keyword">private</span> Object[] paramters;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<h4 id="路由匹配"><a href="#路由匹配" class="headerlink" title="路由匹配"></a>路由匹配</h4><p>那么问题来了，对于不同的uri，我们应该怎么匹配路由呢。</p>
-<p>我想到的是用正则<br>设计一个这样的Map</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Map&lt;Pattern, Route&gt; routeMap = <span class="keyword">new</span> HashMap&lt;&gt;();</span><br></pre></td></tr></table></figure>
-<p>对于<code>/users/{id}/</code>这样的字符串，我们需要产生一个<code>pattern</code>出来。  </p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//根据参数进行正则替换</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> Pattern <span class="title">pathCompiler</span><span class="params">(String path, Method method)</span> </span>&#123;</span><br><span class="line">    Parameter[] parameters = method.getParameters();</span><br><span class="line">    <span class="keyword">for</span> (Parameter parameter : parameters) &#123;</span><br><span class="line">        <span class="keyword">if</span> (parameter.getAnnotations() == <span class="keyword">null</span>) &#123;</span><br><span class="line">            <span class="keyword">continue</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        Annotation annotation = parameter.getAnnotations()[<span class="number">0</span>];</span><br><span class="line">        <span class="keyword">if</span> (annotation <span class="keyword">instanceof</span> PathVariable) &#123;</span><br><span class="line">            <span class="comment">//如果是字符串</span></span><br><span class="line">            <span class="keyword">if</span> (parameter.getType() == String.class) &#123;</span><br><span class="line">                path = path.replace(<span class="string">"&#123;"</span> + parameter.getName()+<span class="string">"&#125;"</span>,<span class="string">"[0-9\\d\\D]*"</span>);</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="comment">//如果是数字</span></span><br><span class="line">            <span class="keyword">else</span> <span class="keyword">if</span> (parameter.getType() == Integer.class</span><br><span class="line">                    || parameter.getType() == Long.class) &#123;</span><br><span class="line">  </span><br><span class="line">                path = path.replace(<span class="string">"&#123;"</span> + parameter.getName()+<span class="string">"&#125;"</span>,<span class="string">"[0-9]*"</span>);</span><br><span class="line">            &#125;</span><br><span class="line">  </span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> Pattern.compile(path);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>键为<code>url</code>的<code>Pattern</code>，那么在匹配时只要遍历一下</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//保存着所有的路由</span></span><br><span class="line">Map&lt;Pattern, Route&gt; routeMap = <span class="keyword">new</span> HashMap&lt;&gt;();</span><br><span class="line">  </span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> Route <span class="title">findRoute</span><span class="params">(String path, HttpMethod method)</span> </span>&#123;</span><br><span class="line">	<span class="keyword">for</span> (Pattern pattern : routeMap.keySet()) &#123;</span><br><span class="line">		<span class="keyword">if</span> (pattern.matcher(path).matches()) &#123;</span><br><span class="line">			<span class="keyword">if</span> (routeMap.get(pattern).getHttpMethod().equals(method)) &#123;</span><br><span class="line">				<span class="comment">/* 进行参数的赋值 *／</span></span><br><span class="line"><span class="comment">				return routeMap.get(pattern);</span></span><br><span class="line"><span class="comment">			&#125;</span></span><br><span class="line"><span class="comment">		&#125;</span></span><br><span class="line"><span class="comment">	&#125;</span></span><br><span class="line"><span class="comment">	return null;</span></span><br><span class="line"><span class="comment">&#125;</span></span><br></pre></td></tr></table></figure>
+        <h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>用Netty写一个应用，写到Client端的代码，因为之前的模板都是<br><code>ChannelFuture channelFuture = bootstrap.connect().sync();</code><br>这个Connect会阻塞在这儿，但是我不想让他阻塞，于是天经地义的写成了<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">ChannelFuture channelFuture = bootstrap.connect();</span><br><span class="line">future.complete(channelFuture.channel());</span><br></pre></td></tr></table></figure></p>
+<p>把channel给complete出去。</p>
+<h2 id="问题"><a href="#问题" class="headerlink" title="问题"></a>问题</h2><p>但是我启动的时候发现还是等待了很久，大概等了5s的时间，找了半天，发现是在<code>bootstrap.connect()</code>这儿阻塞了。<br>但是当我改成sync()的时候，发现还是阻塞了5s。<br>这个时候我略崩溃。</p>
+<p>然后问郑阿里星这个方法是不是阻塞的，我是不是记错了。<br>郑阿里星表示他也记得是异步的，不会等很久的。</p>
+<p>我又试了几次发现还是如此，郑阿里星表示把代码发给他，他来试一试。</p>
+<p>然后奇迹出现了，他只花了300ms。</p>
+<p>百思不得其解，为啥我的要5s，他的要300ms。<br>而且我sync()之后也是5s，大概率认为就是没有异步执行。</p>
+<h2 id="无头绪"><a href="#无头绪" class="headerlink" title="无头绪"></a>无头绪</h2><p>一开始我觉得可能是线程池的Reject参数，把connect用户线程做了。<br>于是debug了一下，发现走到了<br><img src="/images/netty-connect/1.png" alt=""><br>这确实是走到了异步的执行里面啊。</p>
+<p>肯定就是中间的哪个部分出现了问题。</p>
+<h2 id="定位"><a href="#定位" class="headerlink" title="定位"></a>定位</h2><p>这时候郑阿里星提供了<code>144.144.144.144</code>这个地址让我试试，我发现还是5s。<br>这个时候基本就是我的电脑的问题，不会是Netty代码的问题了。<br>因为这个就算是sync()的也不会是5s的时间。</p>
+<p>不说了，先重启再说。</p>
+<p>重启完毕，再执行，还是5s。</p>
+<p>好吧，有点崩溃。</p>
+<p>我开个热点，连自己热点看看，<br>然后奇迹出现了，时间变成了300ms，变正常了。</p>
+<p>肯定就是中间的网哪儿的问题啊。</p>
+<p>5s的时间，也不短，我索性把线程全部dump出来，看看main线程block在哪儿了。<br><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">$</span> jstack -l `jps | grep Test | awk -F' ' '&#123;print $1&#125;'`</span><br></pre></td></tr></table></figure></p>
+<p>多试了几次，发现了关键。<br><img src="/images/netty-connect/2.png" alt=""><br>发现都是在<code>java.net.Inet6AddressImpl.lookupAllHostAddr</code>这个方法里。</p>
+<p>去谷歌一搜，似乎真的发现了几个issue。</p>
+<p><a href="https://github.com/netty/netty/issues/6454" target="_blank" rel="noopener">Netty Issue</a></p>
+<p>连block的秒数都和我一样，真的是天才。</p>
+<h2 id="解决方案"><a href="#解决方案" class="headerlink" title="解决方案"></a>解决方案</h2><p>去搜寻了一番，找到了解决办法，修改hosts文件，加上下面两行。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">127.0.0.1 zhuyichendeMacBook-Pro.local</span><br><span class="line">::1 zhuyichendeMacBook-Pro.local</span><br></pre></td></tr></table></figure></p>
 
       
     </div>
@@ -265,13 +268,13 @@
   
     
     <div class="copyright">
-        <p><span>本文标题:</span><a href="/2017/07/21/PathVariable及route设计/">PathVariable及路由设计</a></p>
+        <p><span>本文标题:</span><a href="/2018/08/27/从Netty的Connect到lookupAllHostAddr/">从Netty的Connect到lookupAllHostAddr</a></p>
         <p><span>文章作者:</span><a href="/" title="回到主页">zhy</a></p>
-        <p><span>发布时间:</span>2017-07-21, 00:00:00</p>
-        <!--<p><span>最后更新:</span>2017-08-04, 23:43:40</p>-->
+        <p><span>发布时间:</span>2018-08-27, 00:00:00</p>
+        <!--<p><span>最后更新:</span>2018-08-27, 17:10:53</p>-->
         <p>
-            <span>原始链接:</span><a class="post-url" href="/2017/07/21/PathVariable及route设计/" title="PathVariable及路由设计">http://zhyzhyzhy.github.io/2017/07/21/PathVariable及route设计/</a>
-            <span class="copy-path" data-clipboard-text="原文: http://zhyzhyzhy.github.io/2017/07/21/PathVariable及route设计/　　作者: zhy" title="点击复制文章链接"><i class="fa fa-clipboard"></i></span>
+            <span>原始链接:</span><a class="post-url" href="/2018/08/27/从Netty的Connect到lookupAllHostAddr/" title="从Netty的Connect到lookupAllHostAddr">http://zhyzhyzhy.github.io/2018/08/27/从Netty的Connect到lookupAllHostAddr/</a>
+            <span class="copy-path" data-clipboard-text="原文: http://zhyzhyzhy.github.io/2018/08/27/从Netty的Connect到lookupAllHostAddr/　　作者: zhy" title="点击复制文章链接"><i class="fa fa-clipboard"></i></span>
             <script> var clipboard = new Clipboard('.copy-path'); </script>
         </p>
         <p>
@@ -283,16 +286,10 @@
 
     <nav id="article-nav">
         
-            <div id="article-nav-newer" class="article-nav-title">
-                <a href="/2017/07/21/HashMap源码解析/">
-                    HashMap源码解析
-                </a>
-            </div>
-        
         
             <div id="article-nav-older" class="article-nav-title">
-                <a href="/2017/07/07/hello-world/">
-                    Hello World
+                <a href="/2018/07/22/Presto的Join细节研究/">
+                    Presto的Join的细节研究
                 </a>
             </div>
         
@@ -304,7 +301,7 @@
     <div id="toc" class="toc-article">
         <strong class="toc-title">文章目录</strong>
         
-            <ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#项目源码"><span class="toc-number">1.</span> <span class="toc-text">项目源码</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#PathVariable"><span class="toc-number">1.1.</span> <span class="toc-text">@PathVariable</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#route设计"><span class="toc-number">1.2.</span> <span class="toc-text">route设计</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#路由匹配"><span class="toc-number">1.3.</span> <span class="toc-text">路由匹配</span></a></li></ol></li></ol>
+            <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#前言"><span class="toc-number">1.</span> <span class="toc-text">前言</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#问题"><span class="toc-number">2.</span> <span class="toc-text">问题</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#无头绪"><span class="toc-number">3.</span> <span class="toc-text">无头绪</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#定位"><span class="toc-number">4.</span> <span class="toc-text">定位</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#解决方案"><span class="toc-number">5.</span> <span class="toc-text">解决方案</span></a></li></ol>
         
     </div>
     <style>
@@ -334,8 +331,8 @@
     <div id="disqus_thread"></div>
     <script>
         var disqus_config = function(){
-            this.page.url = 'http://zhyzhyzhy.github.io/2017/07/21/PathVariable及route设计/';
-            this.page.identifier = '2017/07/21/PathVariable及route设计/';
+            this.page.url = 'http://zhyzhyzhy.github.io/2018/08/27/从Netty的Connect到lookupAllHostAddr/';
+            this.page.identifier = '2018/08/27/从Netty的Connect到lookupAllHostAddr/';
         };
         var loadComment = function(){
             var d = document, s = d.createElement('script');
@@ -357,15 +354,13 @@
 
     <div class="scroll" id="post-nav-button">
         
-            <a href="/2017/07/21/HashMap源码解析/" title="上一篇: HashMap源码解析">
-                <i class="fa fa-angle-left"></i>
-            </a>
+            <a href="/" title="回到主页"><i class="fa fa-home"></i></a>
         
 
         <a title="文章列表"><i class="fa fa-bars"></i><i class="fa fa-times"></i></a>
 
         
-            <a href="/2017/07/07/hello-world/" title="下一篇: Hello World">
+            <a href="/2018/07/22/Presto的Join细节研究/" title="下一篇: Presto的Join的细节研究">
                 <i class="fa fa-angle-right"></i>
             </a>
         

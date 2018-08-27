@@ -198,6 +198,182 @@
 </nav>
       <div class="body-wrap">
   
+    <article id="post-分布式基础知识" class="article article-type-post" itemscope itemprop="blogPost">
+  
+    <div class="article-meta">
+      <a href="/2018/05/01/分布式基础知识/" class="article-date">
+      <time datetime="2018-04-30T16:00:00.000Z" itemprop="datePublished">2018-05-01</time>
+</a>
+
+
+    </div>
+  
+  <div class="article-inner">
+    
+      <input type="hidden" class="isFancy" />
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/2018/05/01/分布式基础知识/">分布式基础知识</a>
+    </h1>
+  
+
+      </header>
+      
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+          
+        <h2 id="分布式，集群，单点问题"><a href="#分布式，集群，单点问题" class="headerlink" title="分布式，集群，单点问题"></a>分布式，集群，单点问题</h2><p>与分布式相对应的就是单机的概念。<br>比如一个服务，依赖<code>nginx</code>，<code>tomcat</code>，<code>mysql</code>，<code>redis</code> 这么多组件。<br>单机的话可能就部署在一个服务器上。<br>这样的话容易服务器挂了，整个服务就不可用了。<br>同时可扩展性不是很好，一台普通的机器用来跑简单的服务还是可以的，万一是个需要高并发的，数据量比较大的呢，那就只能去买大型机了，但是大型机价格昂贵。同时还是避免不了如果机器挂了，整个服务就不可用的问题。</p>
+<p>好，那我们从单机的状态下转移出来<br>现在我们<code>Redis</code>，<code>Tomcat</code>，<code>Mysql</code>，<code>Nginx</code>都是单独在一台服务器上。<br>那么整个服务就可以称为是分布式的。</p>
+<p>那么集群是怎么回事呢？<br>就比如跑<code>Nginx</code>这个服务器挂了，<code>Nginx</code>也就挂了，那么即使<code>Mysql</code>没挂，整个服务还是不能正常运行。<br>这个<code>Nginx</code>服务器就是个单点问题。<br>所以即使把服务都分开部署，还是无法解决不可用的问题，那么怎么提高服务的可用性呢。</p>
+<p>那就是使用集群了。<br>我们部署三个机器都是跑<code>Nginx</code>，那么一台挂了不至于导致整个服务不可用。<br>当然<code>Nginx</code>一般来说是无状态的，如果整个集群是有状态的呢。<br>那就需要一些一致性协议来进行实现。<br>真正做起来还是比较复杂的。</p>
+<h2 id="CAP"><a href="#CAP" class="headerlink" title="CAP"></a>CAP</h2><p>CAP理论由Eric Brewer教授在2000年提出的<br>主要说明了一点，在一个分布式环境中<br>Consistency一致性、Availability可用性、Partition-tolerance分区容错性<br>这三个条件不能同时满足，最多只能满足其中的两个。</p>
+<p>其实我们在仔细斟酌下，按照我的理解，其实这个是针对集群的，比如Zookeeper集群，称为是分布式环境中的其实不太准确。<br>再而这个针对的是什么集群呢，nginx集群吗，显然不是，看第一条，一致性，nginx需要什么一致性？那么在仔细想下，这个理论应该是针对提供数据相关功能的服务的。比如数据库之类。  </p>
+<p><img src="images/分布式/cap.png" alt=""></p>
+<p>从上图我们可以看到，一个服务最多满足<code>CAP</code>中的两个而放弃另外一个，像<code>Redis</code>放弃了可用性，选择了一致性和分区容错性。当然这是单机的Redis。</p>
+<p>那么这三个条件具体是什么意思呢</p>
+<ul>
+<li><p>一致性  简单的说，同样的数据在多个集群的所有机器上是否是一样的<br>或者这么说，同一个请求在一个集群中所有的机器上的结果应当是一样的。不允许出现不一样的状态。</p>
+</li>
+<li><p>可用性  整个集群对于别的服务的请求必须在有限时间内返回结果。</p>
+</li>
+<li><p>分区容错性  这个比较难理解，首先什么是分区呢，正常来说，整个集群应该是一个整体，每台机器可以通过网络互相沟通，但是可能因为网络分区的原因，出现了两个分区，每个分区的机器都可以互相沟通，但是跨分区的机器不能沟通。<br>如果数据项只在一个节点中，那么分区出现后，和这个节点之前连通的部分就访问不到这个数据了，那么这就是分区不容忍的。<br>提高分区容忍性的办法就是一个数据项复制到多个节点上，那么出现分区之后，这一数据项就可能分布到各个区里。容忍性就提高了。<br>然而，要把数据复制到多个节点，就会带来一致性的问题，就是多个节点上面的数据可能是不一致的。要保证一致，每次写操作就都要等待全部节点写成功，而这等待又会带来可用性的问题。总的来说就是，数据存在的节点越多，分区容忍性越高，但要复制更新的数据就越多，一致性就越难保证。为了保证一致性，更新所有节点数据所需要的时间就越长，可用性就会降低。  </p>
+</li>
+</ul>
+<p>所以正常情况下，分布式系统中，都要满足分区容错性，然后在一致性和可用性之间做出权衡。  </p>
+<h2 id="BASE"><a href="#BASE" class="headerlink" title="BASE"></a>BASE</h2><p>BASE理论在CAP提出之后，因为CAP提出三个条件，提供数据服务的集群最多保证其中两个。<br>同时一般来说我们P是不可能放弃的，基本都是在C和A之间权衡。<br>那么具体怎么权衡呢，BASE就是一种讨论的结果。</p>
+<p>BASE是Basically Available, Soft state, Eventually consistent三个短语的缩写。<br>也就是基本可用，软状态，最终一致性。</p>
+<h3 id="基本可用"><a href="#基本可用" class="headerlink" title="基本可用"></a>基本可用</h3><p>基本可用不代表不可用，而是在一些情况下在高可用上有稍许的宽松<br>比较典型的就是</p>
+<ul>
+<li>响应时间上的损失  </li>
+<li>功能上的损失，降级等。</li>
+</ul>
+<h3 id="弱状态"><a href="#弱状态" class="headerlink" title="弱状态"></a>弱状态</h3><p>允许系统出现中间状态<br>即允许数据同步的过程中存在延迟</p>
+<h3 id="最终一致性"><a href="#最终一致性" class="headerlink" title="最终一致性"></a>最终一致性</h3><p>强一致性的条件比较严格，就比如我提出了一个写请求，那么我写完之后，必须保证每个机器上都能得到体现，数据必须是一样的。这是强一致性。</p>
+<p>最终一致性就是允许中间有延迟时间，但是保证一定会达到一致，至于多久，这个并没有严格的限制。</p>
+<h2 id="2PC"><a href="#2PC" class="headerlink" title="2PC"></a>2PC</h2><p>2PC =&gt;  Two Phase Commitment Protocol<br>也就是二阶段提交协议  </p>
+<p>在分布式事务中，事务协调器和资源管理器进行事务的过程。  </p>
+<p><img src="images/分布式/2pc.png" alt=""></p>
+<p>第一阶段<br>TM像所有的RM发送prepare指令，相当于执行start transection并执行sql语句，但是并不提交。<br>RM执行完之后会向TM发送反馈。</p>
+<p>第二阶段<br>接收完RM的反馈后，如果有返回NO的，那么TM向所有的RM发送abort指令，放弃事务提交<br>如果反馈全是Yes，那么发送commit指令。</p>
+<p>整个过程很简单，各个书上对这个过程的描述也是一致的。</p>
+<h2 id="3PC"><a href="#3PC" class="headerlink" title="3PC"></a>3PC</h2><p>由2PC的名字可以联想到，其实这个是三阶段提交协议的意思</p>
+<p>三阶段提交协议主要把2PC的第二阶段拆分为两个阶段 preCommit和doCommit阶段</p>
+<p><img src="images/分布式/3pc.png" alt=""></p>
+<h2 id="2PC和3PC对比"><a href="#2PC和3PC对比" class="headerlink" title="2PC和3PC对比"></a>2PC和3PC对比</h2><p>首先对一下细节的探究。</p>
+<ul>
+<li><p>2PC中TM有主备机制吗？<br>这个问题困扰了我很久，最后得到的结论是没有的，只有一个TM，挂了就全局阻塞。<br>参见文章<a href="https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/tr-2003-96.pdf" target="_blank" rel="noopener">链接</a><br>文章的3.3节中提到</p>
+<blockquote>
+<p>They have usually attempted to “fix” the Two-Phase Commit protocol by<br>choosing another TM if the first TM fails.</p>
+</blockquote>
+</li>
+<li><p>2PC中如果TM挂了，那么RM有超时机制吗<br>从众多描述中可以发现是没有的<br>参见问题<br><a href="https://stackoverflow.com/questions/44301852/why-is-two-phase-commit-2pc-blocking" target="_blank" rel="noopener">链接1</a><br><a href="https://cs.stackexchange.com/questions/76192/why-is-two-phase-commit-2pc-blocking" target="_blank" rel="noopener">链接2</a><br>注意这种情况是TM挂了的情况，如果是RM挂了，TM是可以具有超时abort机制的。</p>
+</li>
+<li><p>2PC的数据不一致的情况<br><a href="https://blog.csdn.net/yyd19921214/article/details/68953629" target="_blank" rel="noopener">链接</a></p>
+<blockquote>
+<p>2PC协议中，如果出现协调者和参与者都挂了的情况，有可能导致数据不一致。<br>这里解释一下他说的不一致是什么情景，就是协调者进入第二阶段，发送Commit请求了，当发给第一个RM时挂了，第一个RM收到请求，Commit后也挂了。</p>
+</blockquote>
+</li>
+</ul>
+<p>但是如果这么想的话，因为RM没有超时机制，下面就只有等TM被repair，这时候其实并不是严格处于一个数据不一致的状态。</p>
+<ul>
+<li>3PC怎么解决这么问题的<br>其实仔细看的话，3PC确实解决了一些问题，但是3PC本身还是有问题的。<ul>
+<li>引入RM超时机制，如果发出canCommit后TM挂了，那么RM超时后会自动取消事务，同样的，如果preCommit后TM挂了，那么RM超时后会自动提交事务，一部分情况下避免了无线阻塞。</li>
+<li>引入TM重新选举</li>
+</ul>
+</li>
+</ul>
+<p>但是3PC解决了2PC的问题了吗，阻塞问题算了解决了一下，但是数据不一致的问题确实依然存在的。<br>加入TM发出一个preCommit后挂了，然后一个RM接收到preCommit，其他的没接收到，超时后其他的abort了，只有一个commit了，那么数据不一致还是存在的，而且似乎更严重了一些。</p>
+<p>下面是一些资料：<br>摘自维基百科 <a href="https://en.wikipedia.org/wiki/Two-phase_commit_protocol#Disadvantages" target="_blank" rel="noopener">链接</a></p>
+<blockquote>
+<p>The greatest disadvantage of the two-phase commit protocol is that it is a blocking protocol. If the coordinator fails permanently, some cohorts will never resolve their transactions: After a cohort has sent an agreement message to the coordinator, it will block until a commit or rollback is received.</p>
+</blockquote>
+<p><a href="https://en.wikipedia.org/wiki/Three-phase_commit_protocol" target="_blank" rel="noopener">链接</a></p>
+<blockquote>
+<p>A two-phase commit protocol cannot dependably recover from a failure of both the coordinator and a cohort member during the Commit phase. If only the coordinator had failed, and no cohort members had received a commit message, it could safely be inferred that no commit had happened. If, however, both the coordinator and a cohort member failed, it is possible that the failed cohort member was the first to be notified, and had actually done the commit. Even if a new coordinator is selected, it cannot confidently proceed with the operation until it has received an agreement from all cohort members, and hence must block until all cohort members respond.</p>
+</blockquote>
+<p><a href="https://blog.csdn.net/yyd19921214/article/details/68953629" target="_blank" rel="noopener">链接</a></p>
+<blockquote>
+<p>2PC协议中，如果出现协调者和参与者都挂了的情况，有可能导致数据不一致。<br>这里解释一下他说的不一致是什么情景，就是协调者进入第二阶段，发送Commit请求了，当发给第一个RM时挂了，第一个RM收到请求，Commit后也挂了。</p>
+</blockquote>
+<p><a href="http://www.win.tue.nl/~atif/reports/paper4ICET.pdf" target="_blank" rel="noopener">链接</a></p>
+<blockquote>
+<p>Blocking: The Two-Phase Commit Protocol goes to a<br>blocking state by the failure of the coordinator when the<br>participants are in uncertain state. The participants keep<br>locks on resources until they receive the next message<br>from the coordinator after its recovery.</p>
+</blockquote>
+<p><a href="https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/tr-2003-96.pdf" target="_blank" rel="noopener">链接</a></p>
+<blockquote>
+<p>In a transaction commit protocol, if one or more RMs fail, the transaction<br>is usually aborted. For example, in the Two-Phase Commit protocol, if the<br>TM does not receive a Prepared message from some RM soon enough after<br>sending the Prepare message, then it will abort the transaction by sending<br>Abort messages to the other RMs. However, the failure of the TM can cause<br>the protocol to block until the TM is repaired. In particular, if the TM fails<br>right after every RM has sent a Prepared message, then the other RMs have<br>no way of knowing whether the TM committed or aborted the transaction.</p>
+</blockquote>
+<p>总结一下，主要还是两个问题</p>
+<ul>
+<li>阻塞问题</li>
+<li>数据不一致问题<br>但是优点也是显而易见的</li>
+<li>容易实现</li>
+</ul>
+<h2 id="XA协议"><a href="#XA协议" class="headerlink" title="XA协议"></a>XA协议</h2><p>XA是一个分布式事务的规范，由X/Open组织提出的。<br>X/Open组织定义了分布式事务处理模型 -&gt; X/Open DTP模型。<br>在DTP模型中定义了三个组件</p>
+<ul>
+<li>Application Program (AP)，应用程序，使用DTP模型的程序</li>
+<li>Resource Manager (RM)，资源管理器，可以理解未一个DBMS系统，或者消息服务器管理系统，应用程序通过资源管理器对资源进行控制，资源必须实现XA定义的接口。</li>
+<li>Transaction Manager(TM)，事务管理器，负责协调和管理事务，提供给AP应用程序变成接口并管理资源管理器。事务管理器向事务指定标识，监视它们的进程，并负责处理事务的完成和失败。</li>
+</ul>
+<p><img src="images/分布式/XA.png" alt=""></p>
+<p><img src="images/分布式/XA1.png" alt=""></p>
+<p>一个例子:</p>
+<ul>
+<li>AP与RM之间，可以使用RM自身提供的native API进行交互，这种方式就是使用RM的传统方式，并且这个交互不在TM的管理范围内，另外，当AP和RM之间需要进行分布式事务的时候，AP需要得到对RM的链接(此链接由TM管理)，然后使用XA的native API来进行交互。</li>
+<li>AP和TM之间，该例子中使用的是TX接口，也是由X/Open所规范的。它用于对事务进行控制，包括事务启动，提交事务和回滚事务。</li>
+<li>TM与RM之间是通过XA接口进行交互。TM管理了到RM的连接，并实现了两阶段提交。</li>
+</ul>
+<p>总结：2PC和3PC一定程度上其实是实现了XA协议的。</p>
+<h2 id="Paxos"><a href="#Paxos" class="headerlink" title="Paxos"></a>Paxos</h2><h3 id="Paxos和2PC"><a href="#Paxos和2PC" class="headerlink" title="Paxos和2PC"></a>Paxos和2PC</h3><p>上文提到了数据服务集群的一致性问题，那么怎么保证数据的强一致性呢。<br>这里就需要用到Paxos算法。<br>很多人会认为2PC和Paxos解决了同样的问题，Paxos更为先进，可以放弃2PC了。<br>但是这个其实也是不准确的。<br>因为2PC和Paxos本质上解决的不是同一个问题。<br>2PC是为了分布式事务，Paxos是维持多个副本之间的数据一致。 </p>
+<h2 id="Raft和Zab"><a href="#Raft和Zab" class="headerlink" title="Raft和Zab"></a>Raft和Zab</h2><p>Raft和Zab也是一致性算法。</p>
+<p>上文说我们已经有了Paxos，那么为什么还提出Raft和Zab呢，因为Paxos的理解较为复杂，也没有提出技术细节的解决方案，较为理论，虽然解决的一致性问题很通用，对于一些细节的阐述不是很清晰。</p>
+<p>为了需要一个能实现的算法，于是有了Raft和Zab。</p>
+<p>Raft和Zab的区别其实不是很大，Zab主要是用在Zookeeper上。</p>
+<p>下面主要说说Raft协议。</p>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><ul>
+<li><p>CAP部分的分区容错性 =&gt;<br><a href="https://www.zhihu.com/question/54105974/answer/139037688" target="_blank" rel="noopener">https://www.zhihu.com/question/54105974/answer/139037688</a></p>
+</li>
+<li><p>BASE部分参考=&gt; 《从Paxos到Zookeeper，分布式一致性原理与实践》  </p>
+</li>
+<li><p>XA协议部分参考=&gt; 《大型网站系统与JAVA中间件实践》</p>
+</li>
+</ul>
+<h2 id="课外阅读"><a href="#课外阅读" class="headerlink" title="课外阅读"></a>课外阅读</h2><p><a href="https://martin.kleppmann.com/2015/05/11/please-stop-calling-databases-cp-or-ap.html" target="_blank" rel="noopener">https://martin.kleppmann.com/2015/05/11/please-stop-calling-databases-cp-or-ap.html</a></p>
+
+      
+    </div>
+    
+    <div class="article-info article-info-index">
+      
+      
+
+      
+    <div class="article-tag tagcloud">
+        <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/分布式/">分布式</a></li></ul>
+    </div>
+
+      
+      <div class="clearfix"></div>
+    </div>
+    
+  </div>
+  
+</article>
+
+
+
+
+
+
+
+
+
+  
     <article id="post-brpc-doc笔记" class="article article-type-post" itemscope itemprop="blogPost">
   
     <div class="article-meta">
@@ -952,6 +1128,113 @@
 
 
   
+    <article id="post-pigeon中的核心类和作用" class="article article-type-post" itemscope itemprop="blogPost">
+  
+    <div class="article-meta">
+      <a href="/2018/02/18/pigeon中的核心类和作用/" class="article-date">
+      <time datetime="2018-02-17T16:00:00.000Z" itemprop="datePublished">2018-02-18</time>
+</a>
+
+
+    </div>
+  
+  <div class="article-inner">
+    
+      <input type="hidden" class="isFancy" />
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/2018/02/18/pigeon中的核心类和作用/">pigeon中的核心类和作用</a>
+    </h1>
+  
+
+      </header>
+      
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+          
+        <h1 id="ServiceFactory"><a href="#ServiceFactory" class="headerlink" title="ServiceFactory"></a>ServiceFactory</h1><p>这个类的作用就是服务的注册发布和get的最外层接口</p>
+<p>内部有两个主要的类</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> ServiceProxy serviceProxy = ServiceProxyLoader.getServiceProxy();</span><br><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> PublishPolicy publishPolicy = PublishPolicyLoader.getPublishPolicy();</span><br></pre></td></tr></table></figure>
+<p><code>ServiceProxy</code>用来获取<code>service</code>的，就是包一层<code>proxy</code>吧。</p>
+<p><code>PublishPolicy</code>简单说就是发布<code>service</code>的，但是内部还是借助于<code>ServicePublisher</code>进行操作的。</p>
+<h1 id="RegistryManager"><a href="#RegistryManager" class="headerlink" title="RegistryManager"></a>RegistryManager</h1><p>这个类的作用其实是为<code>ServicePublisher</code>的<code>addService</code>到<code>zookeeper</code>中和<code>unpublish</code>指定的<code>service</code>提供API支持的。</p>
+<p>更通俗点就是为<code>invoker</code>和<code>provider</code>提供了<code>zookeeper</code>的交流的。</p>
+<p>但是内部还是使用的<code>registry</code>类进行和<code>zookeeper</code>调用的。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">interface</span> <span class="title">Registry</span> </span>&#123;</span><br><span class="line">    <span class="comment">//删除了好多，可以自己去看源码</span></span><br><span class="line">    <span class="comment">// for invoker</span></span><br><span class="line">    <span class="function"><span class="keyword">boolean</span> <span class="title">isSupportNewProtocol</span><span class="params">(String serviceAddress, String serviceName)</span> <span class="keyword">throws</span> RegistryException</span>;</span><br><span class="line">  </span><br><span class="line">    <span class="comment">// for provider</span></span><br><span class="line">    <span class="function"><span class="keyword">void</span> <span class="title">setSupportNewProtocol</span><span class="params">(String serviceAddress, String serviceName, <span class="keyword">boolean</span> support)</span> <span class="keyword">throws</span> RegistryException</span>;</span><br><span class="line">  </span><br><span class="line">    <span class="comment">// for invoker/provider</span></span><br><span class="line">    <span class="function">RegistryConfig <span class="title">getRegistryConfig</span><span class="params">(String ip)</span> <span class="keyword">throws</span> RegistryException</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h1 id="InvokerBootStrap"><a href="#InvokerBootStrap" class="headerlink" title="InvokerBootStrap"></a>InvokerBootStrap</h1><p>这个类看名字也知道是为了<code>invoker</code>提供方便的。</p>
+<p>看调用也是<code>AbstractServiceProxy</code>这个类调用的最多</p>
+<p>主要有两个方法，<code>startup</code>和<code>shutdown</code>，也没什么重要的成员变量。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">startup</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (!isStartup) &#123;</span><br><span class="line">        <span class="keyword">synchronized</span> (InvokerBootStrap.class) &#123;</span><br><span class="line">            <span class="keyword">if</span> (!isStartup) &#123;</span><br><span class="line">                ServiceInvocationRepository.getInstance().init();</span><br><span class="line">                InvokerProcessHandlerFactory.init();</span><br><span class="line">                SerializerFactory.init();</span><br><span class="line">                LoadBalanceManager.init();</span><br><span class="line">                RegionPolicyManager.INSTANCE.init();</span><br><span class="line">                Monitor monitor = MonitorLoader.getMonitor();</span><br><span class="line">                <span class="keyword">if</span> (monitor != <span class="keyword">null</span>) &#123;</span><br><span class="line">                    monitor.init();</span><br><span class="line">                &#125;</span><br><span class="line">                isStartup = <span class="keyword">true</span>;</span><br><span class="line">                logger.warn(<span class="string">"pigeon client[version:"</span> + VersionUtils.VERSION + <span class="string">"] has been started"</span>);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>其中<code>ServiceInvocationRepository</code>的<code>init</code>方法主要是启动了一个<code>InvocationTimeoutListener</code>线程，看样子是用来检测调用超时问题。</p>
+<p>在<code>InvokerProcessHandlerFactory</code>的<code>init</code>方法中，就是在<code>service</code>的<code>proxy</code>中，加入了一条责任链。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">registerBizProcessFilter(<span class="keyword">new</span> TraceFilter());</span><br><span class="line">registerBizProcessFilter(<span class="keyword">new</span> DegradationFilter());</span><br><span class="line">registerBizProcessFilter(<span class="keyword">new</span> ClusterInvokeFilter());</span><br><span class="line">registerBizProcessFilter(<span class="keyword">new</span> GatewayInvokeFilter());</span><br><span class="line">registerBizProcessFilter(<span class="keyword">new</span> ContextPrepareInvokeFilter());</span><br><span class="line">registerBizProcessFilter(<span class="keyword">new</span> SecurityFilter());</span><br><span class="line">registerBizProcessFilter(<span class="keyword">new</span> RemoteCallInvokeFilter());</span><br></pre></td></tr></table></figure>
+<p><code>SerializerFactory</code>见下</p>
+<p><code>LoadBalanceManager</code>的<code>init</code>方法，初始化了<code>pigeon</code>支持的四种负载均衡的算法。</p>
+<ul>
+<li><code>RandomLoadBalance</code></li>
+<li><code>AutoawareLoadBalance</code></li>
+<li><code>RoundRobinLoadBalance</code></li>
+<li><code>WeightedAutoawareLoadBalance</code></li>
+</ul>
+<p>在<code>RegionPolicyManager</code>的<code>init</code>方法中，就是对<code>Region</code>的选择算法进行了初始化。</p>
+<p>那个<code>monitor</code>的方法，我看好像还没写好。。。。</p>
+<h1 id="ProviderBootStrap"><a href="#ProviderBootStrap" class="headerlink" title="ProviderBootStrap"></a>ProviderBootStrap</h1><h2 id="初始化"><a href="#初始化" class="headerlink" title="初始化"></a>初始化</h2><p>包含了<code>SerializerFactory</code>和<code>ProviderProcessHandlerFactory</code>的初始化。</p>
+<p>同时对<code>jetty server</code>和<code>netty server</code>两个<code>server</code>进行了初始化和启动。</p>
+<p>同时启动了一个监听服务器的线程<code>ShutdownHookListener</code></p>
+<p>如果服务器关闭，那么就会调用一些类的关闭方法</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//从zookeeper上unpublish掉所有的服务</span></span><br><span class="line">ServiceFactory.unpublishAllServices();</span><br><span class="line">InvokerBootStrap.shutdown();</span><br><span class="line">ProviderBootStrap.shutdown();</span><br></pre></td></tr></table></figure>
+<h2 id="关闭"><a href="#关闭" class="headerlink" title="关闭"></a>关闭</h2><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">shutdown</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">for</span> (Server server : serversMap.values()) &#123;</span><br><span class="line">        <span class="keyword">if</span> (server != <span class="keyword">null</span>) &#123;</span><br><span class="line">            logger.info(<span class="string">"start to stop "</span> + server);</span><br><span class="line">            <span class="keyword">try</span> &#123;</span><br><span class="line">                unregisterConsoleServer(server.getServerConfig());</span><br><span class="line">                server.stop();</span><br><span class="line">                &#125; <span class="keyword">catch</span> (Throwable e) &#123;</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">if</span> (logger.isInfoEnabled()) &#123;</span><br><span class="line">                logger.info(server + <span class="string">" has been shutdown"</span>);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        ProviderProcessHandlerFactory.destroy();</span><br><span class="line">        &#125; <span class="keyword">catch</span> (Throwable e) &#123;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>把<code>server</code>从<code>zookeeper</code>上下掉，这个过程调用了<code>RegistryManager</code>的方法。</p>
+<p>然后调用了<code>ProviderProcessHandlerFactory</code>的<code>destroy</code>方法。</p>
+<h1 id="SerializerFactory"><a href="#SerializerFactory" class="headerlink" title="SerializerFactory"></a>SerializerFactory</h1><p>对框架支持的序列化方法进行了注册。</p>
+<p>内部维护了两个map</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">ConcurrentHashMap&lt;String, Byte&gt; serializerTypes;</span><br><span class="line">ConcurrentHashMap&lt;Byte, Serializer&gt; serializers</span><br></pre></td></tr></table></figure>
+<p>这个Serializer类有啥用呢，这个其实还值得我们去研究研究。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">interface</span> <span class="title">Serializer</span> </span>&#123;</span><br><span class="line">    </span><br><span class="line">    <span class="function">Object <span class="title">deserializeRequest</span><span class="params">(InputStream is)</span> <span class="keyword">throws</span> SerializationException</span>;</span><br><span class="line">    </span><br><span class="line">    <span class="function"><span class="keyword">void</span> <span class="title">serializeRequest</span><span class="params">(OutputStream os, Object obj)</span> <span class="keyword">throws</span> SerializationException</span>;</span><br><span class="line">    </span><br><span class="line">    <span class="function">Object <span class="title">deserializeResponse</span><span class="params">(InputStream is)</span> <span class="keyword">throws</span> SerializationException</span>;</span><br><span class="line">    </span><br><span class="line">    <span class="function"><span class="keyword">void</span> <span class="title">serializeResponse</span><span class="params">(OutputStream os, Object obj)</span> <span class="keyword">throws</span> SerializationException</span>;</span><br><span class="line">    </span><br><span class="line">    <span class="function">Object <span class="title">proxyRequest</span><span class="params">(InvokerConfig&lt;?&gt; invokerConfig)</span> <span class="keyword">throws</span> SerializationException</span>;</span><br><span class="line">    </span><br><span class="line">    <span class="function">InvocationResponse <span class="title">newResponse</span><span class="params">()</span> <span class="keyword">throws</span> SerializationException</span>;</span><br><span class="line">    </span><br><span class="line">    <span class="function">InvocationRequest <span class="title">newRequest</span><span class="params">(InvokerContext invokerContext)</span> <span class="keyword">throws</span> SerializationException</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><code>Serializer</code>接口中有七个方法，都是和序列化有关，其中<code>proxyRequest</code>方法请看pigeon的服务注册与发布.</p>
+<p>我们进行方法调用，发送请求，获取调用结果。这中间的过程都是需要进行序列化的。</p>
+<p><code>pigeon</code>支持11种序列化方法</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">enum</span> SerializerType &#123;</span><br><span class="line">  </span><br><span class="line">    INTERNAL_THRIFT((<span class="keyword">byte</span>) <span class="number">1</span>, <span class="string">"internalThrift"</span>),</span><br><span class="line">  </span><br><span class="line">    HESSIAN((<span class="keyword">byte</span>) <span class="number">2</span>, <span class="string">"hessian"</span>),</span><br><span class="line">  </span><br><span class="line">    JAVA((<span class="keyword">byte</span>) <span class="number">3</span>, <span class="string">"java"</span>),</span><br><span class="line">  </span><br><span class="line">    PROTO((<span class="keyword">byte</span>) <span class="number">5</span>, <span class="string">"proto"</span>),</span><br><span class="line">  </span><br><span class="line">    HESSIAN1((<span class="keyword">byte</span>) <span class="number">6</span>, <span class="string">"hessian1"</span>),</span><br><span class="line">  </span><br><span class="line">    JSON((<span class="keyword">byte</span>) <span class="number">7</span>, <span class="string">"json"</span>),</span><br><span class="line">  </span><br><span class="line">    FST((<span class="keyword">byte</span>) <span class="number">8</span>, <span class="string">"fst"</span>),</span><br><span class="line">  </span><br><span class="line">    PROTOBUF((<span class="keyword">byte</span>) <span class="number">9</span>, <span class="string">"protobuf"</span>),</span><br><span class="line">  </span><br><span class="line">    THRIFT((<span class="keyword">byte</span>) <span class="number">10</span>, <span class="string">"thrift"</span>),</span><br><span class="line">  </span><br><span class="line">    PROTOBUF3((<span class="keyword">byte</span>) <span class="number">11</span>, <span class="string">"protobuf3"</span>);</span><br></pre></td></tr></table></figure>
+<p>同时有八个进行序列化操作的实体类。</p>
+<p><img src="/images/pigeon中的核心类和作用/1.png" alt=""></p>
+<h1 id="ProviderProcessHandlerFactory"><a href="#ProviderProcessHandlerFactory" class="headerlink" title="ProviderProcessHandlerFactory"></a>ProviderProcessHandlerFactory</h1><p>我们知道在<code>InvokerProcessHandlerFactory</code>中，给<code>invoke</code>的过程加上了一天责任链。</p>
+<p>那么这个的<code>init</code>方法就是给<code>Provide</code>的时候，也加上一条责任链。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">registerBizProcessFilter(<span class="keyword">new</span> TraceFilter());</span><br><span class="line"><span class="keyword">if</span> (Constants.MONITOR_ENABLE) &#123;</span><br><span class="line">    registerBizProcessFilter(<span class="keyword">new</span> MonitorProcessFilter());</span><br><span class="line">&#125;</span><br><span class="line">registerBizProcessFilter(<span class="keyword">new</span> WriteResponseProcessFilter());</span><br><span class="line">registerBizProcessFilter(<span class="keyword">new</span> ContextTransferProcessFilter());</span><br><span class="line">registerBizProcessFilter(<span class="keyword">new</span> ExceptionProcessFilter());</span><br><span class="line">registerBizProcessFilter(<span class="keyword">new</span> SecurityFilter());</span><br><span class="line">registerBizProcessFilter(<span class="keyword">new</span> GatewayProcessFilter());</span><br><span class="line">registerBizProcessFilter(<span class="keyword">new</span> BusinessProcessFilter());</span><br></pre></td></tr></table></figure>
+
+      
+    </div>
+    
+    <div class="article-info article-info-index">
+      
+      
+
+      
+    <div class="article-tag tagcloud">
+        <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/pigeon/">pigeon</a></li></ul>
+    </div>
+
+      
+      <div class="clearfix"></div>
+    </div>
+    
+  </div>
+  
+</article>
+
+
+
+
+
+
+
+
+
+  
     <article id="post-pigeon的服务注册与发现" class="article article-type-post" itemscope itemprop="blogPost">
   
     <div class="article-meta">
@@ -1110,113 +1393,6 @@
 
 
   
-    <article id="post-pigeon中的核心类和作用" class="article article-type-post" itemscope itemprop="blogPost">
-  
-    <div class="article-meta">
-      <a href="/2018/02/18/pigeon中的核心类和作用/" class="article-date">
-      <time datetime="2018-02-17T16:00:00.000Z" itemprop="datePublished">2018-02-18</time>
-</a>
-
-
-    </div>
-  
-  <div class="article-inner">
-    
-      <input type="hidden" class="isFancy" />
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/2018/02/18/pigeon中的核心类和作用/">pigeon中的核心类和作用</a>
-    </h1>
-  
-
-      </header>
-      
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-          
-        <h1 id="ServiceFactory"><a href="#ServiceFactory" class="headerlink" title="ServiceFactory"></a>ServiceFactory</h1><p>这个类的作用就是服务的注册发布和get的最外层接口</p>
-<p>内部有两个主要的类</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> ServiceProxy serviceProxy = ServiceProxyLoader.getServiceProxy();</span><br><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> PublishPolicy publishPolicy = PublishPolicyLoader.getPublishPolicy();</span><br></pre></td></tr></table></figure>
-<p><code>ServiceProxy</code>用来获取<code>service</code>的，就是包一层<code>proxy</code>吧。</p>
-<p><code>PublishPolicy</code>简单说就是发布<code>service</code>的，但是内部还是借助于<code>ServicePublisher</code>进行操作的。</p>
-<h1 id="RegistryManager"><a href="#RegistryManager" class="headerlink" title="RegistryManager"></a>RegistryManager</h1><p>这个类的作用其实是为<code>ServicePublisher</code>的<code>addService</code>到<code>zookeeper</code>中和<code>unpublish</code>指定的<code>service</code>提供API支持的。</p>
-<p>更通俗点就是为<code>invoker</code>和<code>provider</code>提供了<code>zookeeper</code>的交流的。</p>
-<p>但是内部还是使用的<code>registry</code>类进行和<code>zookeeper</code>调用的。</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">interface</span> <span class="title">Registry</span> </span>&#123;</span><br><span class="line">    <span class="comment">//删除了好多，可以自己去看源码</span></span><br><span class="line">    <span class="comment">// for invoker</span></span><br><span class="line">    <span class="function"><span class="keyword">boolean</span> <span class="title">isSupportNewProtocol</span><span class="params">(String serviceAddress, String serviceName)</span> <span class="keyword">throws</span> RegistryException</span>;</span><br><span class="line">  </span><br><span class="line">    <span class="comment">// for provider</span></span><br><span class="line">    <span class="function"><span class="keyword">void</span> <span class="title">setSupportNewProtocol</span><span class="params">(String serviceAddress, String serviceName, <span class="keyword">boolean</span> support)</span> <span class="keyword">throws</span> RegistryException</span>;</span><br><span class="line">  </span><br><span class="line">    <span class="comment">// for invoker/provider</span></span><br><span class="line">    <span class="function">RegistryConfig <span class="title">getRegistryConfig</span><span class="params">(String ip)</span> <span class="keyword">throws</span> RegistryException</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<h1 id="InvokerBootStrap"><a href="#InvokerBootStrap" class="headerlink" title="InvokerBootStrap"></a>InvokerBootStrap</h1><p>这个类看名字也知道是为了<code>invoker</code>提供方便的。</p>
-<p>看调用也是<code>AbstractServiceProxy</code>这个类调用的最多</p>
-<p>主要有两个方法，<code>startup</code>和<code>shutdown</code>，也没什么重要的成员变量。</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">startup</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (!isStartup) &#123;</span><br><span class="line">        <span class="keyword">synchronized</span> (InvokerBootStrap.class) &#123;</span><br><span class="line">            <span class="keyword">if</span> (!isStartup) &#123;</span><br><span class="line">                ServiceInvocationRepository.getInstance().init();</span><br><span class="line">                InvokerProcessHandlerFactory.init();</span><br><span class="line">                SerializerFactory.init();</span><br><span class="line">                LoadBalanceManager.init();</span><br><span class="line">                RegionPolicyManager.INSTANCE.init();</span><br><span class="line">                Monitor monitor = MonitorLoader.getMonitor();</span><br><span class="line">                <span class="keyword">if</span> (monitor != <span class="keyword">null</span>) &#123;</span><br><span class="line">                    monitor.init();</span><br><span class="line">                &#125;</span><br><span class="line">                isStartup = <span class="keyword">true</span>;</span><br><span class="line">                logger.warn(<span class="string">"pigeon client[version:"</span> + VersionUtils.VERSION + <span class="string">"] has been started"</span>);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>其中<code>ServiceInvocationRepository</code>的<code>init</code>方法主要是启动了一个<code>InvocationTimeoutListener</code>线程，看样子是用来检测调用超时问题。</p>
-<p>在<code>InvokerProcessHandlerFactory</code>的<code>init</code>方法中，就是在<code>service</code>的<code>proxy</code>中，加入了一条责任链。</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">registerBizProcessFilter(<span class="keyword">new</span> TraceFilter());</span><br><span class="line">registerBizProcessFilter(<span class="keyword">new</span> DegradationFilter());</span><br><span class="line">registerBizProcessFilter(<span class="keyword">new</span> ClusterInvokeFilter());</span><br><span class="line">registerBizProcessFilter(<span class="keyword">new</span> GatewayInvokeFilter());</span><br><span class="line">registerBizProcessFilter(<span class="keyword">new</span> ContextPrepareInvokeFilter());</span><br><span class="line">registerBizProcessFilter(<span class="keyword">new</span> SecurityFilter());</span><br><span class="line">registerBizProcessFilter(<span class="keyword">new</span> RemoteCallInvokeFilter());</span><br></pre></td></tr></table></figure>
-<p><code>SerializerFactory</code>见下</p>
-<p><code>LoadBalanceManager</code>的<code>init</code>方法，初始化了<code>pigeon</code>支持的四种负载均衡的算法。</p>
-<ul>
-<li><code>RandomLoadBalance</code></li>
-<li><code>AutoawareLoadBalance</code></li>
-<li><code>RoundRobinLoadBalance</code></li>
-<li><code>WeightedAutoawareLoadBalance</code></li>
-</ul>
-<p>在<code>RegionPolicyManager</code>的<code>init</code>方法中，就是对<code>Region</code>的选择算法进行了初始化。</p>
-<p>那个<code>monitor</code>的方法，我看好像还没写好。。。。</p>
-<h1 id="ProviderBootStrap"><a href="#ProviderBootStrap" class="headerlink" title="ProviderBootStrap"></a>ProviderBootStrap</h1><h2 id="初始化"><a href="#初始化" class="headerlink" title="初始化"></a>初始化</h2><p>包含了<code>SerializerFactory</code>和<code>ProviderProcessHandlerFactory</code>的初始化。</p>
-<p>同时对<code>jetty server</code>和<code>netty server</code>两个<code>server</code>进行了初始化和启动。</p>
-<p>同时启动了一个监听服务器的线程<code>ShutdownHookListener</code></p>
-<p>如果服务器关闭，那么就会调用一些类的关闭方法</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//从zookeeper上unpublish掉所有的服务</span></span><br><span class="line">ServiceFactory.unpublishAllServices();</span><br><span class="line">InvokerBootStrap.shutdown();</span><br><span class="line">ProviderBootStrap.shutdown();</span><br></pre></td></tr></table></figure>
-<h2 id="关闭"><a href="#关闭" class="headerlink" title="关闭"></a>关闭</h2><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">shutdown</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">for</span> (Server server : serversMap.values()) &#123;</span><br><span class="line">        <span class="keyword">if</span> (server != <span class="keyword">null</span>) &#123;</span><br><span class="line">            logger.info(<span class="string">"start to stop "</span> + server);</span><br><span class="line">            <span class="keyword">try</span> &#123;</span><br><span class="line">                unregisterConsoleServer(server.getServerConfig());</span><br><span class="line">                server.stop();</span><br><span class="line">                &#125; <span class="keyword">catch</span> (Throwable e) &#123;</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">if</span> (logger.isInfoEnabled()) &#123;</span><br><span class="line">                logger.info(server + <span class="string">" has been shutdown"</span>);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        ProviderProcessHandlerFactory.destroy();</span><br><span class="line">        &#125; <span class="keyword">catch</span> (Throwable e) &#123;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>把<code>server</code>从<code>zookeeper</code>上下掉，这个过程调用了<code>RegistryManager</code>的方法。</p>
-<p>然后调用了<code>ProviderProcessHandlerFactory</code>的<code>destroy</code>方法。</p>
-<h1 id="SerializerFactory"><a href="#SerializerFactory" class="headerlink" title="SerializerFactory"></a>SerializerFactory</h1><p>对框架支持的序列化方法进行了注册。</p>
-<p>内部维护了两个map</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">ConcurrentHashMap&lt;String, Byte&gt; serializerTypes;</span><br><span class="line">ConcurrentHashMap&lt;Byte, Serializer&gt; serializers</span><br></pre></td></tr></table></figure>
-<p>这个Serializer类有啥用呢，这个其实还值得我们去研究研究。</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">interface</span> <span class="title">Serializer</span> </span>&#123;</span><br><span class="line">    </span><br><span class="line">    <span class="function">Object <span class="title">deserializeRequest</span><span class="params">(InputStream is)</span> <span class="keyword">throws</span> SerializationException</span>;</span><br><span class="line">    </span><br><span class="line">    <span class="function"><span class="keyword">void</span> <span class="title">serializeRequest</span><span class="params">(OutputStream os, Object obj)</span> <span class="keyword">throws</span> SerializationException</span>;</span><br><span class="line">    </span><br><span class="line">    <span class="function">Object <span class="title">deserializeResponse</span><span class="params">(InputStream is)</span> <span class="keyword">throws</span> SerializationException</span>;</span><br><span class="line">    </span><br><span class="line">    <span class="function"><span class="keyword">void</span> <span class="title">serializeResponse</span><span class="params">(OutputStream os, Object obj)</span> <span class="keyword">throws</span> SerializationException</span>;</span><br><span class="line">    </span><br><span class="line">    <span class="function">Object <span class="title">proxyRequest</span><span class="params">(InvokerConfig&lt;?&gt; invokerConfig)</span> <span class="keyword">throws</span> SerializationException</span>;</span><br><span class="line">    </span><br><span class="line">    <span class="function">InvocationResponse <span class="title">newResponse</span><span class="params">()</span> <span class="keyword">throws</span> SerializationException</span>;</span><br><span class="line">    </span><br><span class="line">    <span class="function">InvocationRequest <span class="title">newRequest</span><span class="params">(InvokerContext invokerContext)</span> <span class="keyword">throws</span> SerializationException</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p><code>Serializer</code>接口中有七个方法，都是和序列化有关，其中<code>proxyRequest</code>方法请看pigeon的服务注册与发布.</p>
-<p>我们进行方法调用，发送请求，获取调用结果。这中间的过程都是需要进行序列化的。</p>
-<p><code>pigeon</code>支持11种序列化方法</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">enum</span> SerializerType &#123;</span><br><span class="line">  </span><br><span class="line">    INTERNAL_THRIFT((<span class="keyword">byte</span>) <span class="number">1</span>, <span class="string">"internalThrift"</span>),</span><br><span class="line">  </span><br><span class="line">    HESSIAN((<span class="keyword">byte</span>) <span class="number">2</span>, <span class="string">"hessian"</span>),</span><br><span class="line">  </span><br><span class="line">    JAVA((<span class="keyword">byte</span>) <span class="number">3</span>, <span class="string">"java"</span>),</span><br><span class="line">  </span><br><span class="line">    PROTO((<span class="keyword">byte</span>) <span class="number">5</span>, <span class="string">"proto"</span>),</span><br><span class="line">  </span><br><span class="line">    HESSIAN1((<span class="keyword">byte</span>) <span class="number">6</span>, <span class="string">"hessian1"</span>),</span><br><span class="line">  </span><br><span class="line">    JSON((<span class="keyword">byte</span>) <span class="number">7</span>, <span class="string">"json"</span>),</span><br><span class="line">  </span><br><span class="line">    FST((<span class="keyword">byte</span>) <span class="number">8</span>, <span class="string">"fst"</span>),</span><br><span class="line">  </span><br><span class="line">    PROTOBUF((<span class="keyword">byte</span>) <span class="number">9</span>, <span class="string">"protobuf"</span>),</span><br><span class="line">  </span><br><span class="line">    THRIFT((<span class="keyword">byte</span>) <span class="number">10</span>, <span class="string">"thrift"</span>),</span><br><span class="line">  </span><br><span class="line">    PROTOBUF3((<span class="keyword">byte</span>) <span class="number">11</span>, <span class="string">"protobuf3"</span>);</span><br></pre></td></tr></table></figure>
-<p>同时有八个进行序列化操作的实体类。</p>
-<p><img src="/images/pigeon中的核心类和作用/1.png" alt=""></p>
-<h1 id="ProviderProcessHandlerFactory"><a href="#ProviderProcessHandlerFactory" class="headerlink" title="ProviderProcessHandlerFactory"></a>ProviderProcessHandlerFactory</h1><p>我们知道在<code>InvokerProcessHandlerFactory</code>中，给<code>invoke</code>的过程加上了一天责任链。</p>
-<p>那么这个的<code>init</code>方法就是给<code>Provide</code>的时候，也加上一条责任链。</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">registerBizProcessFilter(<span class="keyword">new</span> TraceFilter());</span><br><span class="line"><span class="keyword">if</span> (Constants.MONITOR_ENABLE) &#123;</span><br><span class="line">    registerBizProcessFilter(<span class="keyword">new</span> MonitorProcessFilter());</span><br><span class="line">&#125;</span><br><span class="line">registerBizProcessFilter(<span class="keyword">new</span> WriteResponseProcessFilter());</span><br><span class="line">registerBizProcessFilter(<span class="keyword">new</span> ContextTransferProcessFilter());</span><br><span class="line">registerBizProcessFilter(<span class="keyword">new</span> ExceptionProcessFilter());</span><br><span class="line">registerBizProcessFilter(<span class="keyword">new</span> SecurityFilter());</span><br><span class="line">registerBizProcessFilter(<span class="keyword">new</span> GatewayProcessFilter());</span><br><span class="line">registerBizProcessFilter(<span class="keyword">new</span> BusinessProcessFilter());</span><br></pre></td></tr></table></figure>
-
-      
-    </div>
-    
-    <div class="article-info article-info-index">
-      
-      
-
-      
-    <div class="article-tag tagcloud">
-        <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/pigeon/">pigeon</a></li></ul>
-    </div>
-
-      
-      <div class="clearfix"></div>
-    </div>
-    
-  </div>
-  
-</article>
-
-
-
-
-
-
-
-
-
-  
     <article id="post-fat-jar" class="article article-type-post" itemscope itemprop="blogPost">
   
     <div class="article-meta">
@@ -1267,121 +1443,6 @@
       
     <div class="article-tag tagcloud">
         <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/java/">java</a></li></ul>
-    </div>
-
-      
-      <div class="clearfix"></div>
-    </div>
-    
-  </div>
-  
-</article>
-
-
-
-
-
-
-
-
-
-  
-    <article id="post-log4j和slf4j配置" class="article article-type-post" itemscope itemprop="blogPost">
-  
-    <div class="article-meta">
-      <a href="/2018/02/07/log4j和slf4j配置/" class="article-date">
-      <time datetime="2018-02-06T16:00:00.000Z" itemprop="datePublished">2018-02-07</time>
-</a>
-
-
-    </div>
-  
-  <div class="article-inner">
-    
-      <input type="hidden" class="isFancy" />
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/2018/02/07/log4j和slf4j配置/">log4j和slf4j配置</a>
-    </h1>
-  
-
-      </header>
-      
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-          
-        <h1 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h1><p>之前自己写的时候哪管什么log不log的，遇到啥都是直接sout。<br>后来在写自己的框架的时候，发现不行啊，我要做一个log出来，像<code>spring</code>启动那样。<br>来了美团，这里的log更加的严谨了，除了要运行的时候打印出log，还要把log分类分时间打到本地的文件里，</p>
-<p>当然这还不够，美团有个cat框架，还需要我们把log通过网络，打到专门管理log的服务器上去。</p>
-<p>大的系统log是很有必要的，这样出了问了log能给我们很大的启示。</p>
-<h1 id="Log框架"><a href="#Log框架" class="headerlink" title="Log框架"></a>Log框架</h1><p>Java的Log框架是比较乱的，之前一直没搞懂，不知道依赖关系。</p>
-<p>主要的有</p>
-<ul>
-<li><code>apache</code> 的<code>log4j</code></li>
-<li>升级版的<code>log4j2</code></li>
-<li><code>apache</code>的<code>common logging</code></li>
-<li><code>java.util.Logging</code></li>
-<li><code>slf4j</code></li>
-<li><code>LogBack</code></li>
-</ul>
-<p>不自己去了解一下其实是很乱的，光<code>apache</code>的log就有好几套。</p>
-<p>不过主流的还是<code>log4j</code>和<code>LogBack</code>，但是为了避免框架的Log和用户的Log不一样。<br>总不能一个系统里就有几套不同的Log吧。<br>于是<code>slf4j</code>出现了，这个框架，不提供实现，只提供接口。<br>幸运的是<code>Log4j</code>和<code>LogBack</code>都实现了这个框架的接口。<br>所以现在大多数还是直接调用<code>slf4j</code>的接口。实现的话，我们选一个去<code>import</code>一下就行。</p>
-<h1 id="依赖"><a href="#依赖" class="headerlink" title="依赖"></a>依赖</h1><figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">dependency</span>&gt;</span></span><br><span class="line">	<span class="tag">&lt;<span class="name">groupId</span>&gt;</span>org.slf4j<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">	<span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>slf4j-api<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">	<span class="tag">&lt;<span class="name">version</span>&gt;</span>1.7.25<span class="tag">&lt;/<span class="name">version</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">dependency</span>&gt;</span></span><br><span class="line"> </span><br><span class="line"><span class="tag">&lt;<span class="name">dependency</span>&gt;</span></span><br><span class="line">	<span class="tag">&lt;<span class="name">groupId</span>&gt;</span>org.apache.logging.log4j<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">	<span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>log4j-slf4j-impl<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">	<span class="tag">&lt;<span class="name">version</span>&gt;</span>2.10.0<span class="tag">&lt;/<span class="name">version</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">dependency</span>&gt;</span></span><br></pre></td></tr></table></figure>
-<p>以<code>log4j</code>为例，首先我们得引入<code>slf4j</code>的规定的接口包，然后再引入<code>log4j</code>的实现包就行了。</p>
-<p>再加上log的配置文件。（见下）</p>
-<p>在代码中就直接写<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Main</span> </span>&#123;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> Logger log = LoggerFactory.getLogger(Main.class);</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;</span><br><span class="line">        log.info(<span class="string">"dddddddd"</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
-<p>就可以了。</p>
-<h1 id="配置文件"><a href="#配置文件" class="headerlink" title="配置文件"></a>配置文件</h1><p>log4j的配置文件其实也不难。<br>在<code>resources</code>目录下建立<code>log4j2.xml</code>文件。<br><figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line">&lt;?xml version="1.0" encoding="UTF-8"?&gt;</span><br><span class="line"><span class="tag">&lt;<span class="name">Configuration</span>&gt;</span></span><br><span class="line">      </span><br><span class="line">    <span class="tag">&lt;<span class="name">Properties</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">Property</span> <span class="attr">name</span>=<span class="string">"log-path"</span>&gt;</span>/Users/zhuyichen/log/testLogs.txt<span class="tag">&lt;/<span class="name">Property</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">Properties</span>&gt;</span></span><br><span class="line">  </span><br><span class="line">    <span class="tag">&lt;<span class="name">Appenders</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">Console</span> <span class="attr">name</span>=<span class="string">"Console"</span> <span class="attr">target</span>=<span class="string">"SYSTEM_OUT"</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="name">PatternLayout</span> <span class="attr">pattern</span>=<span class="string">"%d&#123;HH:mm:ss.SSS&#125; [%t] %-5level %logger&#123;36&#125; - %msg%n"</span>/&gt;</span></span><br><span class="line">        <span class="tag">&lt;/<span class="name">Console</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">File</span> <span class="attr">name</span>=<span class="string">"file"</span> <span class="attr">fileName</span>=<span class="string">"$&#123;log-path&#125;"</span> <span class="attr">append</span>=<span class="string">"false"</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="name">PatternLayout</span> <span class="attr">pattern</span>=<span class="string">"%d&#123;HH:mm:ss.SSS&#125; [%t] %-5level %logger&#123;36&#125; - %msg%n"</span>/&gt;</span></span><br><span class="line">        <span class="tag">&lt;/<span class="name">File</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">RollingFile</span> <span class="attr">name</span>=<span class="string">"rollingFile"</span> <span class="attr">fileName</span>=<span class="string">"$&#123;log-path&#125;"</span></span></span><br><span class="line"><span class="tag">                     <span class="attr">filePattern</span>=<span class="string">"$&#123;sys:user.home&#125;/log/$$&#123;date:yyyy-MM&#125;/info-%d&#123;yyyy-MM-dd&#125;-%i.log"</span></span></span><br><span class="line"><span class="tag">                     <span class="attr">append</span>=<span class="string">"true"</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="name">ThresholdFilter</span> <span class="attr">level</span>=<span class="string">"info"</span> <span class="attr">onMatch</span>=<span class="string">"ACCEPT"</span> <span class="attr">onMismatch</span>=<span class="string">"DENY"</span>/&gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="name">PatternLayout</span> <span class="attr">pattern</span>=<span class="string">"[%d&#123;HH:mm:ss:SSS&#125;] [%p] - %l - %m%n"</span>/&gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="name">Policies</span>&gt;</span></span><br><span class="line">                <span class="tag">&lt;<span class="name">TimeBasedTriggeringPolicy</span>/&gt;</span></span><br><span class="line">                <span class="tag">&lt;<span class="name">SizeBasedTriggeringPolicy</span> <span class="attr">size</span>=<span class="string">"100MB"</span>/&gt;</span></span><br><span class="line">            <span class="tag">&lt;/<span class="name">Policies</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="name">DefaultRolloverStrategy</span> <span class="attr">max</span>=<span class="string">"20"</span>/&gt;</span></span><br><span class="line">        <span class="tag">&lt;/<span class="name">RollingFile</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">Appenders</span>&gt;</span></span><br><span class="line">  </span><br><span class="line">    <span class="tag">&lt;<span class="name">Loggers</span>&gt;</span></span><br><span class="line">  </span><br><span class="line">        <span class="tag">&lt;<span class="name">Logger</span> <span class="attr">name</span>=<span class="string">"Main"</span> <span class="attr">level</span>=<span class="string">"error, info"</span> <span class="attr">additivity</span>=<span class="string">"false"</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="name">AppenderRef</span> <span class="attr">ref</span>=<span class="string">"Console"</span>/&gt;</span></span><br><span class="line">        <span class="tag">&lt;/<span class="name">Logger</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">Root</span> <span class="attr">level</span>=<span class="string">"all"</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="name">AppenderRef</span> <span class="attr">ref</span>=<span class="string">"Console"</span>/&gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="name">AppenderRef</span> <span class="attr">ref</span>=<span class="string">"file"</span>/&gt;</span></span><br><span class="line">        <span class="tag">&lt;/<span class="name">Root</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">Loggers</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">Configuration</span>&gt;</span></span><br></pre></td></tr></table></figure></p>
-<h2 id="Properties"><a href="#Properties" class="headerlink" title="Properties"></a>Properties</h2><p>首先<code>Properties</code>的条目是随便写的，只是方便我们下面引用的时候方便管理而已。<br>比如我们把我的log目录文件路径放进去了。<br>下面就可以用<code>${log-path}</code>来引用</p>
-<h2 id="Appenders"><a href="#Appenders" class="headerlink" title="Appenders"></a>Appenders</h2><p>下面就是<code>Appenders</code>，这里相当于我们设定几个log模式。</p>
-<p><code>Console</code>是<code>console</code>直接打印的模式。<br><code>PatternLayout</code>是打印出来的样式。</p>
-<p>File就是打印到文件的模式。</p>
-<ul>
-<li><code>name</code> 名字，由下面的Logger引用用</li>
-<li><code>fileName</code> Log文件的路径</li>
-<li><code>append</code> 每次启动，log是加到文件里，还是清空文件。</li>
-</ul>
-<p><code>RollingFile</code>就是轮转的<code>Log</code>，可以指定策略创建新的，删除旧的。<br>叫滚动日志</p>
-<ul>
-<li><code>name</code> <code>Appenders</code>的名字</li>
-<li><code>fileName</code>文件的名字</li>
-<li><code>filePattern</code>就是指定创建新的log文件的格式</li>
-<li><code>Policies</code> 指定滚动日志的策略<ul>
-<li><code>TimeBasedTriggeringPolicy</code> 基于时间的滚动策略</li>
-<li><code>SizeBasedTriggeringPolicy</code> 基于指定文件大小的滚动策略，size属性用来定义每个日志文件的大小</li>
-<li><code>DefaultRolloverStrategy</code> 用来指定同一个文件夹下最多有几个日志文件时开始删除最旧的</li>
-</ul>
-</li>
-</ul>
-<h2 id="Loggers"><a href="#Loggers" class="headerlink" title="Loggers"></a>Loggers</h2><p><code>Loggers</code>才是真正控制我们<code>Log</code>的地方。</p>
-<p>一般有两种节点，一个是<code>Logger</code>，一个是<code>Root</code>。</p>
-<p>level:日志输出级别，共有8个级别，按照从低到高为：<code>All &lt; Trace &lt; Debug &lt; Info &lt; Warn &lt; Error &lt; Fatal &lt; OFF</code>。</p>
-<p>按这个级别排序呢，就是说如果是all，那么大于等于它的级别的都会输出。</p>
-<p><code>Logger</code>一般单独指认某个类或者某个的输出日志。</p>
-<ul>
-<li><code>name</code> 指某个类所在全程或者某个包的全程</li>
-<li><code>level</code> 输出的日记级别</li>
-<li><code>additivity</code> 如果设为<code>false</code>，那么就不会在下面的<code>Root</code>节点再输出了。</li>
-</ul>
-<p><code>Root</code>是个特殊的条目，就是剩下来的所有<br>相比较<code>Logger</code>配置只有一个<code>level</code></p>
-<p>在每个配置中具体日志打到哪儿，需要引用我们上面定义的<code>Appender</code>了。<br>你需要这个Log打印到哪儿，就在里面增加一个<code>AppenderRef</code>条目。</p>
-<p>比如我的<code>Root</code>节点需要全部既打印到终端，又打印到文件，我就把两个都引用进去。</p>
-<h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p><a href="https://www.cnblogs.com/hafiz/p/6170702.html" target="_blank" rel="noopener">https://www.cnblogs.com/hafiz/p/6170702.html</a><br><a href="https://logging.apache.org/log4j/2.x/manual/index.html" target="_blank" rel="noopener">官方文档</a></p>
-
-      
-    </div>
-    
-    <div class="article-info article-info-index">
-      
-      
-
-      
-    <div class="article-tag tagcloud">
-        <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Java/">Java</a></li></ul>
     </div>
 
       

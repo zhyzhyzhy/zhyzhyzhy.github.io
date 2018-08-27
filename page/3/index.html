@@ -198,6 +198,121 @@
 </nav>
       <div class="body-wrap">
   
+    <article id="post-log4j和slf4j配置" class="article article-type-post" itemscope itemprop="blogPost">
+  
+    <div class="article-meta">
+      <a href="/2018/02/07/log4j和slf4j配置/" class="article-date">
+      <time datetime="2018-02-06T16:00:00.000Z" itemprop="datePublished">2018-02-07</time>
+</a>
+
+
+    </div>
+  
+  <div class="article-inner">
+    
+      <input type="hidden" class="isFancy" />
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/2018/02/07/log4j和slf4j配置/">log4j和slf4j配置</a>
+    </h1>
+  
+
+      </header>
+      
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+          
+        <h1 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h1><p>之前自己写的时候哪管什么log不log的，遇到啥都是直接sout。<br>后来在写自己的框架的时候，发现不行啊，我要做一个log出来，像<code>spring</code>启动那样。<br>来了美团，这里的log更加的严谨了，除了要运行的时候打印出log，还要把log分类分时间打到本地的文件里，</p>
+<p>当然这还不够，美团有个cat框架，还需要我们把log通过网络，打到专门管理log的服务器上去。</p>
+<p>大的系统log是很有必要的，这样出了问了log能给我们很大的启示。</p>
+<h1 id="Log框架"><a href="#Log框架" class="headerlink" title="Log框架"></a>Log框架</h1><p>Java的Log框架是比较乱的，之前一直没搞懂，不知道依赖关系。</p>
+<p>主要的有</p>
+<ul>
+<li><code>apache</code> 的<code>log4j</code></li>
+<li>升级版的<code>log4j2</code></li>
+<li><code>apache</code>的<code>common logging</code></li>
+<li><code>java.util.Logging</code></li>
+<li><code>slf4j</code></li>
+<li><code>LogBack</code></li>
+</ul>
+<p>不自己去了解一下其实是很乱的，光<code>apache</code>的log就有好几套。</p>
+<p>不过主流的还是<code>log4j</code>和<code>LogBack</code>，但是为了避免框架的Log和用户的Log不一样。<br>总不能一个系统里就有几套不同的Log吧。<br>于是<code>slf4j</code>出现了，这个框架，不提供实现，只提供接口。<br>幸运的是<code>Log4j</code>和<code>LogBack</code>都实现了这个框架的接口。<br>所以现在大多数还是直接调用<code>slf4j</code>的接口。实现的话，我们选一个去<code>import</code>一下就行。</p>
+<h1 id="依赖"><a href="#依赖" class="headerlink" title="依赖"></a>依赖</h1><figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">dependency</span>&gt;</span></span><br><span class="line">	<span class="tag">&lt;<span class="name">groupId</span>&gt;</span>org.slf4j<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">	<span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>slf4j-api<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">	<span class="tag">&lt;<span class="name">version</span>&gt;</span>1.7.25<span class="tag">&lt;/<span class="name">version</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">dependency</span>&gt;</span></span><br><span class="line"> </span><br><span class="line"><span class="tag">&lt;<span class="name">dependency</span>&gt;</span></span><br><span class="line">	<span class="tag">&lt;<span class="name">groupId</span>&gt;</span>org.apache.logging.log4j<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">	<span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>log4j-slf4j-impl<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">	<span class="tag">&lt;<span class="name">version</span>&gt;</span>2.10.0<span class="tag">&lt;/<span class="name">version</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">dependency</span>&gt;</span></span><br></pre></td></tr></table></figure>
+<p>以<code>log4j</code>为例，首先我们得引入<code>slf4j</code>的规定的接口包，然后再引入<code>log4j</code>的实现包就行了。</p>
+<p>再加上log的配置文件。（见下）</p>
+<p>在代码中就直接写<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Main</span> </span>&#123;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> Logger log = LoggerFactory.getLogger(Main.class);</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;</span><br><span class="line">        log.info(<span class="string">"dddddddd"</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>就可以了。</p>
+<h1 id="配置文件"><a href="#配置文件" class="headerlink" title="配置文件"></a>配置文件</h1><p>log4j的配置文件其实也不难。<br>在<code>resources</code>目录下建立<code>log4j2.xml</code>文件。<br><figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line">&lt;?xml version="1.0" encoding="UTF-8"?&gt;</span><br><span class="line"><span class="tag">&lt;<span class="name">Configuration</span>&gt;</span></span><br><span class="line">      </span><br><span class="line">    <span class="tag">&lt;<span class="name">Properties</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">Property</span> <span class="attr">name</span>=<span class="string">"log-path"</span>&gt;</span>/Users/zhuyichen/log/testLogs.txt<span class="tag">&lt;/<span class="name">Property</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">Properties</span>&gt;</span></span><br><span class="line">  </span><br><span class="line">    <span class="tag">&lt;<span class="name">Appenders</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">Console</span> <span class="attr">name</span>=<span class="string">"Console"</span> <span class="attr">target</span>=<span class="string">"SYSTEM_OUT"</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="name">PatternLayout</span> <span class="attr">pattern</span>=<span class="string">"%d&#123;HH:mm:ss.SSS&#125; [%t] %-5level %logger&#123;36&#125; - %msg%n"</span>/&gt;</span></span><br><span class="line">        <span class="tag">&lt;/<span class="name">Console</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">File</span> <span class="attr">name</span>=<span class="string">"file"</span> <span class="attr">fileName</span>=<span class="string">"$&#123;log-path&#125;"</span> <span class="attr">append</span>=<span class="string">"false"</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="name">PatternLayout</span> <span class="attr">pattern</span>=<span class="string">"%d&#123;HH:mm:ss.SSS&#125; [%t] %-5level %logger&#123;36&#125; - %msg%n"</span>/&gt;</span></span><br><span class="line">        <span class="tag">&lt;/<span class="name">File</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">RollingFile</span> <span class="attr">name</span>=<span class="string">"rollingFile"</span> <span class="attr">fileName</span>=<span class="string">"$&#123;log-path&#125;"</span></span></span><br><span class="line"><span class="tag">                     <span class="attr">filePattern</span>=<span class="string">"$&#123;sys:user.home&#125;/log/$$&#123;date:yyyy-MM&#125;/info-%d&#123;yyyy-MM-dd&#125;-%i.log"</span></span></span><br><span class="line"><span class="tag">                     <span class="attr">append</span>=<span class="string">"true"</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="name">ThresholdFilter</span> <span class="attr">level</span>=<span class="string">"info"</span> <span class="attr">onMatch</span>=<span class="string">"ACCEPT"</span> <span class="attr">onMismatch</span>=<span class="string">"DENY"</span>/&gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="name">PatternLayout</span> <span class="attr">pattern</span>=<span class="string">"[%d&#123;HH:mm:ss:SSS&#125;] [%p] - %l - %m%n"</span>/&gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="name">Policies</span>&gt;</span></span><br><span class="line">                <span class="tag">&lt;<span class="name">TimeBasedTriggeringPolicy</span>/&gt;</span></span><br><span class="line">                <span class="tag">&lt;<span class="name">SizeBasedTriggeringPolicy</span> <span class="attr">size</span>=<span class="string">"100MB"</span>/&gt;</span></span><br><span class="line">            <span class="tag">&lt;/<span class="name">Policies</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="name">DefaultRolloverStrategy</span> <span class="attr">max</span>=<span class="string">"20"</span>/&gt;</span></span><br><span class="line">        <span class="tag">&lt;/<span class="name">RollingFile</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">Appenders</span>&gt;</span></span><br><span class="line">  </span><br><span class="line">    <span class="tag">&lt;<span class="name">Loggers</span>&gt;</span></span><br><span class="line">  </span><br><span class="line">        <span class="tag">&lt;<span class="name">Logger</span> <span class="attr">name</span>=<span class="string">"Main"</span> <span class="attr">level</span>=<span class="string">"error, info"</span> <span class="attr">additivity</span>=<span class="string">"false"</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="name">AppenderRef</span> <span class="attr">ref</span>=<span class="string">"Console"</span>/&gt;</span></span><br><span class="line">        <span class="tag">&lt;/<span class="name">Logger</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">Root</span> <span class="attr">level</span>=<span class="string">"all"</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="name">AppenderRef</span> <span class="attr">ref</span>=<span class="string">"Console"</span>/&gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="name">AppenderRef</span> <span class="attr">ref</span>=<span class="string">"file"</span>/&gt;</span></span><br><span class="line">        <span class="tag">&lt;/<span class="name">Root</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">Loggers</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">Configuration</span>&gt;</span></span><br></pre></td></tr></table></figure></p>
+<h2 id="Properties"><a href="#Properties" class="headerlink" title="Properties"></a>Properties</h2><p>首先<code>Properties</code>的条目是随便写的，只是方便我们下面引用的时候方便管理而已。<br>比如我们把我的log目录文件路径放进去了。<br>下面就可以用<code>${log-path}</code>来引用</p>
+<h2 id="Appenders"><a href="#Appenders" class="headerlink" title="Appenders"></a>Appenders</h2><p>下面就是<code>Appenders</code>，这里相当于我们设定几个log模式。</p>
+<p><code>Console</code>是<code>console</code>直接打印的模式。<br><code>PatternLayout</code>是打印出来的样式。</p>
+<p>File就是打印到文件的模式。</p>
+<ul>
+<li><code>name</code> 名字，由下面的Logger引用用</li>
+<li><code>fileName</code> Log文件的路径</li>
+<li><code>append</code> 每次启动，log是加到文件里，还是清空文件。</li>
+</ul>
+<p><code>RollingFile</code>就是轮转的<code>Log</code>，可以指定策略创建新的，删除旧的。<br>叫滚动日志</p>
+<ul>
+<li><code>name</code> <code>Appenders</code>的名字</li>
+<li><code>fileName</code>文件的名字</li>
+<li><code>filePattern</code>就是指定创建新的log文件的格式</li>
+<li><code>Policies</code> 指定滚动日志的策略<ul>
+<li><code>TimeBasedTriggeringPolicy</code> 基于时间的滚动策略</li>
+<li><code>SizeBasedTriggeringPolicy</code> 基于指定文件大小的滚动策略，size属性用来定义每个日志文件的大小</li>
+<li><code>DefaultRolloverStrategy</code> 用来指定同一个文件夹下最多有几个日志文件时开始删除最旧的</li>
+</ul>
+</li>
+</ul>
+<h2 id="Loggers"><a href="#Loggers" class="headerlink" title="Loggers"></a>Loggers</h2><p><code>Loggers</code>才是真正控制我们<code>Log</code>的地方。</p>
+<p>一般有两种节点，一个是<code>Logger</code>，一个是<code>Root</code>。</p>
+<p>level:日志输出级别，共有8个级别，按照从低到高为：<code>All &lt; Trace &lt; Debug &lt; Info &lt; Warn &lt; Error &lt; Fatal &lt; OFF</code>。</p>
+<p>按这个级别排序呢，就是说如果是all，那么大于等于它的级别的都会输出。</p>
+<p><code>Logger</code>一般单独指认某个类或者某个的输出日志。</p>
+<ul>
+<li><code>name</code> 指某个类所在全程或者某个包的全程</li>
+<li><code>level</code> 输出的日记级别</li>
+<li><code>additivity</code> 如果设为<code>false</code>，那么就不会在下面的<code>Root</code>节点再输出了。</li>
+</ul>
+<p><code>Root</code>是个特殊的条目，就是剩下来的所有<br>相比较<code>Logger</code>配置只有一个<code>level</code></p>
+<p>在每个配置中具体日志打到哪儿，需要引用我们上面定义的<code>Appender</code>了。<br>你需要这个Log打印到哪儿，就在里面增加一个<code>AppenderRef</code>条目。</p>
+<p>比如我的<code>Root</code>节点需要全部既打印到终端，又打印到文件，我就把两个都引用进去。</p>
+<h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p><a href="https://www.cnblogs.com/hafiz/p/6170702.html" target="_blank" rel="noopener">https://www.cnblogs.com/hafiz/p/6170702.html</a><br><a href="https://logging.apache.org/log4j/2.x/manual/index.html" target="_blank" rel="noopener">官方文档</a></p>
+
+      
+    </div>
+    
+    <div class="article-info article-info-index">
+      
+      
+
+      
+    <div class="article-tag tagcloud">
+        <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Java/">Java</a></li></ul>
+    </div>
+
+      
+      <div class="clearfix"></div>
+    </div>
+    
+  </div>
+  
+</article>
+
+
+
+
+
+
+
+
+
+  
     <article id="post-ThreadLocal源码分析" class="article article-type-post" itemscope itemprop="blogPost">
   
     <div class="article-meta">
@@ -1042,110 +1157,6 @@
       
     <div class="article-tag tagcloud">
         <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Network/">Network</a></li></ul>
-    </div>
-
-      
-      <div class="clearfix"></div>
-    </div>
-    
-  </div>
-  
-</article>
-
-
-
-
-
-
-
-
-
-  
-    <article id="post-Java泛型数组" class="article article-type-post" itemscope itemprop="blogPost">
-  
-    <div class="article-meta">
-      <a href="/2017/08/09/Java泛型数组/" class="article-date">
-      <time datetime="2017-08-08T16:00:00.000Z" itemprop="datePublished">2017-08-09</time>
-</a>
-
-
-    </div>
-  
-  <div class="article-inner">
-    
-      <input type="hidden" class="isFancy" />
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/2017/08/09/Java泛型数组/">Java泛型</a>
-    </h1>
-  
-
-      </header>
-      
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-          
-        <h3 id="Java泛型的实现"><a href="#Java泛型的实现" class="headerlink" title="Java泛型的实现"></a>Java泛型的实现</h3><p>提到Java的泛型一般人都会想到类型擦除(Type Erasure)机制。<br>如果你没想到，请去补一补。。。。  </p>
-<h3 id="创建泛型数组"><a href="#创建泛型数组" class="headerlink" title="创建泛型数组"></a>创建泛型数组</h3><p>Java不允许创建泛型数组 </p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Hello&lt;String&gt;[] hello = <span class="keyword">new</span> Hello&lt;String&gt;[<span class="number">12</span>];</span><br></pre></td></tr></table></figure>
-<p>这句话是编译不通过的。 </p>
-<p>答案有点让人失望的简单，因为数组必须知道里面的元素是什么。 </p>
-<p>但是这句话很误导人<br>真的不允许创建我们想要的泛型数组么，那种可以编译时检查的泛型数组。<br>答案是可以的，不过得通过一些技巧。</p>
-<p>好，那么怎么创建呢。</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@SuppressWarnings</span>(<span class="string">"unchecked"</span>)</span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;</span><br><span class="line">    List&lt;String&gt;[] lists = (List&lt;String&gt;[])<span class="keyword">new</span> ArrayList[<span class="number">12</span>];</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>这是其中之一的方法，可能有人觉得这样和  </p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;</span><br><span class="line">    List[] lists = <span class="keyword">new</span> ArrayList[<span class="number">12</span>];</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>没有区别。</p>
-<p>划重点！！！！！<br>第一种方法相对于第二种方法还是具有编译时类型检查的。  </p>
-<h3 id="泛型类中的泛型数组"><a href="#泛型类中的泛型数组" class="headerlink" title="泛型类中的泛型数组"></a>泛型类中的泛型数组</h3><p>怎么在范型类中创建泛型数组呢  </p>
-<p>其实第一来说没必要， 比如在ArrayList中维护的底层的数组是Object数组。  </p>
-<p>如果你硬是想创建，可以这样</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">T[] arr = (T[])<span class="keyword">new</span> Object[<span class="number">12</span>];</span><br></pre></td></tr></table></figure>
-<p>很多人或许觉得奇怪为什么，这不是向上转型么。   </p>
-<p>然后举出例子为什么</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">List&lt;String&gt;[] list = (List&lt;String&gt;[])<span class="keyword">new</span> Object[<span class="number">10</span>];</span><br></pre></td></tr></table></figure>
-<p>这种就不行。</p>
-<p>答案还是Java泛型实现的核心类型擦除。<br>在编译时</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">T[] arr = (T[])<span class="keyword">new</span> Object[<span class="number">12</span>];</span><br><span class="line"><span class="comment">//会变成</span></span><br><span class="line"><span class="comment">//Object[] arr = (Object[])new Object[12];</span></span><br></pre></td></tr></table></figure>
-<p>这样就是毫无问题。</p>
-<h3 id="协变，逆变"><a href="#协变，逆变" class="headerlink" title="协变，逆变"></a>协变，逆变</h3><p>协变和逆变</p>
-<p>当A是B的子类时,如果有f(A)也是f(B)的子类,那么f叫做协变；<br>当A是B的子类时,如果有f(B)是f(A)的子类,那么f叫做逆变；</p>
-<p>数组是协变的。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">public class Genetic &#123;</span><br><span class="line">    public static void main(String[] args) &#123;</span><br><span class="line">        Fruit[] fruits;</span><br><span class="line">        Apple[] apples = new Apple[10];</span><br><span class="line">        fruits = apples;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line">class Apple extends Fruit &#123;</span><br><span class="line">  </span><br><span class="line">&#125;</span><br><span class="line">class Fruit &#123;</span><br><span class="line">  </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>这段代码能编译通过。</p>
-<p>但是这一段就不行了</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Genetic</span> </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;</span><br><span class="line">        List&lt;Fruit&gt; list;</span><br><span class="line">        List&lt;Apple&gt; list1 = <span class="keyword">new</span> ArrayList&lt;&gt;();</span><br><span class="line">        list = list1;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Apple</span> <span class="keyword">extends</span> <span class="title">Fruit</span> </span>&#123;</span><br><span class="line">  </span><br><span class="line">&#125;</span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Fruit</span> </span>&#123;</span><br><span class="line">  </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>就是说List<fruit>和List<apple>没有关系。  </apple></fruit></p>
-<p>java通过通配符解决这个问题，还是上面的代码</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Genetic</span> </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;</span><br><span class="line">        List&lt;? extends Fruit&gt; list;</span><br><span class="line">        List&lt;Apple&gt; list1 = <span class="keyword">new</span> ArrayList&lt;&gt;();</span><br><span class="line">        list = list1;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Apple</span> <span class="keyword">extends</span> <span class="title">Fruit</span> </span>&#123;</span><br><span class="line">  </span><br><span class="line">&#125;</span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Fruit</span> </span>&#123;</span><br><span class="line">  </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>extends解决了协变的问题，逆变通过super解决。</p>
-<p>但是，没有那么简单。  </p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Genetic</span> </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;</span><br><span class="line">        List&lt;? extends Fruit&gt; list = <span class="keyword">new</span> ArrayList&lt;Apple&gt;();</span><br><span class="line">        <span class="comment">//这句话并不能通过编译</span></span><br><span class="line">        <span class="comment">//list.add(new Apple());</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Apple</span> <span class="keyword">extends</span> <span class="title">Fruit</span> </span>&#123;</span><br><span class="line">  </span><br><span class="line">&#125;</span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Fruit</span> </span>&#123;</span><br><span class="line">  </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>&lt;? extends Fruit&gt;不是表示里面的元素只要是Fruit的子类就行，而是加入的元素必须可以向上转型为Fruit的任意一个子类。<br>那么大概只有null可以add了。</p>
-<p>同样的&lt;? super Fruit&gt;表示里面元素可以转型为Fruid的任意一个父类。</p>
-<p>要想可以编译通过，我们可以使用super </p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Genetic</span> </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;</span><br><span class="line">        List&lt;? <span class="keyword">super</span> Fruit&gt; list = <span class="keyword">new</span> ArrayList&lt;&gt;();</span><br><span class="line">        list.add(<span class="keyword">new</span> Apple());</span><br><span class="line">        <span class="comment">//ok</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Apple</span> <span class="keyword">extends</span> <span class="title">Fruit</span> </span>&#123;</span><br><span class="line">  </span><br><span class="line">&#125;</span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Fruit</span> </span>&#123;</span><br><span class="line">  </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>那到底应该什么时候用super和extends呢。<br>Effective Java中总结了一个原则</p>
-<p><code>producer-extends, consumer-super</code></p>
-<p>看看ArrayList的源码就知道了</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">boolean</span> <span class="title">addAll</span><span class="params">(Collection&lt;? extends E&gt; c)</span> </span>&#123;</span><br><span class="line">     Object[] a = c.toArray();</span><br><span class="line">     <span class="keyword">int</span> numNew = a.length;</span><br><span class="line">     ensureCapacityInternal(size + numNew);  <span class="comment">// Increments modCount</span></span><br><span class="line">     System.arraycopy(a, <span class="number">0</span>, elementData, size, numNew);</span><br><span class="line">     size += numNew;</span><br><span class="line">     <span class="keyword">return</span> numNew != <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">forEach</span><span class="params">(Consumer&lt;? <span class="keyword">super</span> E&gt; action)</span> </span>&#123;</span><br><span class="line">    Objects.requireNonNull(action);</span><br><span class="line">    <span class="keyword">final</span> <span class="keyword">int</span> expectedModCount = modCount;</span><br><span class="line">    <span class="meta">@SuppressWarnings</span>(<span class="string">"unchecked"</span>)</span><br><span class="line">    <span class="keyword">final</span> E[] elementData = (E[]) <span class="keyword">this</span>.elementData;</span><br><span class="line">    <span class="keyword">final</span> <span class="keyword">int</span> size = <span class="keyword">this</span>.size;</span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">int</span> i=<span class="number">0</span>; modCount == expectedModCount &amp;&amp; i &lt; size; i++) &#123;</span><br><span class="line">        action.accept(elementData[i]);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (modCount != expectedModCount) &#123;</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> ConcurrentModificationException();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-      
-    </div>
-    
-    <div class="article-info article-info-index">
-      
-      
-
-      
-    <div class="article-tag tagcloud">
-        <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Java/">Java</a></li></ul>
     </div>
 
       

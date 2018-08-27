@@ -198,6 +198,110 @@
 </nav>
       <div class="body-wrap">
   
+    <article id="post-Java泛型数组" class="article article-type-post" itemscope itemprop="blogPost">
+  
+    <div class="article-meta">
+      <a href="/2017/08/09/Java泛型数组/" class="article-date">
+      <time datetime="2017-08-08T16:00:00.000Z" itemprop="datePublished">2017-08-09</time>
+</a>
+
+
+    </div>
+  
+  <div class="article-inner">
+    
+      <input type="hidden" class="isFancy" />
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/2017/08/09/Java泛型数组/">Java泛型</a>
+    </h1>
+  
+
+      </header>
+      
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+          
+        <h3 id="Java泛型的实现"><a href="#Java泛型的实现" class="headerlink" title="Java泛型的实现"></a>Java泛型的实现</h3><p>提到Java的泛型一般人都会想到类型擦除(Type Erasure)机制。<br>如果你没想到，请去补一补。。。。  </p>
+<h3 id="创建泛型数组"><a href="#创建泛型数组" class="headerlink" title="创建泛型数组"></a>创建泛型数组</h3><p>Java不允许创建泛型数组 </p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Hello&lt;String&gt;[] hello = <span class="keyword">new</span> Hello&lt;String&gt;[<span class="number">12</span>];</span><br></pre></td></tr></table></figure>
+<p>这句话是编译不通过的。 </p>
+<p>答案有点让人失望的简单，因为数组必须知道里面的元素是什么。 </p>
+<p>但是这句话很误导人<br>真的不允许创建我们想要的泛型数组么，那种可以编译时检查的泛型数组。<br>答案是可以的，不过得通过一些技巧。</p>
+<p>好，那么怎么创建呢。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@SuppressWarnings</span>(<span class="string">"unchecked"</span>)</span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;</span><br><span class="line">    List&lt;String&gt;[] lists = (List&lt;String&gt;[])<span class="keyword">new</span> ArrayList[<span class="number">12</span>];</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这是其中之一的方法，可能有人觉得这样和  </p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;</span><br><span class="line">    List[] lists = <span class="keyword">new</span> ArrayList[<span class="number">12</span>];</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>没有区别。</p>
+<p>划重点！！！！！<br>第一种方法相对于第二种方法还是具有编译时类型检查的。  </p>
+<h3 id="泛型类中的泛型数组"><a href="#泛型类中的泛型数组" class="headerlink" title="泛型类中的泛型数组"></a>泛型类中的泛型数组</h3><p>怎么在范型类中创建泛型数组呢  </p>
+<p>其实第一来说没必要， 比如在ArrayList中维护的底层的数组是Object数组。  </p>
+<p>如果你硬是想创建，可以这样</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">T[] arr = (T[])<span class="keyword">new</span> Object[<span class="number">12</span>];</span><br></pre></td></tr></table></figure>
+<p>很多人或许觉得奇怪为什么，这不是向上转型么。   </p>
+<p>然后举出例子为什么</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">List&lt;String&gt;[] list = (List&lt;String&gt;[])<span class="keyword">new</span> Object[<span class="number">10</span>];</span><br></pre></td></tr></table></figure>
+<p>这种就不行。</p>
+<p>答案还是Java泛型实现的核心类型擦除。<br>在编译时</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">T[] arr = (T[])<span class="keyword">new</span> Object[<span class="number">12</span>];</span><br><span class="line"><span class="comment">//会变成</span></span><br><span class="line"><span class="comment">//Object[] arr = (Object[])new Object[12];</span></span><br></pre></td></tr></table></figure>
+<p>这样就是毫无问题。</p>
+<h3 id="协变，逆变"><a href="#协变，逆变" class="headerlink" title="协变，逆变"></a>协变，逆变</h3><p>协变和逆变</p>
+<p>当A是B的子类时,如果有f(A)也是f(B)的子类,那么f叫做协变；<br>当A是B的子类时,如果有f(B)是f(A)的子类,那么f叫做逆变；</p>
+<p>数组是协变的。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">public class Genetic &#123;</span><br><span class="line">    public static void main(String[] args) &#123;</span><br><span class="line">        Fruit[] fruits;</span><br><span class="line">        Apple[] apples = new Apple[10];</span><br><span class="line">        fruits = apples;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line">class Apple extends Fruit &#123;</span><br><span class="line">  </span><br><span class="line">&#125;</span><br><span class="line">class Fruit &#123;</span><br><span class="line">  </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这段代码能编译通过。</p>
+<p>但是这一段就不行了</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Genetic</span> </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;</span><br><span class="line">        List&lt;Fruit&gt; list;</span><br><span class="line">        List&lt;Apple&gt; list1 = <span class="keyword">new</span> ArrayList&lt;&gt;();</span><br><span class="line">        list = list1;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Apple</span> <span class="keyword">extends</span> <span class="title">Fruit</span> </span>&#123;</span><br><span class="line">  </span><br><span class="line">&#125;</span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Fruit</span> </span>&#123;</span><br><span class="line">  </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>就是说List<fruit>和List<apple>没有关系。  </apple></fruit></p>
+<p>java通过通配符解决这个问题，还是上面的代码</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Genetic</span> </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;</span><br><span class="line">        List&lt;? extends Fruit&gt; list;</span><br><span class="line">        List&lt;Apple&gt; list1 = <span class="keyword">new</span> ArrayList&lt;&gt;();</span><br><span class="line">        list = list1;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Apple</span> <span class="keyword">extends</span> <span class="title">Fruit</span> </span>&#123;</span><br><span class="line">  </span><br><span class="line">&#125;</span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Fruit</span> </span>&#123;</span><br><span class="line">  </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>extends解决了协变的问题，逆变通过super解决。</p>
+<p>但是，没有那么简单。  </p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Genetic</span> </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;</span><br><span class="line">        List&lt;? extends Fruit&gt; list = <span class="keyword">new</span> ArrayList&lt;Apple&gt;();</span><br><span class="line">        <span class="comment">//这句话并不能通过编译</span></span><br><span class="line">        <span class="comment">//list.add(new Apple());</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Apple</span> <span class="keyword">extends</span> <span class="title">Fruit</span> </span>&#123;</span><br><span class="line">  </span><br><span class="line">&#125;</span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Fruit</span> </span>&#123;</span><br><span class="line">  </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>&lt;? extends Fruit&gt;不是表示里面的元素只要是Fruit的子类就行，而是加入的元素必须可以向上转型为Fruit的任意一个子类。<br>那么大概只有null可以add了。</p>
+<p>同样的&lt;? super Fruit&gt;表示里面元素可以转型为Fruid的任意一个父类。</p>
+<p>要想可以编译通过，我们可以使用super </p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Genetic</span> </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;</span><br><span class="line">        List&lt;? <span class="keyword">super</span> Fruit&gt; list = <span class="keyword">new</span> ArrayList&lt;&gt;();</span><br><span class="line">        list.add(<span class="keyword">new</span> Apple());</span><br><span class="line">        <span class="comment">//ok</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Apple</span> <span class="keyword">extends</span> <span class="title">Fruit</span> </span>&#123;</span><br><span class="line">  </span><br><span class="line">&#125;</span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Fruit</span> </span>&#123;</span><br><span class="line">  </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>那到底应该什么时候用super和extends呢。<br>Effective Java中总结了一个原则</p>
+<p><code>producer-extends, consumer-super</code></p>
+<p>看看ArrayList的源码就知道了</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">boolean</span> <span class="title">addAll</span><span class="params">(Collection&lt;? extends E&gt; c)</span> </span>&#123;</span><br><span class="line">     Object[] a = c.toArray();</span><br><span class="line">     <span class="keyword">int</span> numNew = a.length;</span><br><span class="line">     ensureCapacityInternal(size + numNew);  <span class="comment">// Increments modCount</span></span><br><span class="line">     System.arraycopy(a, <span class="number">0</span>, elementData, size, numNew);</span><br><span class="line">     size += numNew;</span><br><span class="line">     <span class="keyword">return</span> numNew != <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">forEach</span><span class="params">(Consumer&lt;? <span class="keyword">super</span> E&gt; action)</span> </span>&#123;</span><br><span class="line">    Objects.requireNonNull(action);</span><br><span class="line">    <span class="keyword">final</span> <span class="keyword">int</span> expectedModCount = modCount;</span><br><span class="line">    <span class="meta">@SuppressWarnings</span>(<span class="string">"unchecked"</span>)</span><br><span class="line">    <span class="keyword">final</span> E[] elementData = (E[]) <span class="keyword">this</span>.elementData;</span><br><span class="line">    <span class="keyword">final</span> <span class="keyword">int</span> size = <span class="keyword">this</span>.size;</span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">int</span> i=<span class="number">0</span>; modCount == expectedModCount &amp;&amp; i &lt; size; i++) &#123;</span><br><span class="line">        action.accept(elementData[i]);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (modCount != expectedModCount) &#123;</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> ConcurrentModificationException();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+      
+    </div>
+    
+    <div class="article-info article-info-index">
+      
+      
+
+      
+    <div class="article-tag tagcloud">
+        <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Java/">Java</a></li></ul>
+    </div>
+
+      
+      <div class="clearfix"></div>
+    </div>
+    
+  </div>
+  
+</article>
+
+
+
+
+
+
+
+
+
+  
     <article id="post-Java内部类" class="article article-type-post" itemscope itemprop="blogPost">
   
     <div class="article-meta">
@@ -424,86 +528,6 @@
 
 
   
-    <article id="post-PathVariable及route设计" class="article article-type-post" itemscope itemprop="blogPost">
-  
-    <div class="article-meta">
-      <a href="/2017/07/21/PathVariable及route设计/" class="article-date">
-      <time datetime="2017-07-20T16:00:00.000Z" itemprop="datePublished">2017-07-21</time>
-</a>
-
-
-    </div>
-  
-  <div class="article-inner">
-    
-      <input type="hidden" class="isFancy" />
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/2017/07/21/PathVariable及route设计/">PathVariable及路由设计</a>
-    </h1>
-  
-
-      </header>
-      
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-          
-        <h3 id="项目源码"><a href="#项目源码" class="headerlink" title="项目源码"></a><a href="https://github.com/zhyzhyzhy/NoName/tree/master/src/main/java/com/noname/web/route" target="_blank" rel="noopener">项目源码</a></h3><h4 id="PathVariable"><a href="#PathVariable" class="headerlink" title="@PathVariable"></a><code>@PathVariable</code></h4><p>在web后端框架中，路由设计是很重要的一步。<br>各个框架对接口设计的支持大多差不多，其中必然有</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">@GET(&quot;/users/&#123;id&#125;/&quot;)   </span><br><span class="line">@GET(&quot;/users/:id/&quot;)</span><br></pre></td></tr></table></figure>
-<p>这样的标准。</p>
-<p>其中<code>{id}</code>和<code>:id</code>表示是一个不确定的值，这个随着<code>rustful</code>的兴起也变得常用起来<br>比如我想要查看<code>id = 1</code>的用户的信息，那么我的请求便是<code>/users/1</code><br>如果查看<code>id = 321</code>的用户信息，请求的便是<code>/users/321</code>。</p>
-<p>那么这个id便是一个不确定量。  </p>
-<p>于是对于这个方法而言这个id值便是参数，在我们调用时需要传进去。  </p>
-<p>在<code>Spring MVC</code>中，完整的方法是这样 </p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@GetMapping</span>(<span class="string">"/employer/&#123;phoneNumber&#125;"</span>)  </span><br><span class="line"><span class="keyword">public</span> ResponseEntity&lt;?&gt; findByPhoneNumber(<span class="meta">@PathVariable</span> String phoneNumber) &#123;  </span><br><span class="line">  </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>所以这就要求我们在设计框架时还需要利用反射把请求的uri的特定路径值作为参数传进方法中。</p>
-<h4 id="route设计"><a href="#route设计" class="headerlink" title="route设计"></a>route设计</h4><p>正常我们进行反射调用时，像这样</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">method().invoke(object(), paramters());</span><br></pre></td></tr></table></figure>
-<p>首先<code>route</code>中需要有这个对应的<code>Method</code>，其次对应的对象也应该在其中，然后是参数。  </p>
-<p>于是我设计为</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Route</span> </span>&#123;</span><br><span class="line">	<span class="comment">//对应的uri</span></span><br><span class="line">	<span class="keyword">private</span> String path;</span><br><span class="line">	<span class="comment">//method所在的对象</span></span><br><span class="line">	<span class="keyword">private</span> Object object;</span><br><span class="line">	<span class="comment">//对应的路由method</span></span><br><span class="line">	<span class="keyword">private</span> Method method;</span><br><span class="line">	<span class="comment">//对应的方法，比如GET，POST等</span></span><br><span class="line">	<span class="keyword">private</span> HttpMethod httpMethod;</span><br><span class="line">	<span class="comment">//对应的参数</span></span><br><span class="line">	<span class="keyword">private</span> Object[] paramters;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<h4 id="路由匹配"><a href="#路由匹配" class="headerlink" title="路由匹配"></a>路由匹配</h4><p>那么问题来了，对于不同的uri，我们应该怎么匹配路由呢。</p>
-<p>我想到的是用正则<br>设计一个这样的Map</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Map&lt;Pattern, Route&gt; routeMap = <span class="keyword">new</span> HashMap&lt;&gt;();</span><br></pre></td></tr></table></figure>
-<p>对于<code>/users/{id}/</code>这样的字符串，我们需要产生一个<code>pattern</code>出来。  </p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//根据参数进行正则替换</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> Pattern <span class="title">pathCompiler</span><span class="params">(String path, Method method)</span> </span>&#123;</span><br><span class="line">    Parameter[] parameters = method.getParameters();</span><br><span class="line">    <span class="keyword">for</span> (Parameter parameter : parameters) &#123;</span><br><span class="line">        <span class="keyword">if</span> (parameter.getAnnotations() == <span class="keyword">null</span>) &#123;</span><br><span class="line">            <span class="keyword">continue</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        Annotation annotation = parameter.getAnnotations()[<span class="number">0</span>];</span><br><span class="line">        <span class="keyword">if</span> (annotation <span class="keyword">instanceof</span> PathVariable) &#123;</span><br><span class="line">            <span class="comment">//如果是字符串</span></span><br><span class="line">            <span class="keyword">if</span> (parameter.getType() == String.class) &#123;</span><br><span class="line">                path = path.replace(<span class="string">"&#123;"</span> + parameter.getName()+<span class="string">"&#125;"</span>,<span class="string">"[0-9\\d\\D]*"</span>);</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="comment">//如果是数字</span></span><br><span class="line">            <span class="keyword">else</span> <span class="keyword">if</span> (parameter.getType() == Integer.class</span><br><span class="line">                    || parameter.getType() == Long.class) &#123;</span><br><span class="line">  </span><br><span class="line">                path = path.replace(<span class="string">"&#123;"</span> + parameter.getName()+<span class="string">"&#125;"</span>,<span class="string">"[0-9]*"</span>);</span><br><span class="line">            &#125;</span><br><span class="line">  </span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> Pattern.compile(path);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>键为<code>url</code>的<code>Pattern</code>，那么在匹配时只要遍历一下</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//保存着所有的路由</span></span><br><span class="line">Map&lt;Pattern, Route&gt; routeMap = <span class="keyword">new</span> HashMap&lt;&gt;();</span><br><span class="line">  </span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> Route <span class="title">findRoute</span><span class="params">(String path, HttpMethod method)</span> </span>&#123;</span><br><span class="line">	<span class="keyword">for</span> (Pattern pattern : routeMap.keySet()) &#123;</span><br><span class="line">		<span class="keyword">if</span> (pattern.matcher(path).matches()) &#123;</span><br><span class="line">			<span class="keyword">if</span> (routeMap.get(pattern).getHttpMethod().equals(method)) &#123;</span><br><span class="line">				<span class="comment">/* 进行参数的赋值 *／</span></span><br><span class="line"><span class="comment">				return routeMap.get(pattern);</span></span><br><span class="line"><span class="comment">			&#125;</span></span><br><span class="line"><span class="comment">		&#125;</span></span><br><span class="line"><span class="comment">	&#125;</span></span><br><span class="line"><span class="comment">	return null;</span></span><br><span class="line"><span class="comment">&#125;</span></span><br></pre></td></tr></table></figure>
-
-      
-    </div>
-    
-    <div class="article-info article-info-index">
-      
-      
-
-      
-    <div class="article-tag tagcloud">
-        <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Web/">Web</a></li></ul>
-    </div>
-
-      
-      <div class="clearfix"></div>
-    </div>
-    
-  </div>
-  
-</article>
-
-
-
-
-
-
-
-
-
-  
     <article id="post-HashMap源码解析" class="article article-type-post" itemscope itemprop="blogPost">
   
     <div class="article-meta">
@@ -566,6 +590,86 @@
       
     <div class="article-tag tagcloud">
         <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Java/">Java</a></li></ul>
+    </div>
+
+      
+      <div class="clearfix"></div>
+    </div>
+    
+  </div>
+  
+</article>
+
+
+
+
+
+
+
+
+
+  
+    <article id="post-PathVariable及route设计" class="article article-type-post" itemscope itemprop="blogPost">
+  
+    <div class="article-meta">
+      <a href="/2017/07/21/PathVariable及route设计/" class="article-date">
+      <time datetime="2017-07-20T16:00:00.000Z" itemprop="datePublished">2017-07-21</time>
+</a>
+
+
+    </div>
+  
+  <div class="article-inner">
+    
+      <input type="hidden" class="isFancy" />
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/2017/07/21/PathVariable及route设计/">PathVariable及路由设计</a>
+    </h1>
+  
+
+      </header>
+      
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+          
+        <h3 id="项目源码"><a href="#项目源码" class="headerlink" title="项目源码"></a><a href="https://github.com/zhyzhyzhy/NoName/tree/master/src/main/java/com/noname/web/route" target="_blank" rel="noopener">项目源码</a></h3><h4 id="PathVariable"><a href="#PathVariable" class="headerlink" title="@PathVariable"></a><code>@PathVariable</code></h4><p>在web后端框架中，路由设计是很重要的一步。<br>各个框架对接口设计的支持大多差不多，其中必然有</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">@GET(&quot;/users/&#123;id&#125;/&quot;)   </span><br><span class="line">@GET(&quot;/users/:id/&quot;)</span><br></pre></td></tr></table></figure>
+<p>这样的标准。</p>
+<p>其中<code>{id}</code>和<code>:id</code>表示是一个不确定的值，这个随着<code>rustful</code>的兴起也变得常用起来<br>比如我想要查看<code>id = 1</code>的用户的信息，那么我的请求便是<code>/users/1</code><br>如果查看<code>id = 321</code>的用户信息，请求的便是<code>/users/321</code>。</p>
+<p>那么这个id便是一个不确定量。  </p>
+<p>于是对于这个方法而言这个id值便是参数，在我们调用时需要传进去。  </p>
+<p>在<code>Spring MVC</code>中，完整的方法是这样 </p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@GetMapping</span>(<span class="string">"/employer/&#123;phoneNumber&#125;"</span>)  </span><br><span class="line"><span class="keyword">public</span> ResponseEntity&lt;?&gt; findByPhoneNumber(<span class="meta">@PathVariable</span> String phoneNumber) &#123;  </span><br><span class="line">  </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>所以这就要求我们在设计框架时还需要利用反射把请求的uri的特定路径值作为参数传进方法中。</p>
+<h4 id="route设计"><a href="#route设计" class="headerlink" title="route设计"></a>route设计</h4><p>正常我们进行反射调用时，像这样</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">method().invoke(object(), paramters());</span><br></pre></td></tr></table></figure>
+<p>首先<code>route</code>中需要有这个对应的<code>Method</code>，其次对应的对象也应该在其中，然后是参数。  </p>
+<p>于是我设计为</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Route</span> </span>&#123;</span><br><span class="line">	<span class="comment">//对应的uri</span></span><br><span class="line">	<span class="keyword">private</span> String path;</span><br><span class="line">	<span class="comment">//method所在的对象</span></span><br><span class="line">	<span class="keyword">private</span> Object object;</span><br><span class="line">	<span class="comment">//对应的路由method</span></span><br><span class="line">	<span class="keyword">private</span> Method method;</span><br><span class="line">	<span class="comment">//对应的方法，比如GET，POST等</span></span><br><span class="line">	<span class="keyword">private</span> HttpMethod httpMethod;</span><br><span class="line">	<span class="comment">//对应的参数</span></span><br><span class="line">	<span class="keyword">private</span> Object[] paramters;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h4 id="路由匹配"><a href="#路由匹配" class="headerlink" title="路由匹配"></a>路由匹配</h4><p>那么问题来了，对于不同的uri，我们应该怎么匹配路由呢。</p>
+<p>我想到的是用正则<br>设计一个这样的Map</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Map&lt;Pattern, Route&gt; routeMap = <span class="keyword">new</span> HashMap&lt;&gt;();</span><br></pre></td></tr></table></figure>
+<p>对于<code>/users/{id}/</code>这样的字符串，我们需要产生一个<code>pattern</code>出来。  </p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//根据参数进行正则替换</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> Pattern <span class="title">pathCompiler</span><span class="params">(String path, Method method)</span> </span>&#123;</span><br><span class="line">    Parameter[] parameters = method.getParameters();</span><br><span class="line">    <span class="keyword">for</span> (Parameter parameter : parameters) &#123;</span><br><span class="line">        <span class="keyword">if</span> (parameter.getAnnotations() == <span class="keyword">null</span>) &#123;</span><br><span class="line">            <span class="keyword">continue</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        Annotation annotation = parameter.getAnnotations()[<span class="number">0</span>];</span><br><span class="line">        <span class="keyword">if</span> (annotation <span class="keyword">instanceof</span> PathVariable) &#123;</span><br><span class="line">            <span class="comment">//如果是字符串</span></span><br><span class="line">            <span class="keyword">if</span> (parameter.getType() == String.class) &#123;</span><br><span class="line">                path = path.replace(<span class="string">"&#123;"</span> + parameter.getName()+<span class="string">"&#125;"</span>,<span class="string">"[0-9\\d\\D]*"</span>);</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="comment">//如果是数字</span></span><br><span class="line">            <span class="keyword">else</span> <span class="keyword">if</span> (parameter.getType() == Integer.class</span><br><span class="line">                    || parameter.getType() == Long.class) &#123;</span><br><span class="line">  </span><br><span class="line">                path = path.replace(<span class="string">"&#123;"</span> + parameter.getName()+<span class="string">"&#125;"</span>,<span class="string">"[0-9]*"</span>);</span><br><span class="line">            &#125;</span><br><span class="line">  </span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> Pattern.compile(path);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>键为<code>url</code>的<code>Pattern</code>，那么在匹配时只要遍历一下</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//保存着所有的路由</span></span><br><span class="line">Map&lt;Pattern, Route&gt; routeMap = <span class="keyword">new</span> HashMap&lt;&gt;();</span><br><span class="line">  </span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> Route <span class="title">findRoute</span><span class="params">(String path, HttpMethod method)</span> </span>&#123;</span><br><span class="line">	<span class="keyword">for</span> (Pattern pattern : routeMap.keySet()) &#123;</span><br><span class="line">		<span class="keyword">if</span> (pattern.matcher(path).matches()) &#123;</span><br><span class="line">			<span class="keyword">if</span> (routeMap.get(pattern).getHttpMethod().equals(method)) &#123;</span><br><span class="line">				<span class="comment">/* 进行参数的赋值 *／</span></span><br><span class="line"><span class="comment">				return routeMap.get(pattern);</span></span><br><span class="line"><span class="comment">			&#125;</span></span><br><span class="line"><span class="comment">		&#125;</span></span><br><span class="line"><span class="comment">	&#125;</span></span><br><span class="line"><span class="comment">	return null;</span></span><br><span class="line"><span class="comment">&#125;</span></span><br></pre></td></tr></table></figure>
+
+      
+    </div>
+    
+    <div class="article-info article-info-index">
+      
+      
+
+      
+    <div class="article-tag tagcloud">
+        <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Web/">Web</a></li></ul>
     </div>
 
       
