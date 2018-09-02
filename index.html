@@ -543,7 +543,7 @@
 <li>在<code>ExchangeOperator</code>进行<code>pollPage</code>时</li>
 </ul>
 <p>其中保证第三个条件是最重要的。</p>
-<h2 id="OutputBuffer"><a href="#OutputBuffer" class="headerlink" title="OutputBuffer"></a>OutputBuffer</h2><p><img src="/images/presto-exchangeClient/SqlTask.png" alt=""></p>
+<h2 id="OutputBuffer"><a href="#OutputBuffer" class="headerlink" title="OutputBuffer"></a>OutputBuffer</h2><p><img src="/images/presto-exchangeclient/SqlTask.png" alt=""></p>
 <p>大体的创建流程如上。</p>
 <h3 id="TaskResource"><a href="#TaskResource" class="headerlink" title="TaskResource"></a>TaskResource</h3><p>一般来说创建Task和更新Task的信息的接口都是<code>/v1/task/{TaskId}</code>。<br>所以<code>Presto</code>使用了一个<code>Guava Cache</code>来进行<code>SqlTask</code>的<code>cache</code>，当是第一次来的时候，会自动创建一个新的<code>SqlTask</code>，而当是进行<code>update</code>的时候，就从<code>cache</code>中拿出来之前创建的。</p>
 <h3 id="LazyOutputBuffer"><a href="#LazyOutputBuffer" class="headerlink" title="LazyOutputBuffer"></a>LazyOutputBuffer</h3><p>当一个请求过来的时候，会从Cache中拿出对应的SqlTask，创建LazyOutputBuffer，这个OutputBuffer只是对外的一个封装，里面还包含了一个类别不同的OutputBuffer。</p>
@@ -553,7 +553,7 @@
 <h3 id="token机制"><a href="#token机制" class="headerlink" title="token机制"></a>token机制</h3><p><code>Presto</code>的数据传输怎么保证可靠性呢？<br><code>Page</code>什么时候会从下游的<code>OutputBuffer</code>中<code>Remove</code>呢？<br>这个就需要了解一下<code>Presto</code>拿数据时的<code>Token</code>机制。<br>我们查看下游去上游的<code>Stage</code>拿数据的接口是<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">@GET</span><br><span class="line">@Path(&quot;&#123;taskId&#125;/results/&#123;bufferId&#125;/&#123;token&#125;&quot;)</span><br></pre></td></tr></table></figure></p>
 <p>这里的<code>TaskId</code>很好理解，<code>bufferId</code>就是下游的<code>Task</code>的<code>Id</code>，也就是标记下游的哪个<code>Task</code>来拿的数据，那么这个<code>Token</code>是怎么回事呢？</p>
 <p>我们想象纯粹的没有<code>token</code>这个参数。<br>来一次请求，从<code>Buffer</code>中取出一部分数据回送回去，然后把这部分<code>Page</code>进行<code>Remove</code>。<br>那么问题来了，如果对方接收失败了这部分数据呢？<br>最终问题就是，你怎么知道对方已经拿到了多少数据？<br>要是接收失败，你怎么处理这种失败的情况。</p>
-<p>解答是<code>Presto</code>模拟了<code>Tcp</code>中的<code>Seq</code>和<code>Ack</code>机制。<br>但是因为只有上游需要把数据传送给下游，所以是半双工的。<br><img src="/images/presto-exchangeClient/token.png" alt=""></p>
+<p>解答是<code>Presto</code>模拟了<code>Tcp</code>中的<code>Seq</code>和<code>Ack</code>机制。<br>但是因为只有上游需要把数据传送给下游，所以是半双工的。<br><img src="/images/presto-exchangeclient/token.png" alt=""></p>
 <p>首先下游请求数据的时候，会带上Token，也就是Start，然后还会标记你最多给我多少数据，对应图中的就是MaxSize，其中每个Buffer会有一个叫curSeq的游标。</p>
 <p>假设第一次来的时候，上游的队列中有很多Page，前三个大小分别是8，2，6。因为start = 0，也就是从0开始，MaxSize = 12。所以上游会回送前两个Page给下游，同时回送一个NextStart = 2，告诉下游下一次的数据从什么地方开始请求。</p>
 <p>第二次请求，start就是上一次上游回送的2，<code>maxSize</code>依然是12。这时候请求发过来时，上游会把前2个<code>Page</code>给<code>Remove</code>掉。然后把下两个<code>Page</code>回送回去，同时标记下一个从4开始。</p>
@@ -564,8 +564,8 @@
 <p>同样的，也是有一个配置标记一个Task的Buffer最大能存多少。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">OutputBufferMemoryManager</span></span></span><br><span class="line"><span class="class"></span>&#123;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">final</span> <span class="keyword">long</span> maxBufferedBytes;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
 <p>这个类，每一个<code>BroadcastOutputBuffer</code>或者<code>PartitionedOutputBuffer</code>都会含有一个，用来监控当前已经的<code>buffer</code>的大小。</p>
 <p>如果我们简单的想一想其实监控已经很简单，每来一个<code>Page</code>，把大小加进去，每出一个<code>Page</code>把大小减去，如果当前攒着的大小超过了阈值，那么就返回<code>Blocked</code>，把整个<code>Driver</code>给<code>Block</code>掉，不去执行了。</p>
-<p>这种想法其实没错，实现起来也不是很难，足以应付<code>partition</code>的情形，因为每一个<code>Page</code>进来，只会分到<strong>指定</strong>的<strong>一个</strong><code>ClientBuffer</code>中，移除的时候直接减去就行了。<br><img src="/images/presto-exchangeClient/partition.png" alt=""></p>
-<p>但是如果是<code>broadcast</code>情形呢。<br>每个<code>ClientBuffer</code>中其实都有一个<code>Page</code>的引用，只有当所有的下游<code>Task</code>把对应的<code>ClientBuffer</code>里面的<code>Page</code>取走了才能把大小给减去，那么你怎么知道已经被所有的<code>Task</code>取走了呢？<br><img src="/images/presto-exchangeClient/broadcast.png" alt=""></p>
+<p>这种想法其实没错，实现起来也不是很难，足以应付<code>partition</code>的情形，因为每一个<code>Page</code>进来，只会分到<strong>指定</strong>的<strong>一个</strong><code>ClientBuffer</code>中，移除的时候直接减去就行了。<br><img src="/images/presto-exchangeclient/partition.png" alt=""></p>
+<p>但是如果是<code>broadcast</code>情形呢。<br>每个<code>ClientBuffer</code>中其实都有一个<code>Page</code>的引用，只有当所有的下游<code>Task</code>把对应的<code>ClientBuffer</code>里面的<code>Page</code>取走了才能把大小给减去，那么你怎么知道已经被所有的<code>Task</code>取走了呢？<br><img src="/images/presto-exchangeclient/broadcast.png" alt=""></p>
 <p>如果我们看代码，其实<code>Presto</code>并没有直接把<code>Page</code>放进<code>Buffer</code>中，而是包装了一个<code>PageReference</code>类，传递进去原先的<code>Page</code>和一个回调，这个回调就是把当前的<code>BufferSize</code>减去<code>CurPageSize</code>。<br>再进去看发现这是个引用计数的实现，每<code>add</code>到<code>Buffer</code>中一次，计数就加一，每从<code>buffer</code>中移除一次，计数就减一，当为0的时候，就调用回调把<code>size</code>减去。<br>这真的是很精妙了。</p>
 
       
