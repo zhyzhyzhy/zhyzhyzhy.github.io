@@ -242,7 +242,7 @@
 <p>好吧，有点崩溃。</p>
 <p>我开个热点，连自己热点看看，<br>然后奇迹出现了，时间变成了300ms，变正常了。</p>
 <p>肯定就是中间的网哪儿的问题啊。</p>
-<p>5s的时间，也不短，我索性把线程全部dump出来，看看main线程block在哪儿了。<br><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">$</span> jstack -l `jps | grep Test | awk -F' ' '&#123;print $1&#125;'`</span><br></pre></td></tr></table></figure></p>
+<p>5s的时间，也不短，我索性把线程全部dump出来，看看main线程block在哪儿了。<br><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">$</span><span class="bash"> jstack -l `jps | grep Test | awk -F<span class="string">' '</span> <span class="string">'&#123;print $1&#125;'</span>`</span></span><br></pre></td></tr></table></figure></p>
 <p>多试了几次，发现了关键。<br><img src="/images/netty-connect/2.png" alt=""><br>发现都是在<code>java.net.Inet6AddressImpl.lookupAllHostAddr</code>这个方法里。</p>
 <p>去谷歌一搜，似乎真的发现了几个issue。</p>
 <p><a href="https://github.com/netty/netty/issues/6454" target="_blank" rel="noopener">Netty Issue</a></p>

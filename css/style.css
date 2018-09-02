@@ -121,7 +121,7 @@ html {
   font-size: 16px;
 }
 body {
-  font-family: "Lucida Grande", Verdana, "Helvetica Neue", Arial, "Microsoft YaHei", "PingFang SC", "Hiragino Sans GB", "WenQuanYi Micro Hei", sans-serif;
+  font-family: fira-code, "Lucida Grande", Verdana, "Helvetica Neue", Arial, "Microsoft YaHei", "PingFang SC", "Hiragino Sans GB", "WenQuanYi Micro Hei", sans-serif;
   background: #fff;
   text-rendering: optimizeLegibility;
   -moz-osx-font-smoothing: grayscale;
