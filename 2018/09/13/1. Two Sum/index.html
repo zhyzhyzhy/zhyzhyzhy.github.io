@@ -17,12 +17,12 @@
 
 
 
-  <meta name="description" content="使用AuthenticationProvider进行自定义登陆配置"/>
+  <meta name="description" content="1.Two_Sum"/>
 
 
 
 
-  <meta name="keywords" content="Spring, LoveZhy" />
+  <meta name="keywords" content="LeetCode, LoveZhy" />
 
 
 
@@ -42,7 +42,7 @@
 
 
 
-<link rel="canonical" href="http://zhyzhyzhy.github.io/2017/05/28/use_AuthenticationProvider_in_springSec/"/>
+<link rel="canonical" href="http://zhyzhyzhy.github.io/2018/09/13/1. Two Sum/"/>
 
 
 
@@ -107,7 +107,7 @@
   window.config = {"title":"LoveZhy","subtitle":null,"description":null,"author":"zhy","language":"zh-cn","timezone":null,"url":"http://zhyzhyzhy.github.io","root":"/","permalink":":year/:month/:day/:title/","permalink_defaults":null,"source_dir":"source","public_dir":"public","tag_dir":"tags","archive_dir":"archives","category_dir":"categories","code_dir":"downloads/code","i18n_dir":":lang","skip_render":null,"new_post_name":":title.md","default_layout":"post","titlecase":false,"external_link":true,"filename_case":0,"render_drafts":false,"post_asset_folder":false,"relative_link":false,"future":true,"highlight":{"enable":true,"auto_detect":false,"line_number":true,"tab_replace":null,"first_line_number":"always1"},"default_category":"uncategorized","category_map":null,"tag_map":null,"date_format":"YYYY-MM-DD","time_format":"HH:mm:ss","per_page":20,"pagination_dir":"page","theme":"even","deploy":{"type":"git","repo":"git@github.com:zhyzhyzhy/zhyzhyzhy.github.io.git","branch":"master"},"ignore":[],"archive_generator":{"per_page":20,"yearly":true,"monthly":true,"daily":false},"category_generator":{"per_page":20},"index_generator":{"per_page":20,"order_by":"-date"},"tag_generator":{"per_page":20},"marked":{"gfm":true,"pedantic":false,"sanitize":false,"tables":true,"breaks":true,"smartLists":true,"smartypants":true},"search":{"path":"search.json","source":"all","trim_html":false},"server":{"port":4000,"log":false,"ip":"0.0.0.0","compress":false,"header":true},"since":2017,"favicon":"/favicon.ico","rss":"default","menu":{"Home":"/","Archives":"/archives/","Tags":"/tags","Categories":"/categories","About":"/about"},"color":"default","mode":"default","toc":true,"fancybox":true,"pjax":true,"copyright":{"enable":true,"license":"<a rel=\"license\" href=\"http://creativecommons.org/licenses/by-nc/4.0/\" target=\"_blank\">知识共享署名-非商业性使用 4.0 国际许可协议</a>"},"reward":{"enable":false,"qrCode":{"wechat":null,"alipay":null}},"social":{"email":"zhuyichen1017@gmail.com","stack-overflow":null,"twitter":null,"facebook":null,"linkedin":null,"google":null,"github":"https://github.com/zhyzhyzhy","weibo":null,"zhihu":null,"douban":null,"pocket":null,"tumblr":null,"instagram":null},"leancloud":{"app_id":"Se9GVxIWTSOqDfTXagV7K6GX-gzGzoHsz","app_key":"QpiluJ0yCMV3lCA2becpi9At"},"baidu_analytics":null,"baidu_verification":null,"google_analytics":"UA-125642214-1","google_verification":null,"disqus_shortname":"blog-lovezhy-cc-1","changyan":{"appid":null,"appkey":null},"livere_datauid":null,"version":"2.10.1"};
 </script>
 
-    <title> 使用AuthenticationProvider进行自定义登陆配置 - LoveZhy </title>
+    <title> 1.Two_Sum - LoveZhy </title>
   </head>
 
   <body><div id="mobile-navbar" class="mobile-navbar">
@@ -241,19 +241,25 @@
     <header class="post-header">
       <h1 class="post-title">
         
-          使用AuthenticationProvider进行自定义登陆配置
+          1.Two_Sum
         
       </h1>
 
       <div class="post-meta">
         <span class="post-time">
-          2017-05-28
+          2018-09-13
         </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/LeetCode/">LeetCode</a>
+            
+          </span>
         
         
         <span class="post-visits"
-             data-url="/2017/05/28/use_AuthenticationProvider_in_springSec/"
-             data-title="使用AuthenticationProvider进行自定义登陆配置">
+             data-url="/2018/09/13/1. Two Sum/"
+             data-title="1.Two_Sum">
           阅读次数 0
         </span>
         
@@ -266,23 +272,14 @@
 
     <div class="post-content">
       
-        <p>我们在使用<code>spring sec</code>的时候，一般会继承<code>WebSecurityConfigurerAdapter</code>类<br>然后选择覆盖<br><code>protected void configure(AuthenticationManagerBuilder auth)</code><br><code>protected void configure(HttpSecurity http)</code>方法</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="function"><span class="keyword">protected</span> <span class="keyword">void</span> <span class="title">configure</span><span class="params">(AuthenticationManagerBuilder auth)</span> <span class="keyword">throws</span> Exception </span>&#123;</span><br><span class="line">    auth.userDetailsService(studentService).passwordEncoder(encoder);</span><br><span class="line">    auth.userDetailsService(teacherService).passwordEncoder(encoder);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="function"><span class="keyword">protected</span> <span class="keyword">void</span> <span class="title">configure</span><span class="params">(HttpSecurity http)</span> <span class="keyword">throws</span> Exception </span>&#123;</span><br><span class="line">    http.csrf().disable()</span><br><span class="line">        .authorizeRequests()</span><br><span class="line">        .antMatchers(<span class="string">"/**"</span>).authenticated()</span><br><span class="line">        .and()</span><br><span class="line">        .formLogin().loginPage(<span class="string">"/login"</span>).permitAll();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>一般而言登录的数据我们在<code>protected void configure(AuthenticationManagerBuilder auth)</code>中，我们在<code>studentService</code>中配置一个</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> UserDetails <span class="title">loadUserByUsername</span><span class="params">(String username)</span> <span class="keyword">throws</span> UsernameNotFoundException </span>&#123;</span><br><span class="line">    Student student = studentRepository.findByStudentId(username)</span><br><span class="line">                                       .orElseThrow(() -&gt; <span class="keyword">new</span> UsernameNotFoundException(<span class="string">"Not found: "</span> + username));</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">new</span> StudentDetails(student);</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure>
-<p>方法就好。</p>
-<p>但是遇到一个问题，这样的话用户名和密码都是定死的，我们拿不到<code>form-data</code>数据，如果因为前端的问题，这种密码登录方式以外，我们还要稍微修改提交给我们的<code>form-data</code>中的密码数据，做一下处理，自定义一个登录呢。</p>
-<p>这个时候就需要用到<code>AuthenticationProvider</code>了。<br>这是一个接口，提供了两种方法</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">interface</span> <span class="title">AuthenticationProvider</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">	<span class="function">Authentication <span class="title">authenticate</span><span class="params">(Authentication authentication)</span> <span class="keyword">throws</span> AuthenticationException</span>;</span><br><span class="line"></span><br><span class="line">	<span class="function"><span class="keyword">boolean</span> <span class="title">supports</span><span class="params">(Class&lt;?&gt; authentication)</span></span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>通过第一个方法我们可以拿到<code>form-data</code>的数据，并且返回一个<code>UserDetails</code>如果登录成功的话，或者返回<code>null</code>如果登录失败。</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> Authentication <span class="title">authenticate</span><span class="params">(Authentication authentication)</span> <span class="keyword">throws</span> AuthenticationException </span>&#123;</span><br><span class="line">        String userName = (String) authentication.getPrincipal(); <span class="comment">//拿到username</span></span><br><span class="line">        String password = (String) authentication.getCredentials(); <span class="comment">//拿到password</span></span><br><span class="line"></span><br><span class="line">        UserDetails userDetails = studentService.loadUserByUsername(userName);</span><br><span class="line">        <span class="keyword">if</span> (<span class="comment">/*自定义的验证通过*/</span>) &#123;</span><br><span class="line">            <span class="keyword">return</span> <span class="keyword">new</span> UsernamePasswordAuthenticationToken(userDetails, <span class="keyword">null</span>,userDetails.getAuthorities());</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="comment">/*验证不通过*/</span></span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">null</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>第二个方法是告诉<code>spring sec</code>我们这个验证支持哪种验证。</p>
-<p>这种验证属于<code>Dao</code>验证。也就是<code>DaoAuthenticationProvider</code></p>
-<p>也就是<code>UsernamePasswordAuthentication</code>。<br>所以在第二个方法中一般会这么写</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">boolean</span> <span class="title">supports</span><span class="params">(Class&lt;?&gt; authentication)</span> </span>&#123;</span><br><span class="line">     <span class="keyword">return</span> authentication.equals(UsernamePasswordAuthenticationToken.class);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>下面就是注册要<code>configure</code>方法中了<br>只要加入</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">auth.authenticationProvider(<span class="keyword">new</span> MyAuthenticationProvider());</span><br></pre></td></tr></table></figure>
-<p>就好了。。</p>
+        <blockquote>
+<p>Given an array of integers, return indices of the two numbers such that they add up to a specific target.  </p>
+<p>You may assume that each input would have exactly one solution, and you may not use the same element twice.  </p>
+<p>example<br>Given nums = [2, 7, 11, 15], target = 9,<br>Because nums[0] + nums[1] = 2 + 7 = 9,<br>return [0, 1].</p>
+</blockquote>
+<a id="more"></a>
+<p>给定一个数组和一个Target，从数组中找出两个数，和为Target，返回两个数的下标</p>
+<p>解法：<br>维护一个Map，对于数组中每一个数num，存一个KV，K为Target - num，V为数组的下表<br>从头开始遍历，如果Map.containskey(num)，那么就是找到了。<br>时间复杂度O(n)，时间复杂度O(n)<br>代码<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Solution</span> </span>&#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">int</span>[] twoSum(<span class="keyword">int</span>[] nums, <span class="keyword">int</span> target) &#123;</span><br><span class="line">        <span class="keyword">if</span> (nums == <span class="keyword">null</span>) &#123;</span><br><span class="line">            <span class="keyword">return</span> <span class="keyword">null</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        HashMap&lt;Integer, Integer&gt; map = <span class="keyword">new</span> HashMap&lt;&gt;();</span><br><span class="line">        <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; nums.length; i++) &#123;</span><br><span class="line">            <span class="keyword">if</span> (map.containsKey(nums[i])) &#123;</span><br><span class="line">                <span class="keyword">int</span> j = map.get(nums[i]);</span><br><span class="line">                <span class="keyword">return</span> <span class="keyword">new</span> <span class="keyword">int</span>[]&#123;i, j&#125;;</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">else</span> &#123;</span><br><span class="line">                map.put(target - nums[i], i);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">null</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
 
       
     </div>
@@ -298,7 +295,7 @@
     </p>
     <p class="copyright-item">
       <span>原文链接: </span>
-      <a href="http://zhyzhyzhy.github.io/2017/05/28/use_AuthenticationProvider_in_springSec/">http://zhyzhyzhy.github.io/2017/05/28/use_AuthenticationProvider_in_springSec/</a>
+      <a href="http://zhyzhyzhy.github.io/2018/09/13/1. Two Sum/">http://zhyzhyzhy.github.io/2018/09/13/1. Two Sum/</a>
     </p>
     <p class="copyright-item">
       <span>许可协议: </span>
@@ -318,7 +315,7 @@
         
           <div class="post-tags">
             
-              <a href="/tags/Spring/">Spring</a>
+              <a href="/tags/LeetCode/">LeetCode</a>
             
           </div>
         
@@ -326,12 +323,12 @@
         
   <nav class="post-nav">
     
-      <a class="prev" href="/2017/07/07/hello-world/">
-        <i class="iconfont icon-left"></i>
-        <span class="prev-text nav-default">Hello World</span>
-        <span class="prev-text nav-mobile">上一篇</span>
-      </a>
     
+      <a class="next" href="/2018/08/27/从Netty的Connect到lookupAllHostAddr/">
+        <span class="next-text nav-default">从Netty的Connect到lookupAllHostAddr</span>
+        <span class="prev-text nav-mobile">下一篇</span>
+        <i class="iconfont icon-right"></i>
+      </a>
     
   </nav>
 
@@ -442,9 +439,9 @@
   
   <script type="text/javascript">
     var disqus_config = function () {
-        this.page.url = 'http://zhyzhyzhy.github.io/2017/05/28/use_AuthenticationProvider_in_springSec/';
-        this.page.identifier = '2017/05/28/use_AuthenticationProvider_in_springSec/';
-        this.page.title = '使用AuthenticationProvider进行自定义登陆配置';
+        this.page.url = 'http://zhyzhyzhy.github.io/2018/09/13/1. Two Sum/';
+        this.page.identifier = '2018/09/13/1. Two Sum/';
+        this.page.title = '1.Two_Sum';
     };
     (function() {
     var d = document, s = d.createElement('script');
