@@ -17,8 +17,12 @@
 
 
 
+  <meta name="description" content="Spring Interceptor和Servlet Filter"/>
 
 
+
+
+  <meta name="keywords" content="Spring, LoveZhy" />
 
 
 
@@ -38,7 +42,7 @@
 
 
 
-<link rel="canonical" href="http://zhyzhyzhy.github.io/archives/2017/09/"/>
+<link rel="canonical" href="http://zhyzhyzhy.github.io/2018/09/20/Spring Interceptor和Servlet Filter/"/>
 
 
 
@@ -113,11 +117,7 @@
   window.config = {"title":"LoveZhy","subtitle":null,"description":null,"author":"zhy","language":"zh-cn","timezone":null,"url":"http://zhyzhyzhy.github.io","root":"/","permalink":":year/:month/:day/:title/","permalink_defaults":null,"source_dir":"source","public_dir":"public","tag_dir":"tags","archive_dir":"archives","category_dir":"categories","code_dir":"downloads/code","i18n_dir":":lang","skip_render":null,"new_post_name":":title.md","default_layout":"post","titlecase":false,"external_link":true,"filename_case":0,"render_drafts":false,"post_asset_folder":false,"relative_link":false,"future":true,"highlight":{"enable":true,"auto_detect":false,"line_number":true,"tab_replace":null,"first_line_number":"always1"},"default_category":"uncategorized","category_map":null,"tag_map":null,"date_format":"YYYY-MM-DD","time_format":"HH:mm:ss","per_page":20,"pagination_dir":"page","theme":"even","deploy":{"type":"git","repo":"git@github.com:zhyzhyzhy/zhyzhyzhy.github.io.git","branch":"master"},"ignore":[],"archive_generator":{"per_page":20,"yearly":true,"monthly":true,"daily":false},"category_generator":{"per_page":20},"index_generator":{"per_page":20,"order_by":"-date"},"tag_generator":{"per_page":20},"marked":{"gfm":true,"pedantic":false,"sanitize":false,"tables":true,"breaks":true,"smartLists":true,"smartypants":true},"search":{"path":"search.json","source":"all","trim_html":false},"server":{"port":4000,"log":false,"ip":"0.0.0.0","compress":false,"header":true},"since":2017,"favicon":"/favicon.ico","rss":"default","menu":{"Home":"/","Archives":"/archives/","Tags":"/tags","Categories":"/categories","About":"/about"},"color":"default","mode":"default","toc":true,"fancybox":true,"pjax":true,"copyright":{"enable":true,"license":"<a rel=\"license\" href=\"http://creativecommons.org/licenses/by-nc/4.0/\" target=\"_blank\">知识共享署名-非商业性使用 4.0 国际许可协议</a>"},"reward":{"enable":false,"qrCode":{"wechat":null,"alipay":null}},"social":{"email":"zhuyichen1017@gmail.com","stack-overflow":null,"twitter":null,"facebook":null,"linkedin":null,"google":null,"github":"https://github.com/zhyzhyzhy","weibo":null,"zhihu":null,"douban":null,"pocket":null,"tumblr":null,"instagram":null},"leancloud":{"app_id":"Se9GVxIWTSOqDfTXagV7K6GX-gzGzoHsz","app_key":"QpiluJ0yCMV3lCA2becpi9At"},"baidu_analytics":"c1f963571cb3d8a4a5dc82346dc65842","baidu_verification":null,"google_analytics":"UA-125642214-1","google_verification":null,"disqus_shortname":"blog-lovezhy-cc-1","changyan":{"appid":null,"appkey":null},"livere_datauid":null,"version":"2.10.1"};
 </script>
 
-    <title>
-  
-    归档 - LoveZhy
-  
-</title>
+    <title> Spring Interceptor和Servlet Filter - LoveZhy </title>
   </head>
 
   <body><div id="mobile-navbar" class="mobile-navbar">
@@ -247,59 +247,123 @@
           <div id="content" class="content">
             
   
-  
-  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          Spring Interceptor和Servlet Filter
+        
+      </h1>
 
-  <section id="archive" class="archive">
-    
-      
-        <div class="archive-title">
-          <span class="archive-post-counter">
-            目前共计 44 篇日志
+      <div class="post-meta">
+        <span class="post-time">
+          2018-09-20
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/Code/">Code</a>
+            
           </span>
-        </div>
+        
+        
+        <span class="post-visits"
+             data-url="/2018/09/20/Spring Interceptor和Servlet Filter/"
+             data-title="Spring Interceptor和Servlet Filter">
+          阅读次数 0
+        </span>
+        
+      </div>
+    </header>
+
+    
+    
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#前言"><span class="toc-text">前言</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#问题"><span class="toc-text">问题</span></a></li></ol>
+    </div>
+  </div>
+
+
+
+    <div class="post-content">
+      
+        <h1 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h1><p>如果想要过滤器，那么Spring Interceptor和Servlet Filer都可以使用<br>但是这两个在实现上还是有本质的区别的。</p>
+<p>这里还是先提一提我之前遇到的问题。 </p>
+<h1 id="问题"><a href="#问题" class="headerlink" title="问题"></a>问题</h1><p>在开发Spring的Web应用中</p>
+
+      
+    </div>
+
+    
+      
+      
+
+  <div class="post-copyright">
+    <p class="copyright-item">
+      <span>原文作者: </span>
+      <a href="http://zhyzhyzhy.github.io">zhy</a>
+    </p>
+    <p class="copyright-item">
+      <span>原文链接: </span>
+      <a href="http://zhyzhyzhy.github.io/2018/09/20/Spring Interceptor和Servlet Filter/">http://zhyzhyzhy.github.io/2018/09/20/Spring Interceptor和Servlet Filter/</a>
+    </p>
+    <p class="copyright-item">
+      <span>许可协议: </span>
+      
+      <a rel="license" href="http://creativecommons.org/licenses/by-nc/4.0/" target="_blank">知识共享署名-非商业性使用 4.0 国际许可协议</a>
+    </p>
+  </div>
+
+
+
+      
       
     
 
     
-      
+      <footer class="post-footer">
         
-        
-
-        
-          
-          <div class="collection-title">
-            <h2 class="archive-year">2017</h2>
+          <div class="post-tags">
+            
+              <a href="/tags/Spring/">Spring</a>
+            
           </div>
         
-      
-
-      <div class="archive-post">
-        <span class="archive-post-time">
-          
-            09-10
-          
-        </span>
-        <span class="archive-post-title">
-          <a href="/2017/09/10/动态代理的缓存实现/" class="archive-post-link">
-            动态代理的缓存实现
-          </a>
-        </span>
-      </div>
+        
+        
+  <nav class="post-nav">
     
-  </section>
-
-  
-  <nav class="pagination">
     
+      <a class="next" href="/2018/09/16/3. Longest Substring Without Repeating Characters/">
+        <span class="next-text nav-default">3._Longest_Substring_Without_Repeating_Characters</span>
+        <span class="prev-text nav-mobile">下一篇</span>
+        <i class="iconfont icon-right"></i>
+      </a>
     
   </nav>
 
 
+      </footer>
+    
+
+  </article>
 
 
           </div>
           
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
 
         </div>
       </main>
@@ -384,6 +448,27 @@
     </div>
 
     
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://zhyzhyzhy.github.io/2018/09/20/Spring Interceptor和Servlet Filter/';
+        this.page.identifier = '2018/09/20/Spring Interceptor和Servlet Filter/';
+        this.page.title = 'Spring Interceptor和Servlet Filter';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//blog-lovezhy-cc-1.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
 
 
     

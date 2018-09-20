@@ -283,8 +283,7 @@
 
     <div class="post-content">
       
-        <h2 id="分布式，集群，单点问题"><a href="#分布式，集群，单点问题" class="headerlink" title="分布式，集群，单点问题"></a>分布式，集群，单点问题</h2><p>与分布式相对应的就是单机的概念。<br>比如一个服务，依赖<code>nginx</code>，<code>tomcat</code>，<code>mysql</code>，<code>redis</code> 这么多组件。<br>单机的话可能就部署在一个服务器上。<br>这样的话容易服务器挂了，整个服务就不可用了。<br>同时可扩展性不是很好，一台普通的机器用来跑简单的服务还是可以的，万一是个需要高并发的，数据量比较大的呢，那就只能去买大型机了，但是大型机价格昂贵。同时还是避免不了如果机器挂了，整个服务就不可用的问题。</p>
-<p>好，那我们从单机的状态下转移出来<br>现在我们<code>Redis</code>，<code>Tomcat</code>，<code>Mysql</code>，<code>Nginx</code>都是单独在一台服务器上。<br>那么整个服务就可以称为是分布式的。</p>
+        <h2 id="分布式，集群，单点问题"><a href="#分布式，集群，单点问题" class="headerlink" title="分布式，集群，单点问题"></a>分布式，集群，单点问题</h2><p>与分布式相对应的就是单机的概念。<br>比如一个服务，依赖<code>nginx</code>，<code>tomcat</code>，<code>mysql</code>，<code>redis</code> 这么多组件。<br>单机的话可能就部署在一个服务器上。<br>这样的话容易服务器挂了，整个服务就不可用了。<br>同时可扩展性不是很好，一台普通的机器用来跑简单的服务还是可以的，万一是个需要高并发的，数据量比较大的呢，那就只能去买大型机了，但是大型机价格昂贵。同时还是避免不了如果机器挂了，整个服务就不可用的问题。<br><a id="more"></a><br>好，那我们从单机的状态下转移出来<br>现在我们<code>Redis</code>，<code>Tomcat</code>，<code>Mysql</code>，<code>Nginx</code>都是单独在一台服务器上。<br>那么整个服务就可以称为是分布式的。</p>
 <p>那么集群是怎么回事呢？<br>就比如跑<code>Nginx</code>这个服务器挂了，<code>Nginx</code>也就挂了，那么即使<code>Mysql</code>没挂，整个服务还是不能正常运行。<br>这个<code>Nginx</code>服务器就是个单点问题。<br>所以即使把服务都分开部署，还是无法解决不可用的问题，那么怎么提高服务的可用性呢。</p>
 <p>那就是使用集群了。<br>我们部署三个机器都是跑<code>Nginx</code>，那么一台挂了不至于导致整个服务不可用。<br>当然<code>Nginx</code>一般来说是无状态的，如果整个集群是有状态的呢。<br>那就需要一些一致性协议来进行实现。<br>真正做起来还是比较复杂的。</p>
 <h2 id="CAP"><a href="#CAP" class="headerlink" title="CAP"></a>CAP</h2><p>CAP理论由Eric Brewer教授在2000年提出的<br>主要说明了一点，在一个分布式环境中<br>Consistency一致性、Availability可用性、Partition-tolerance分区容错性<br>这三个条件不能同时满足，最多只能满足其中的两个。</p>
