@@ -17,12 +17,10 @@
 
 
 
-  <meta name="description" content="OLAP基本知识"/>
+  <meta name="description" content="电影"/>
 
 
 
-
-  <meta name="keywords" content="大数据, LoveZhy" />
 
 
 
@@ -42,7 +40,7 @@
 
 
 
-<link rel="canonical" href="http://zhyzhyzhy.github.io/2018/05/23/OLAP基本知识/"/>
+<link rel="canonical" href="http://zhyzhyzhy.github.io/movies/"/>
 
 
 
@@ -117,7 +115,7 @@
   window.config = {"title":"LoveZhy","subtitle":null,"description":null,"author":"zhy","language":"zh-cn","timezone":null,"url":"http://zhyzhyzhy.github.io","root":"/","permalink":":year/:month/:day/:title/","permalink_defaults":null,"source_dir":"source","public_dir":"public","tag_dir":"tags","archive_dir":"archives","category_dir":"categories","code_dir":"downloads/code","i18n_dir":":lang","skip_render":null,"new_post_name":":title.md","default_layout":"post","titlecase":false,"external_link":true,"filename_case":0,"render_drafts":false,"post_asset_folder":false,"relative_link":false,"future":true,"highlight":{"enable":true,"auto_detect":false,"line_number":true,"tab_replace":null,"first_line_number":"always1"},"default_category":"uncategorized","category_map":null,"tag_map":null,"date_format":"YYYY-MM-DD","time_format":"HH:mm:ss","per_page":20,"pagination_dir":"page","theme":"even","deploy":{"type":"git","repo":"git@github.com:zhyzhyzhy/zhyzhyzhy.github.io.git","branch":"master"},"ignore":[],"douban":{"user":150197948,"builtin":true,"book":{"title":"阅读","quote":""},"movie":{"title":"电影","quote":""},"timeout":10000},"archive_generator":{"per_page":20,"yearly":true,"monthly":true,"daily":false},"category_generator":{"per_page":20},"index_generator":{"per_page":20,"order_by":"-date"},"tag_generator":{"per_page":20},"marked":{"gfm":true,"pedantic":false,"sanitize":false,"tables":true,"breaks":true,"smartLists":true,"smartypants":true},"search":{"path":"search.json","source":"all","trim_html":false},"server":{"port":4000,"log":false,"ip":"0.0.0.0","compress":false,"header":true},"since":2017,"favicon":"/favicon.ico","rss":"default","menu":{"Home":"/","Archives":"/archives/","Tags":"/tags","Categories":"/categories","About":"/about","Movie":"/movies","Books":"/books"},"color":"default","mode":"default","toc":true,"fancybox":true,"pjax":true,"copyright":{"enable":true,"license":"<a rel=\"license\" href=\"http://creativecommons.org/licenses/by-nc/4.0/\" target=\"_blank\">知识共享署名-非商业性使用 4.0 国际许可协议</a>"},"reward":{"enable":false,"qrCode":{"wechat":null,"alipay":null}},"social":{"email":"zhuyichen1017@gmail.com","stack-overflow":null,"twitter":null,"facebook":null,"linkedin":null,"google":null,"github":"https://github.com/zhyzhyzhy","weibo":null,"zhihu":null,"douban":null,"pocket":null,"tumblr":null,"instagram":null},"leancloud":{"app_id":"Se9GVxIWTSOqDfTXagV7K6GX-gzGzoHsz","app_key":"QpiluJ0yCMV3lCA2becpi9At"},"baidu_analytics":"c1f963571cb3d8a4a5dc82346dc65842","baidu_verification":null,"google_analytics":"UA-125642214-1","google_verification":null,"disqus_shortname":"blog-lovezhy-cc-1","changyan":{"appid":null,"appkey":null},"livere_datauid":null,"version":"2.10.1"};
 </script>
 
-    <title> OLAP基本知识 - LoveZhy </title>
+    <title> 电影 - LoveZhy </title>
   </head>
 
   <body><div id="mobile-navbar" class="mobile-navbar">
@@ -282,148 +280,269 @@
         <div class="content-wrapper">
           <div id="content" class="content">
             
-  
   <article class="post">
-    <header class="post-header">
-      <h1 class="post-title">
-        
-          OLAP基本知识
-        
-      </h1>
-
-      <div class="post-meta">
-        <span class="post-time">
-          2018-05-23
-        </span>
-        
-        
-        <span class="post-visits"
-             data-url="/2018/05/23/OLAP基本知识/"
-             data-title="OLAP基本知识">
-          阅读次数 0
-        </span>
-        
-      </div>
-    </header>
-
-    
-    
-  <div class="post-toc" id="post-toc">
-    <h2 class="post-toc-title">文章目录</h2>
-    <div class="post-toc-content">
-      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#OLAP和OLTP"><span class="toc-text">OLAP和OLTP</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#数据仓库"><span class="toc-text">数据仓库</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#实时数据仓库"><span class="toc-text">实时数据仓库</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Ad-hoc"><span class="toc-text">Ad-hoc</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#MPP"><span class="toc-text">MPP</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#维度表和事实表"><span class="toc-text">维度表和事实表</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#数据库分区"><span class="toc-text">数据库分区</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#参考"><span class="toc-text">参考</span></a></li></ol>
-    </div>
-  </div>
-
-
-
     <div class="post-content">
-      
-        <h2 id="OLAP和OLTP"><a href="#OLAP和OLTP" class="headerlink" title="OLAP和OLTP"></a>OLAP和OLTP</h2><p><code>OLTP</code>（<code>OnLine Transaction Processing</code> ，联机事务处理），如<code>MySQL</code>, <code>MicroSoft SQL Server</code>等关系数据库系统，这些关系数据库系统擅长事务处理，在数据操作中保持着很强的一致性和原子性，能够很好的支持频繁的数据插入和修改，但是，一旦需要进行计算的数据量过大，达到数千万甚至数十亿条，或需要进行的计算非常复杂的情况下，<code>OLTP</code>类数据库系统便力不从心了。</p>
-<a id="more"></a>
-<p>这个时候，我们便需要<code>OLAP</code>（<code>On-Line Analytical Processing</code>，联机分析处理）系统，来进行处理。从广义上，<code>OLAP</code>系统是针对<code>OLTP</code>系统而言的，暨不特别关心对数据进行输入、修改等事务性处理，而是关心对已有的大量数据进行多维度的、复杂的分析的一类数据系统。</p>
-<h2 id="数据仓库"><a href="#数据仓库" class="headerlink" title="数据仓库"></a>数据仓库</h2><blockquote>
-<p>英文名称为Data Warehouse，可简写为DW或DWH。</p>
-<p>是为企业所有级别的决策制定过程，提供所有类型数据支持的战略集合。它是单个数据存储，出于分析性报告和决策支持目的而创建。</p>
+      <blockquote>
+    <p></p>
 </blockquote>
-<p>简单的理解就是把OLTP的数据抽取出来，按照主题分类，存到数据仓库里，然后通过OLAP进行分析。<br>所以数据仓库的数据一般都很大很大，因为包含了很多的历史数据</p>
-<p>当然更深的理论我还要继续去学习。<br>等我学到了再来补充这个。</p>
-<h2 id="实时数据仓库"><a href="#实时数据仓库" class="headerlink" title="实时数据仓库"></a>实时数据仓库</h2><p>我去实习的组有个业务是实时数据仓库。<br>说实话一开始我是懵逼的，因为我看到的概念里，数据仓库的查询一般是很慢的，但是现在加上实时两个字是啥意思。<br>后来我去百度了一下，发现还真有这个概念。 </p>
-<p>实时数仓的实时主要体现在两个方面</p>
-<ul>
-<li>实时插入：数据除了可以通过离线Batch的行为导入仓库，还可以像Mysql那样进行实时的插入。</li>
-<li>查询快速：运用Mpp等大规模的分布式的查询引擎，可以在秒级或者毫秒级返回结果。</li>
-</ul>
-<h2 id="Ad-hoc"><a href="#Ad-hoc" class="headerlink" title="Ad-hoc"></a>Ad-hoc</h2><p>Ad-hoc是数据仓库领域的专业术语。<br>表示没有预先计划或者按很低的计划或不可预期的事件。</p>
-<p>即席查询与通常查询从SQL语句上来说，并没有本质的差别。<br>它们之间的差别在于，通常的查询在系统设计和实施时是已知的，所有我们可以在系统实施时通过建立索引、分区等技术来优化这些查询，使这些查询的效率很高。<br>而即席查询是用户在使用时临时生产的，系统无法预先优化这些查询，所以即席查询也是评估数据仓库的一个重要指标</p>
-<p>所以Ad-hoc查询对数据仓库的要求很高。</p>
-<h2 id="MPP"><a href="#MPP" class="headerlink" title="MPP"></a>MPP</h2><p>Mpp：大规模并行处理 (Massively Parallel Processor)<br>简单的说就是分布式计算。<br>一般像Presto这种，可以处理PB级别的数据</p>
-<h2 id="维度表和事实表"><a href="#维度表和事实表" class="headerlink" title="维度表和事实表"></a>维度表和事实表</h2><p>是数据仓库中或者BI中的概念</p>
-<p>比如描述人可以有两个维度：姓名和年级。<br>我们又有这个人的大学表。<br>这时候我们可以做一个表是姓名 - 年级 - 大学<br>那么这个表就是事实表，而单独的姓名和年级和大学表都是维度表。</p>
-<h2 id="数据库分区"><a href="#数据库分区" class="headerlink" title="数据库分区"></a>数据库分区</h2><p>之前只听过分库分表，但是分区真的没听过。<br>查了一下其实Mysql也是支持分区的。</p>
-<p>一般来说分区需要指名一个字段和分区数。<br>每插入一条数据，根据分区列进行Hash，然后插入<strong>指定分区</strong>。</p>
-<p>Mysql的分区大多是指的分文件，几个分区就会被分成几个文件。</p>
-<p>但是真正在分布式数据库中的分区就不仅仅是这样了。<br>相当于一个文件就代表着一个数据节点。<br>每插入一个数据，根据分区列进行Hash，然后插入<strong>指定Node</strong>。</p>
-<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a href="https://help.aliyun.com/document_detail/26387.html?spm=a2c4g.11186623.6.566.xHxTVZ" target="_blank" rel="noopener">https://help.aliyun.com/document_detail/26387.html?spm=a2c4g.11186623.6.566.xHxTVZ</a></p>
-<p>(<a href="https://help.aliyun.com/document_detail/64020.html?spm=a2c4g.11186623.6.632.S3SGxf)[https://help.aliyun.com/document_detail/64020.html?spm=a2c4g.11186623.6.632.S3SGxf" target="_blank" rel="noopener">https://help.aliyun.com/document_detail/64020.html?spm=a2c4g.11186623.6.632.S3SGxf)[https://help.aliyun.com/document_detail/64020.html?spm=a2c4g.11186623.6.632.S3SGxf</a>]</p>
 
-      
+<style>
+    
+.hexo-douban-tabs {
+    margin-bottom: 15px;
+    margin-top: 15px;
+}
+
+.hexo-douban-tab {
+    padding: 5px;
+}
+
+.hexo-douban-active {
+    background: #657b83;
+    color: #fff;
+}
+
+.hexo-douban-item {
+    padding-bottom: 10px;
+    position: relative;
+    clear: both;
+    min-height: 170px;
+    padding: 10px 0;
+    border-bottom: 1px #ddd solid;
+}
+
+@media screen and (max-width: 600px) {
+    .hexo-douban-item {
+        width: 100%;
+    }
+}
+
+.hexo-douban-picture {
+    position: absolute;
+    left: 0;
+    top: 10px;
+    width: 100px;
+}
+
+.hexo-douban-info {
+    padding-left: 120px;
+}
+
+.hexo-douban-meta {
+    font-size: 12px;
+    padding-right: 10px;
+}
+
+.hexo-douban-comments {
+    font-size: 12px;
+}
+
+.hexo-douban-pagination {
+    margin-top: 15px;
+    text-align: center;
+    margin-bottom: 10px;
+}
+
+.hexo-douban-button {
+    padding: 5px;
+}
+
+.hexo-douban-button:hover {
+    background: #657b83;
+    color: #fff;
+}
+
+.hexo-douban-hide {
+    display: none;
+}
+
+.hexo-douban-show {
+    display: block;
+}
+
+
+</style>
+
+<div class="hexo-douban-tabs">
+    <a class="hexo-douban-tab" id="hexo-douban-tab1" href="javascript:;"
+       rel="external">
+        movieWatching
+        (0)</a>
+    <a class="hexo-douban-tab" id="hexo-douban-tab2" href="javascript:;"
+       rel="external">
+        movieWish
+        (0)</a>
+    <a class="hexo-douban-tab" id="hexo-douban-tab3" href="javascript:;"
+       rel="external">
+        movieWatched
+        (1)</a>
+</div>
+<div>
+    <div id="hexo-douban-item1">
+        
+        <div class="hexo-douban-pagination">
+    <a class="hexo-douban-button hexo-douban-firstpage" href="javascript:;"> top</a>
+    <a class="hexo-douban-button hexo-douban-previouspage" href="javascript:;">prev</a>
+    <span class="hexo-douban-pagenum">2 / 3</span>
+    <a class="hexo-douban-button hexo-douban-nextpage" href="javascript:;">next</a>
+    <a class="hexo-douban-button hexo-douban-lastpage" href="javascript:;">end</a>
+</div>
     </div>
-
-    
-      
-      
-
-  <div class="post-copyright">
-    <p class="copyright-item">
-      <span>原文作者: </span>
-      <a href="http://zhyzhyzhy.github.io">zhy</a>
-    </p>
-    <p class="copyright-item">
-      <span>原文链接: </span>
-      <a href="http://zhyzhyzhy.github.io/2018/05/23/OLAP基本知识/">http://zhyzhyzhy.github.io/2018/05/23/OLAP基本知识/</a>
-    </p>
-    <p class="copyright-item">
-      <span>许可协议: </span>
-      
-      <a rel="license" href="http://creativecommons.org/licenses/by-nc/4.0/" target="_blank">知识共享署名-非商业性使用 4.0 国际许可协议</a>
-    </p>
-  </div>
-
-
-
-      
-      
-    
-
-    
-      <footer class="post-footer">
+    <div id="hexo-douban-item2">
         
-          <div class="post-tags">
-            
-              <a href="/tags/大数据/">大数据</a>
-            
-          </div>
+        <div class="hexo-douban-pagination">
+    <a class="hexo-douban-button hexo-douban-firstpage" href="javascript:;"> top</a>
+    <a class="hexo-douban-button hexo-douban-previouspage" href="javascript:;">prev</a>
+    <span class="hexo-douban-pagenum">2 / 3</span>
+    <a class="hexo-douban-button hexo-douban-nextpage" href="javascript:;">next</a>
+    <a class="hexo-douban-button hexo-douban-lastpage" href="javascript:;">end</a>
+</div>
+    </div>
+    <div id="hexo-douban-item3">
         
-        
-        
-  <nav class="post-nav">
-    
-      <a class="prev" href="/2018/06/03/Presto基本概念/">
-        <i class="iconfont icon-left"></i>
-        <span class="prev-text nav-default">Presto基本概念</span>
-        <span class="prev-text nav-mobile">上一篇</span>
-      </a>
-    
-    
-      <a class="next" href="/2018/05/01/分布式基础知识/">
-        <span class="next-text nav-default">分布式基础知识</span>
-        <span class="prev-text nav-mobile">下一篇</span>
-        <i class="iconfont icon-right"></i>
-      </a>
-    
-  </nav>
+        <div class="hexo-douban-item">
+    <div class="hexo-douban-picture"><img src="/assets/douban-loading.gif" data-src="https://img3.doubanio.com/view/photo/s_ratio_poster/public/p812857342.jpg" referrerPolicy="no-referrer" /></div>
+    <div class="hexo-douban-info">
+        <div class="hexo-douban-title">
+            <a target="_blank" href="https://movie.douban.com/subject/1294183/">黑洞频率 / Frequency</a>
+        </div>
+        <div class="hexo-douban-meta">2018-09-22 /  时空 / ★★★★☆ 推荐 </div>
+        <div class="hexo-douban-comments"> Bug挺多的，但是很温情</div>
+    </div>
+</div>
 
 
-      </footer>
-    
+        
+        <div class="hexo-douban-pagination">
+    <a class="hexo-douban-button hexo-douban-firstpage" href="javascript:;"> top</a>
+    <a class="hexo-douban-button hexo-douban-previouspage" href="javascript:;">prev</a>
+    <span class="hexo-douban-pagenum">2 / 3</span>
+    <a class="hexo-douban-button hexo-douban-nextpage" href="javascript:;">next</a>
+    <a class="hexo-douban-button hexo-douban-lastpage" href="javascript:;">end</a>
+</div>
+    </div>
+</div>
 
+<script>
+    /**
+ * Created by myths on 18-2-8.
+ */
+
+Element.prototype.siblings = function () {
+    var siblingElement = [];
+    var sibs = this.parentNode.children;
+    for (var i = 0; i < sibs.length; i++) {
+        if (sibs[i] !== this) {
+            siblingElement.push(sibs[i]);
+        }
+    }
+    return siblingElement;
+};
+function tabClick() {
+    //修改标签样式
+    this.classList.add('hexo-douban-active');
+    var sibs = this.siblings();
+    for (var j = 0; j < sibs.length; j++) {
+        sibs[j].classList.remove('hexo-douban-active');
+    }
+    //显示对应板块
+    var itemId = this.id.replace('tab', 'item');
+    var target = document.getElementById(itemId);
+    target.classList.remove('hexo-douban-hide');
+    target.classList.add('hexo-douban-show');
+    sibs = document.getElementById(itemId).siblings();
+    for (var k = 0; k < sibs.length; k++) {
+        sibs[k].classList.remove('hexo-douban-show');
+        sibs[k].classList.add('hexo-douban-hide');
+    }
+}
+var tabs = document.getElementsByClassName("hexo-douban-tab");
+for (var i = 0; i < tabs.length; i++) {
+    tabs[i].onclick = tabClick;
+    tabs[i].onclick.apply(tabs[i]);
+}
+tabs[2].click();
+
+    var firstpages = document.getElementsByClassName("hexo-douban-firstpage");
+var previouspages = document.getElementsByClassName("hexo-douban-previouspage");
+var nextpages = document.getElementsByClassName("hexo-douban-nextpage");
+var lastpages = document.getElementsByClassName("hexo-douban-lastpage");
+var pagenums = document.getElementsByClassName("hexo-douban-pagenum");
+
+function makePageNum(num, arr) {
+    return (num + 1) + ' / ' + (Math.ceil(arr.length / 10 === 0 ? 1 : Math.ceil(arr.length / 10)));
+}
+
+function firstBtn() {
+    var sibs = this.parentNode.siblings();
+    displayPage(sibs, 0);
+    this.parentNode.getElementsByClassName('hexo-douban-pagenum')[0].innerText = makePageNum(0, sibs);
+}
+
+function previousBtn() {
+    var sibs = this.parentNode.siblings();
+    var currNum = this.parentNode.getElementsByClassName('hexo-douban-pagenum')[0].innerText;
+    currNum = currNum.substr(0, currNum.indexOf('/') - 1);
+    currNum = parseInt(currNum, 10) - 1;
+    if (currNum > 0) {
+        currNum--;
+    }
+    displayPage(sibs, currNum);
+    this.parentNode.getElementsByClassName('hexo-douban-pagenum')[0].innerText = makePageNum(currNum, sibs);
+}
+
+function nextBtn() {
+    var sibs = this.parentNode.siblings();
+    var currNum = this.parentNode.getElementsByClassName('hexo-douban-pagenum')[0].innerText;
+    currNum = currNum.substr(0, currNum.indexOf('/') - 1);
+    currNum = parseInt(currNum, 10) - 1;
+    if (currNum < Math.ceil(sibs.length / 10) - 1) {
+        currNum++;
+    }
+    displayPage(sibs, currNum);
+    this.parentNode.getElementsByClassName('hexo-douban-pagenum')[0].innerText = makePageNum(currNum, sibs);
+}
+
+function lastBtn() {
+    var sibs = this.parentNode.siblings();
+    displayPage(sibs, Math.ceil(sibs.length / 10) - 1);
+    this.parentNode.getElementsByClassName('hexo-douban-pagenum')[0].innerText = makePageNum(Math.ceil(sibs.length / 10) - 1 === -1 ? 0 : Math.ceil(sibs.length / 10) - 1, sibs);
+}
+
+function displayPage(arr, num) {
+    for (var i = 0; i < arr.length; i++) {
+        if (Math.floor(i / 10) === num) {
+            arr[i].classList.remove('hexo-douban-hide');
+            var img = arr[i].getElementsByTagName('img')[0];
+            img.src = img.getAttribute('data-src');
+        } else {
+            arr[i].classList.add('hexo-douban-hide');
+        }
+    }
+}
+
+for (var i = 0; i < firstpages.length; i++) {
+
+    //add listener
+    firstpages[i].onclick = firstBtn;
+    previouspages[i].onclick = previousBtn;
+    nextpages[i].onclick = nextBtn;
+    lastpages[i].onclick = lastBtn;
+
+    //set page num
+    var size = pagenums[i].parentNode.siblings().length;
+    pagenums[i].innerText = '1 / ' + (Math.ceil(size / 10) === 0 ? 1 : Math.ceil(size / 10));
+    firstpages[i].click();
+}
+
+</script>
+
+
+    </div>
   </article>
-
 
           </div>
           
-  <div class="comments" id="comments">
-    
-      <div id="disqus_thread">
-        <noscript>
-          Please enable JavaScript to view the
-          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
-        </noscript>
-      </div>
-    
-  </div>
-
 
         </div>
       </main>
@@ -511,9 +630,9 @@
   
   <script type="text/javascript">
     var disqus_config = function () {
-        this.page.url = 'http://zhyzhyzhy.github.io/2018/05/23/OLAP基本知识/';
-        this.page.identifier = '2018/05/23/OLAP基本知识/';
-        this.page.title = 'OLAP基本知识';
+        this.page.url = '';
+        this.page.identifier = 'movies/index.html';
+        this.page.title = '电影';
     };
     (function() {
     var d = document, s = d.createElement('script');
