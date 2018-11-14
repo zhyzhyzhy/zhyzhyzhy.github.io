@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+  <head>
+    
+<meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+<meta name="theme-color" content="#f8f5ec" />
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+
+  <meta name="description" content="哪些可以作为GC Roots"/>
+
+
+
+
+  <meta name="keywords" content="Java, LoveZhy" />
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/default" title="LoveZhy">
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1" />
+
+
+
+<link rel="canonical" href="http://zhyzhyzhy.github.io/2017/10/24/哪些可以作为GCRoots/"/>
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css" />
+
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css" />
+
+
+
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1" />
+
+
+
+  
+  <script id="baidu_analytics">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?c1f963571cb3d8a4a5dc82346dc65842";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-125642214-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-125642214-1');
+</script>
+
+
+  <script id="baidu_push">
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+
+
+  <script src="//cdn1.lncld.net/static/js/3.1.1/av-min.js"></script>
+  <script id="leancloud">
+    AV.init({
+      appId: "Se9GVxIWTSOqDfTXagV7K6GX-gzGzoHsz",
+      appKey: "QpiluJ0yCMV3lCA2becpi9At"
+    });
+  </script>
+
+
+
+
+<script>
+  window.config = {"title":"LoveZhy","subtitle":null,"description":null,"author":"zhy","language":"zh-cn","timezone":null,"url":"http://zhyzhyzhy.github.io","root":"/","permalink":":year/:month/:day/:title/","permalink_defaults":null,"source_dir":"source","public_dir":"public","tag_dir":"tags","archive_dir":"archives","category_dir":"categories","code_dir":"downloads/code","i18n_dir":":lang","skip_render":null,"new_post_name":":title.md","default_layout":"post","titlecase":false,"external_link":true,"filename_case":0,"render_drafts":false,"post_asset_folder":false,"relative_link":false,"future":true,"highlight":{"enable":true,"auto_detect":false,"line_number":true,"tab_replace":null,"first_line_number":"always1"},"default_category":"uncategorized","category_map":null,"tag_map":null,"date_format":"YYYY-MM-DD","time_format":"HH:mm:ss","per_page":20,"pagination_dir":"page","theme":"even","deploy":{"type":"git","repo":"git@github.com:zhyzhyzhy/zhyzhyzhy.github.io.git","branch":"master"},"ignore":[],"douban":{"user":150197948,"builtin":true,"book":{"title":"阅读","quote":""},"movie":{"title":"电影","quote":""},"timeout":10000},"archive_generator":{"per_page":20,"yearly":true,"monthly":true,"daily":false},"category_generator":{"per_page":20},"tag_generator":{"per_page":20},"index_generator":{"per_page":20,"order_by":"-date"},"marked":{"gfm":true,"pedantic":false,"sanitize":false,"tables":true,"breaks":true,"smartLists":true,"smartypants":true},"search":{"path":"search.json","source":"all","trim_html":false},"server":{"port":4000,"log":false,"ip":"0.0.0.0","compress":false,"header":true},"since":2017,"favicon":"/favicon.ico","rss":"default","menu":{"Home":"/","Archives":"/archives/","Tags":"/tags","Categories":"/categories","About":"/about","Movie":"/movies","Books":"/books"},"color":"default","mode":"default","toc":true,"fancybox":true,"pjax":true,"copyright":{"enable":true,"license":"<a rel=\"license\" href=\"http://creativecommons.org/licenses/by-nc/4.0/\" target=\"_blank\">知识共享署名-非商业性使用 4.0 国际许可协议</a>"},"reward":{"enable":false,"qrCode":{"wechat":null,"alipay":null}},"social":{"email":"zhuyichen1017@gmail.com","stack-overflow":null,"twitter":null,"facebook":null,"linkedin":null,"google":null,"github":"https://github.com/zhyzhyzhy","weibo":null,"zhihu":null,"douban":null,"pocket":null,"tumblr":null,"instagram":null},"leancloud":{"app_id":"Se9GVxIWTSOqDfTXagV7K6GX-gzGzoHsz","app_key":"QpiluJ0yCMV3lCA2becpi9At"},"baidu_analytics":"c1f963571cb3d8a4a5dc82346dc65842","baidu_verification":null,"google_analytics":"UA-125642214-1","google_verification":null,"disqus_shortname":"blog-lovezhy-cc-1","changyan":{"appid":null,"appkey":null},"livere_datauid":null,"version":"2.10.1"};
+</script>
+
+    <title> 哪些可以作为GC Roots - LoveZhy </title>
+  </head>
+
+  <body><div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/." class="logo">LoveZhy</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    
+      <a href="/">
+        <li class="mobile-menu-item">
+          
+          
+            首页
+          
+        </li>
+      </a>
+    
+      <a href="/archives/">
+        <li class="mobile-menu-item">
+          
+          
+            归档
+          
+        </li>
+      </a>
+    
+      <a href="/tags">
+        <li class="mobile-menu-item">
+          
+          
+            标签
+          
+        </li>
+      </a>
+    
+      <a href="/categories">
+        <li class="mobile-menu-item">
+          
+          
+            分类
+          
+        </li>
+      </a>
+    
+      <a href="/about">
+        <li class="mobile-menu-item">
+          
+          
+            关于
+          
+        </li>
+      </a>
+    
+      <a href="/movies">
+        <li class="mobile-menu-item">
+          
+          
+            Movie
+          
+        </li>
+      </a>
+    
+      <a href="/books">
+        <li class="mobile-menu-item">
+          
+          
+            Books
+          
+        </li>
+      </a>
+    
+  </ul>
+</nav>
+
+    <div class="container" id="mobile-panel">
+      <header id="header" class="header"><div class="logo-wrapper">
+  <a href="/." class="logo">LoveZhy</a>
+</div>
+
+<nav class="site-navbar">
+  
+    <ul id="menu" class="menu">
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/">
+            
+            
+              首页
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/archives/">
+            
+            
+              归档
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/tags">
+            
+            
+              标签
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/categories">
+            
+            
+              分类
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/about">
+            
+            
+              关于
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/movies">
+            
+            
+              Movie
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/books">
+            
+            
+              Books
+            
+          </a>
+        </li>
+      
+    </ul>
+  
+</nav>
+
+      </header>
+
+      <main id="main" class="main">
+        <div class="content-wrapper">
+          <div id="content" class="content">
+            
+  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          哪些可以作为GC Roots
+        
+      </h1>
+
+      <div class="post-meta">
+        <span class="post-time">
+          2017-10-24
+        </span>
+        
+        
+        <span class="post-visits"
+             data-url="/2017/10/24/哪些可以作为GCRoots/"
+             data-title="哪些可以作为GC Roots">
+          阅读次数 0
+        </span>
+        
+      </div>
+    </header>
+
+    
+    
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#主要的GC算法"><span class="toc-text">主要的GC算法</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#书上的"><span class="toc-text">书上的</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#再进行拓展"><span class="toc-text">再进行拓展</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#总结"><span class="toc-text">总结</span></a></li></ol>
+    </div>
+  </div>
+
+
+
+    <div class="post-content">
+      
+        <h1 id="主要的GC算法"><a href="#主要的GC算法" class="headerlink" title="主要的GC算法"></a>主要的GC算法</h1><hr>
+<ul>
+<li>引用计数<br>不赘述了，主要是无法解决互相引用的问题</li>
+<li>可达性分析<br>就是从一些叫做<code>GC Roots</code>的引用开始，一步一步的找能达到的对象，如果没达到，那么就不可达的，就会开始回收它。</li>
+</ul>
+<p><code>HotSpot</code>采用的是可达性分析。<br>那么哪些可以作为GC Roots呢？</p>
+<h1 id="书上的"><a href="#书上的" class="headerlink" title="书上的"></a>书上的</h1><hr>
+<p>在《深入理解Java虚拟机-JVM高级特性与最佳实践》中，简单的提了一下</p>
+<ul>
+<li>虚拟机栈（栈帧中的本地变量表）中引用的对象 </li>
+<li>方法区中类静态属性引用的对象</li>
+<li>方法区中常量引用的对象</li>
+<li>本地方法栈中JNI（native方法）引用的对象</li>
+</ul>
+<p>简单解释下</p>
+<p>第一种就是指当前的Java线程中正在调用的方法的引用类型的参数，局部变量，临时值，这个具有随机性。</p>
+<p>第二种就是指类对象的引用对象，比如<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Solution</span> </span>&#123;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> List&lt;String&gt; list = <span class="keyword">new</span> LinkedList&lt;&gt;();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>这里的<code>list</code>就是这种。</p>
+<p>第三种是指的常量一般指<code>static final</code>这种，比如<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Solution</span> </span>&#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> String name = <span class="string">"hello"</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>这里的<code>name</code>就是，当然枚举类中的也是。</p>
+<p>第四种就是<code>native</code>方法了，就是一般是c语言或者c++写的。</p>
+<h1 id="再进行拓展"><a href="#再进行拓展" class="headerlink" title="再进行拓展"></a>再进行拓展</h1><hr>
+<p>我又去搜了一下。</p>
+<p>又找到了更具体的一下，其实哪些能作为GC Roots在一定程度上也是依赖收集器的设计的。</p>
+<blockquote>
+<p>来自<a href="https://www.zhihu.com/question/53613423/answer/135743258" target="_blank" rel="noopener">RednaxelaFX</a>的答案</p>
+<ul>
+<li>（看情况）所有当前被加载的Java类</li>
+<li>（看情况）Java类的引用类型静态变量</li>
+<li>（看情况）Java类的运行时常量池里的引用类型常量（String或Class类型）</li>
+</ul>
+</blockquote>
+<p>这里还多了Class类型，。。。。</p>
+<p>在<code>eclipse</code>的文档网站，找到了更为详细的</p>
+<p><a href="http://help.eclipse.org/luna/index.jsp?topic=%2Forg.eclipse.mat.ui.help%2Fconcepts%2Fgcroots.html&amp;cp=37_2_3" target="_blank" rel="noopener">eclipse</a></p>
+<ul>
+<li><p>System Class<br>被bootstrap类加载器加载的类</p>
+</li>
+<li><p>JNI Local<br>JNI定义的局部变量</p>
+</li>
+<li><p>JNI Global<br>JNI定义的全局变量</p>
+</li>
+<li><p>Thread Block<br>当前线程块中的对象</p>
+</li>
+<li><p>Thread<br>未停止的线程</p>
+</li>
+<li><p>Busy Monitor<br>调用了wait()或者notify()或者正在进行同步的对象和类</p>
+</li>
+<li><p>Java Local<br>当前线程虚拟机栈中的本地变量</p>
+</li>
+<li><p>Native Stack<br>本地方法栈中的对象</p>
+</li>
+<li><p>Finalizable<br>一个正在在等待finalize的对象</p>
+</li>
+<li><p>Unfinalized<br>拥有finalize方法，但是不在等待finalize的对象</p>
+</li>
+<li><p>Unreachable<br>一个不可达的对象，但是仍然被Memory Analyzer标记为GC Root的对象<br>这个的解释就是对于一些小对象，GC觉得收集它太浪费珍贵的GC时间了，就放弃了。</p>
+</li>
+<li><p>Java Stack Frame<br>Java栈帧，如果你设定栈帧也为一个对象的话</p>
+</li>
+<li><p>Unknown<br>其他未知的</p>
+</li>
+</ul>
+<h1 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h1><hr>
+<p>上面说的很多重复的，有些是看不懂的。所以我自己总结了下</p>
+<ul>
+<li>所有线程当前虚拟机栈（栈帧中的本地变量表）中引用的对象，包括局部变量，参数对象。</li>
+<li>方法区中类静态属性引用的对象</li>
+<li>方法区中常量引用的对象</li>
+<li>本地方法栈中JNI（native方法）引用的对象，包括局部变量和全局变量</li>
+<li>被bootstrap类加载器加载的类</li>
+<li>当前所有活跃的线程</li>
+<li>调用了wait()或者notify()或者正在进行同步的对象和类</li>
+<li>一个正在在等待finalize的对象</li>
+<li>拥有finalize方法，但是不在等待finalize的对象</li>
+<li>一个不可达的对象，但是仍然被Memory Analyzer标记为GC Root的对象</li>
+</ul>
+
+      
+    </div>
+
+    
+      
+      
+
+  <div class="post-copyright">
+    <p class="copyright-item">
+      <span>原文作者: </span>
+      <a href="http://zhyzhyzhy.github.io">zhy</a>
+    </p>
+    <p class="copyright-item">
+      <span>原文链接: </span>
+      <a href="http://zhyzhyzhy.github.io/2017/10/24/哪些可以作为GCRoots/">http://zhyzhyzhy.github.io/2017/10/24/哪些可以作为GCRoots/</a>
+    </p>
+    <p class="copyright-item">
+      <span>许可协议: </span>
+      
+      <a rel="license" href="http://creativecommons.org/licenses/by-nc/4.0/" target="_blank">知识共享署名-非商业性使用 4.0 国际许可协议</a>
+    </p>
+  </div>
+
+
+
+      
+      
+    
+
+    
+      <footer class="post-footer">
+        
+          <div class="post-tags">
+            
+              <a href="/tags/Java/">Java</a>
+            
+          </div>
+        
+        
+        
+  <nav class="post-nav">
+    
+      <a class="prev" href="/2017/11/18/jsessionid的生成/">
+        <i class="iconfont icon-left"></i>
+        <span class="prev-text nav-default">JsessionId的生成</span>
+        <span class="prev-text nav-mobile">上一篇</span>
+      </a>
+    
+    
+      <a class="next" href="/2017/09/10/动态代理的缓存实现/">
+        <span class="next-text nav-default">动态代理的缓存实现</span>
+        <span class="prev-text nav-mobile">下一篇</span>
+        <i class="iconfont icon-right"></i>
+      </a>
+    
+  </nav>
+
+
+      </footer>
+    
+
+  </article>
+
+
+          </div>
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+      </main>
+
+      <footer id="footer" class="footer">
+
+  <div class="social-links">
+    
+      
+        
+          <a href="mailto:zhuyichen1017@gmail.com" class="iconfont icon-email" title="email"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+        
+          <a href="https://github.com/zhyzhyzhy" class="iconfont icon-github" title="github"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+
+    
+      
+      <a href="/atom.xml" class="iconfont icon-rss" title="rss"></a>
+    
+  </div>
+
+
+
+<div class="copyright">
+  <span class="power-by">
+    由 <a class="hexo-link" href="https://hexo.io/">Hexo</a> 强力驱动
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    主题 - 
+    <a class="theme-link" href="https://github.com/ahonn/hexo-theme-even">Even</a>
+  </span>
+
+  <span class="copyright-year">
+    
+    &copy; 
+     
+      2017 - 
+    
+    2018
+
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">zhy</span>
+  </span>
+</div>
+
+      </footer>
+
+      <div class="back-to-top" id="back-to-top">
+        <i class="iconfont icon-up"></i>
+      </div>
+    </div>
+
+    
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://zhyzhyzhy.github.io/2017/10/24/哪些可以作为GCRoots/';
+        this.page.identifier = '2017/10/24/哪些可以作为GCRoots/';
+        this.page.title = '哪些可以作为GC Roots';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//blog-lovezhy-cc-1.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
+
+
+    
+  
+
+
+
+  
+  
+
+
+
+
+
+  
+    <script type="text/javascript" src="/lib/jquery/jquery.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/slideout/slideout.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/fancybox/jquery.fancybox.pack.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/pjax/jquery.pjax.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/nprogress/nprogress.min.js"></script>
+  
+
+
+    <script type="text/javascript" src="/js/src/even.js?v=2.10.1"></script>
+
+  </body>
+</html>
