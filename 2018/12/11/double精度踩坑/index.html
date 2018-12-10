@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+  <head>
+    
+<meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+<meta name="theme-color" content="#f8f5ec" />
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+
+  <meta name="description" content="double精度踩坑"/>
+
+
+
+
+  <meta name="keywords" content="Java, LoveZhy" />
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/default" title="LoveZhy">
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1" />
+
+
+
+<link rel="canonical" href="http://zhyzhyzhy.github.io/2018/12/11/double精度踩坑/"/>
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css" />
+
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css" />
+
+
+
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1" />
+
+
+
+  
+  <script id="baidu_analytics">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?c1f963571cb3d8a4a5dc82346dc65842";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-125642214-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-125642214-1');
+</script>
+
+
+  <script id="baidu_push">
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+
+
+  <script src="//cdn1.lncld.net/static/js/3.1.1/av-min.js"></script>
+  <script id="leancloud">
+    AV.init({
+      appId: "Se9GVxIWTSOqDfTXagV7K6GX-gzGzoHsz",
+      appKey: "QpiluJ0yCMV3lCA2becpi9At"
+    });
+  </script>
+
+
+
+
+<script>
+  window.config = {"title":"LoveZhy","subtitle":null,"description":null,"author":"zhy","language":"zh-cn","timezone":null,"url":"http://zhyzhyzhy.github.io","root":"/","permalink":":year/:month/:day/:title/","permalink_defaults":null,"source_dir":"source","public_dir":"public","tag_dir":"tags","archive_dir":"archives","category_dir":"categories","code_dir":"downloads/code","i18n_dir":":lang","skip_render":null,"new_post_name":":title.md","default_layout":"post","titlecase":false,"external_link":true,"filename_case":0,"render_drafts":false,"post_asset_folder":false,"relative_link":false,"future":true,"highlight":{"enable":true,"auto_detect":false,"line_number":true,"tab_replace":null,"first_line_number":"always1"},"default_category":"uncategorized","category_map":null,"tag_map":null,"date_format":"YYYY-MM-DD","time_format":"HH:mm:ss","per_page":20,"pagination_dir":"page","theme":"even","deploy":{"type":"git","repo":"git@github.com:zhyzhyzhy/zhyzhyzhy.github.io.git","branch":"master"},"ignore":[],"douban":{"user":150197948,"builtin":true,"book":{"title":"阅读","quote":""},"movie":{"title":"电影","quote":""},"timeout":10000},"archive_generator":{"per_page":20,"yearly":true,"monthly":true,"daily":false},"category_generator":{"per_page":20},"index_generator":{"per_page":20,"order_by":"-date"},"tag_generator":{"per_page":20},"marked":{"gfm":true,"pedantic":false,"sanitize":false,"tables":true,"breaks":true,"smartLists":true,"smartypants":true},"search":{"path":"search.json","source":"all","trim_html":false},"server":{"port":4000,"log":false,"ip":"0.0.0.0","compress":false,"header":true},"since":2017,"favicon":"/favicon.ico","rss":"default","menu":{"Home":"/","Archives":"/archives/","Tags":"/tags","Categories":"/categories","About":"/about","Movie":"/movies","Books":"/books"},"color":"default","mode":"default","toc":true,"fancybox":true,"pjax":true,"copyright":{"enable":true,"license":"<a rel=\"license\" href=\"http://creativecommons.org/licenses/by-nc/4.0/\" target=\"_blank\">知识共享署名-非商业性使用 4.0 国际许可协议</a>"},"reward":{"enable":false,"qrCode":{"wechat":null,"alipay":null}},"social":{"email":"zhuyichen1017@gmail.com","stack-overflow":null,"twitter":null,"facebook":null,"linkedin":null,"google":null,"github":"https://github.com/zhyzhyzhy","weibo":null,"zhihu":null,"douban":null,"pocket":null,"tumblr":null,"instagram":null},"leancloud":{"app_id":"Se9GVxIWTSOqDfTXagV7K6GX-gzGzoHsz","app_key":"QpiluJ0yCMV3lCA2becpi9At"},"baidu_analytics":"c1f963571cb3d8a4a5dc82346dc65842","baidu_verification":null,"google_analytics":"UA-125642214-1","google_verification":null,"disqus_shortname":"blog-lovezhy-cc-1","changyan":{"appid":null,"appkey":null},"livere_datauid":null,"version":"2.10.1"};
+</script>
+
+    <title> double精度踩坑 - LoveZhy </title>
+  </head>
+
+  <body><div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/." class="logo">LoveZhy</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    
+      <a href="/">
+        <li class="mobile-menu-item">
+          
+          
+            首页
+          
+        </li>
+      </a>
+    
+      <a href="/archives/">
+        <li class="mobile-menu-item">
+          
+          
+            归档
+          
+        </li>
+      </a>
+    
+      <a href="/tags">
+        <li class="mobile-menu-item">
+          
+          
+            标签
+          
+        </li>
+      </a>
+    
+      <a href="/categories">
+        <li class="mobile-menu-item">
+          
+          
+            分类
+          
+        </li>
+      </a>
+    
+      <a href="/about">
+        <li class="mobile-menu-item">
+          
+          
+            关于
+          
+        </li>
+      </a>
+    
+      <a href="/movies">
+        <li class="mobile-menu-item">
+          
+          
+            Movie
+          
+        </li>
+      </a>
+    
+      <a href="/books">
+        <li class="mobile-menu-item">
+          
+          
+            Books
+          
+        </li>
+      </a>
+    
+  </ul>
+</nav>
+
+    <div class="container" id="mobile-panel">
+      <header id="header" class="header"><div class="logo-wrapper">
+  <a href="/." class="logo">LoveZhy</a>
+</div>
+
+<nav class="site-navbar">
+  
+    <ul id="menu" class="menu">
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/">
+            
+            
+              首页
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/archives/">
+            
+            
+              归档
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/tags">
+            
+            
+              标签
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/categories">
+            
+            
+              分类
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/about">
+            
+            
+              关于
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/movies">
+            
+            
+              Movie
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/books">
+            
+            
+              Books
+            
+          </a>
+        </li>
+      
+    </ul>
+  
+</nav>
+
+      </header>
+
+      <main id="main" class="main">
+        <div class="content-wrapper">
+          <div id="content" class="content">
+            
+  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          double精度踩坑
+        
+      </h1>
+
+      <div class="post-meta">
+        <span class="post-time">
+          2018-12-11
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/踩坑/">踩坑</a>
+            
+          </span>
+        
+        
+        <span class="post-visits"
+             data-url="/2018/12/11/double精度踩坑/"
+             data-title="double精度踩坑">
+          阅读次数 0
+        </span>
+        
+      </div>
+    </header>
+
+    
+    
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#double运算不精确"><span class="toc-text">double运算不精确</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#解决方案"><span class="toc-text">解决方案</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#结论"><span class="toc-text">结论</span></a></li></ol>
+    </div>
+  </div>
+
+
+
+    <div class="post-content">
+      
+        <p>double精度踩坑以及总结的实践</p>
+<a id="more"></a>
+<h1 id="double运算不精确"><a href="#double运算不精确" class="headerlink" title="double运算不精确"></a>double运算不精确</h1><p>项目中的运算是这么个流程</p>
+<ol>
+<li><code>82.0 / 10 =&gt; 8.2</code>  第一步是没有什么问题的</li>
+<li><code>8.2 * 100 =&gt; 819.9999999999999</code> 这一步出现问题了  </li>
+</ol>
+<p>然后我去结果进行了int的取整操作，得到了819。</p>
+<p>当然我考虑了精度问题，但是是对819.9999999999999套上了BigDecimal，取值的时候选择了向下取整，结果还是819。</p>
+<h1 id="解决方案"><a href="#解决方案" class="headerlink" title="解决方案"></a>解决方案</h1><p>解决方案还是BigDemical，这个是没有办法的。 </p>
+<p>但是BigDemical到底要用到什么程度呢</p>
+<p>比如上面的改成<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">BigDecimal.valueOf(<span class="number">82</span>).divide(BigDecimal.valueOf(<span class="number">10</span>)).multiply(BigDecimal.valueOf(<span class="number">100</span>)).intValue()</span><br></pre></td></tr></table></figure></p>
+<p>当然是没有问题的，但是未免太麻烦。</p>
+<p>对比几个精度缺失的问题，我发现都是最后的一位不精确，相差的都是<code>0.00...X</code>的位数<br>所以我觉得可以在最后一个double进行BigDecimal，设置精度，然后进行四舍五入取整。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">double</span> k = <span class="number">1.1</span> + <span class="number">0.1</span>;</span><br><span class="line">System.out.println(k); =&gt; <span class="number">1.2000000000000002</span></span><br><span class="line">System.out.println(BigDecimal.valueOf(k).setScale(<span class="number">4</span>, RoundingMode.HALF_UP).doubleValue()); =&gt; <span class="number">1.2</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">double</span> k = <span class="number">82.0</span> / <span class="number">10</span> * <span class="number">100</span>;</span><br><span class="line">System.out.println(k); =&gt; <span class="number">819.9999999999999</span></span><br><span class="line">System.out.println(BigDecimal.valueOf(k).setScale(<span class="number">4</span>, RoundingMode.HALF_UP).doubleValue()); =&gt; <span class="number">820.0</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">double</span> k = <span class="number">0.06</span> + <span class="number">0.01</span>;</span><br><span class="line">System.out.println(k); =&gt; <span class="number">0.06999999999999999</span></span><br><span class="line">System.out.println(BigDecimal.valueOf(k).setScale(<span class="number">4</span>, RoundingMode.HALF_UP).doubleValue()); =&gt; <span class="number">0.07</span></span><br></pre></td></tr></table></figure>
+<p>当然验证的几个都是正确的。 </p>
+<p>问题也很明显，那个setScale参数我是写死的，都是4。<br>当精度比4小或者比4大都会出现问题<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">double</span> k = <span class="number">0.0000006</span> + <span class="number">0.0000001</span>;</span><br><span class="line">System.out.println(BigDecimal.valueOf(k).setScale(<span class="number">4</span>, RoundingMode.HALF_UP).doubleValue()); =&gt; <span class="number">0.0</span></span><br><span class="line">System.out.println(BigDecimal.valueOf(k).setScale(<span class="number">10</span>, RoundingMode.HALF_UP).doubleValue()); =&gt; <span class="number">7.0E-7</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">double</span> k = <span class="number">8.2</span> * <span class="number">100000000000L</span>;</span><br><span class="line">System.out.println(k); =&gt; <span class="number">8.199999999999999E11</span></span><br><span class="line">System.out.println(BigDecimal.valueOf(k).setScale(<span class="number">4</span>, RoundingMode.HALF_UP).doubleValue()); =&gt; <span class="number">8.199999999999999E11</span></span><br><span class="line">System.out.println(BigDecimal.valueOf(k).setScale(<span class="number">1</span>, RoundingMode.HALF_UP).doubleValue()); =&gt; <span class="number">8.2E11</span></span><br></pre></td></tr></table></figure></p>
+<p>其实还是要了解scale代表着什么意思<br>是小数点后的精度的问题</p>
+<p>但是如果数字过小，那么scale就要设置的大一点<br>就比如<code>0.0000006 + 0.0000001</code>其实已经到小数点后7位了，设置4位的肯定不行</p>
+<p>但是作为Double，有效位数是16，如果小数点前的数字过多，那么其实scale设置得大也没用<br>而<code>8.2 * 100000000000L</code>的结果是<code>81999_9999_999.9999</code>这里即使我们设置到scale=4，后面其实已经没有数字了，所以得到的结果还是81999..</p>
+<p>那么似乎好像我们拿到scale就行了，把scale设置的比原始的小一点</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">double</span> k = <span class="number">8.2</span> * <span class="number">100000000000L</span>;</span><br><span class="line">System.out.println(k); =&gt; <span class="number">8.199999999999999E11</span></span><br><span class="line">BigDecimal decimal = BigDecimal.valueOf(k);</span><br><span class="line">System.out.println(decimal.setScale(decimal.scale() - <span class="number">1</span>, RoundingMode.HALF_UP).doubleValue()); =&gt; <span class="number">8.2E11</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">double</span> k = <span class="number">1.1</span> + <span class="number">0.1</span>;</span><br><span class="line">System.out.println(k); =&gt; <span class="number">1.2000000000000002</span></span><br><span class="line">BigDecimal decimal = BigDecimal.valueOf(k);</span><br><span class="line">System.out.println(decimal.setScale(decimal.scale() - <span class="number">1</span>, RoundingMode.HALF_UP).doubleValue()); =&gt; <span class="number">1.2</span></span><br></pre></td></tr></table></figure>
+<p>似乎找到了完美的解决方案</p>
+<p>但是其实我们上面的假设都是基于一个假设，那就是我们的计算肯定会出现精度问题，并且肯定是有小数的</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">double</span> k = <span class="number">8900000000000L</span>;</span><br><span class="line">System.out.println(k);</span><br><span class="line">BigDecimal decimal = BigDecimal.valueOf(k);</span><br><span class="line">System.out.println(decimal.scale());</span><br><span class="line">System.out.println(decimal.setScale(decimal.scale() - <span class="number">1</span>, RoundingMode.HALF_UP).doubleValue());</span><br></pre></td></tr></table></figure>
+<p>如果是这种情况呢？<br>那么我们会得到<code>9.0E12</code></p>
+<h1 id="结论"><a href="#结论" class="headerlink" title="结论"></a>结论</h1><p>别想了，除非你是要比较两个数的大小，可以不用BigDecimal，把两个数相减和一个0.000001比较就行<br>其他想使用最后结果的，还是乖乖的从头BigDecimal到尾吧。</p>
+
+      
+    </div>
+
+    
+      
+      
+
+  <div class="post-copyright">
+    <p class="copyright-item">
+      <span>原文作者: </span>
+      <a href="http://zhyzhyzhy.github.io">zhy</a>
+    </p>
+    <p class="copyright-item">
+      <span>原文链接: </span>
+      <a href="http://zhyzhyzhy.github.io/2018/12/11/double精度踩坑/">http://zhyzhyzhy.github.io/2018/12/11/double精度踩坑/</a>
+    </p>
+    <p class="copyright-item">
+      <span>许可协议: </span>
+      
+      <a rel="license" href="http://creativecommons.org/licenses/by-nc/4.0/" target="_blank">知识共享署名-非商业性使用 4.0 国际许可协议</a>
+    </p>
+  </div>
+
+
+
+      
+      
+    
+
+    
+      <footer class="post-footer">
+        
+          <div class="post-tags">
+            
+              <a href="/tags/Java/">Java</a>
+            
+          </div>
+        
+        
+        
+  <nav class="post-nav">
+    
+    
+      <a class="next" href="/2018/12/08/十万嬉皮/">
+        <span class="next-text nav-default">十万嬉皮</span>
+        <span class="prev-text nav-mobile">下一篇</span>
+        <i class="iconfont icon-right"></i>
+      </a>
+    
+  </nav>
+
+
+      </footer>
+    
+
+  </article>
+
+
+          </div>
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+      </main>
+
+      <footer id="footer" class="footer">
+
+  <div class="social-links">
+    
+      
+        
+          <a href="mailto:zhuyichen1017@gmail.com" class="iconfont icon-email" title="email"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+        
+          <a href="https://github.com/zhyzhyzhy" class="iconfont icon-github" title="github"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+
+    
+      
+      <a href="/atom.xml" class="iconfont icon-rss" title="rss"></a>
+    
+  </div>
+
+
+
+<div class="copyright">
+  <span class="power-by">
+    由 <a class="hexo-link" href="https://hexo.io/">Hexo</a> 强力驱动
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    主题 - 
+    <a class="theme-link" href="https://github.com/ahonn/hexo-theme-even">Even</a>
+  </span>
+
+  <span class="copyright-year">
+    
+    &copy; 
+     
+      2017 - 
+    
+    2018
+
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">zhy</span>
+  </span>
+</div>
+
+      </footer>
+
+      <div class="back-to-top" id="back-to-top">
+        <i class="iconfont icon-up"></i>
+      </div>
+    </div>
+
+    
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://zhyzhyzhy.github.io/2018/12/11/double精度踩坑/';
+        this.page.identifier = '2018/12/11/double精度踩坑/';
+        this.page.title = 'double精度踩坑';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//blog-lovezhy-cc-1.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
+
+
+    
+  
+
+
+
+  
+  
+
+
+
+
+
+  
+    <script type="text/javascript" src="/lib/jquery/jquery.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/slideout/slideout.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/fancybox/jquery.fancybox.pack.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/pjax/jquery.pjax.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/nprogress/nprogress.min.js"></script>
+  
+
+
+    <script type="text/javascript" src="/js/src/even.js?v=2.10.1"></script>
+
+  </body>
+</html>
