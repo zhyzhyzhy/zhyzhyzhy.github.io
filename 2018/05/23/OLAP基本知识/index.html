@@ -1,325 +1,156 @@
 <!DOCTYPE html>
-<html lang="zh-cn">
-  <head>
+<html lang=zh>
+<head><meta name="generator" content="Hexo 3.8.0">
+    <!-- so meta -->
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="HandheldFriendly" content="True">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <meta name="description" content="OLAP和OLTPOLTP（OnLine Transaction Processing ，联机事务处理），如MySQL, MicroSoft SQL Server等关系数据库系统，这些关系数据库系统擅长事务处理，在数据操作中保持着很强的一致性和原子性，能够很好的支持频繁的数据插入和修改，但是，一旦需要进行计算的数据量过大，达到数千万甚至数十亿条，或需要进行的计算非常复杂的情况下，OLTP类数据库系">
+<meta name="keywords" content="大数据">
+<meta property="og:type" content="article">
+<meta property="og:title" content="OLAP基本知识">
+<meta property="og:url" content="http://zhyzhyzhy.github.io/2018/05/23/OLAP基本知识/index.html">
+<meta property="og:site_name" content="LoveZhy">
+<meta property="og:description" content="OLAP和OLTPOLTP（OnLine Transaction Processing ，联机事务处理），如MySQL, MicroSoft SQL Server等关系数据库系统，这些关系数据库系统擅长事务处理，在数据操作中保持着很强的一致性和原子性，能够很好的支持频繁的数据插入和修改，但是，一旦需要进行计算的数据量过大，达到数千万甚至数十亿条，或需要进行的计算非常复杂的情况下，OLTP类数据库系">
+<meta property="og:locale" content="zh-cn">
+<meta property="og:updated_time" content="2018-09-12T16:19:57.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="OLAP基本知识">
+<meta name="twitter:description" content="OLAP和OLTPOLTP（OnLine Transaction Processing ，联机事务处理），如MySQL, MicroSoft SQL Server等关系数据库系统，这些关系数据库系统擅长事务处理，在数据操作中保持着很强的一致性和原子性，能够很好的支持频繁的数据插入和修改，但是，一旦需要进行计算的数据量过大，达到数千万甚至数十亿条，或需要进行的计算非常复杂的情况下，OLTP类数据库系">
     
-<meta charset="UTF-8"/>
-<meta http-equiv="X-UA-Compatible" content="IE=edge" />
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
-
-
-<meta http-equiv="Cache-Control" content="no-transform" />
-<meta http-equiv="Cache-Control" content="no-siteapp" />
-
-<meta name="theme-color" content="#f8f5ec" />
-<meta name="msapplication-navbutton-color" content="#f8f5ec">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
-
-
-
-  <meta name="description" content="OLAP基本知识"/>
-
-
-
-
-  <meta name="keywords" content="大数据, LoveZhy" />
-
-
-
-
-
-
-
-
-
-
-  <link rel="alternate" href="/default" title="LoveZhy">
-
-
-
-
-  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1" />
-
-
-
-<link rel="canonical" href="http://zhyzhyzhy.github.io/2018/05/23/OLAP基本知识/"/>
-
-
-
-  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css" />
-
-
-
-
-  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css" />
-
-
-
-<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1" />
-
-
-
-  
-  <script id="baidu_analytics">
-    var _hmt = _hmt || [];
-    (function() {
-      var hm = document.createElement("script");
-      hm.src = "https://hm.baidu.com/hm.js?c1f963571cb3d8a4a5dc82346dc65842";
-      var s = document.getElementsByTagName("script")[0];
-      s.parentNode.insertBefore(hm, s);
-    })();
-  </script>
-
-
-
-<!-- Global site tag (gtag.js) - Google Analytics -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=UA-125642214-1"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-
-  gtag('config', 'UA-125642214-1');
-</script>
-
-
-  <script id="baidu_push">
-(function(){
-    var bp = document.createElement('script');
-    var curProtocol = window.location.protocol.split(':')[0];
-    if (curProtocol === 'https') {
-        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
-    }
-    else {
-        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
-    }
-    var s = document.getElementsByTagName("script")[0];
-    s.parentNode.insertBefore(bp, s);
-})();
-</script>
-
-
-
-
-
-  <script src="//cdn1.lncld.net/static/js/3.1.1/av-min.js"></script>
-  <script id="leancloud">
-    AV.init({
-      appId: "Se9GVxIWTSOqDfTXagV7K6GX-gzGzoHsz",
-      appKey: "QpiluJ0yCMV3lCA2becpi9At"
-    });
-  </script>
-
-
-
-
-<script>
-  window.config = {"title":"LoveZhy","subtitle":null,"description":null,"author":"zhy","language":"zh-cn","timezone":null,"url":"http://zhyzhyzhy.github.io","root":"/","permalink":":year/:month/:day/:title/","permalink_defaults":null,"source_dir":"source","public_dir":"public","tag_dir":"tags","archive_dir":"archives","category_dir":"categories","code_dir":"downloads/code","i18n_dir":":lang","skip_render":null,"new_post_name":":title.md","default_layout":"post","titlecase":false,"external_link":true,"filename_case":0,"render_drafts":false,"post_asset_folder":false,"relative_link":false,"future":true,"highlight":{"enable":true,"auto_detect":false,"line_number":true,"tab_replace":null,"first_line_number":"always1"},"default_category":"uncategorized","category_map":null,"tag_map":null,"date_format":"YYYY-MM-DD","time_format":"HH:mm:ss","per_page":20,"pagination_dir":"page","theme":"even","deploy":{"type":"git","repo":"git@github.com:zhyzhyzhy/zhyzhyzhy.github.io.git","branch":"master"},"ignore":[],"douban":{"user":150197948,"builtin":true,"book":{"title":"阅读","quote":""},"movie":{"title":"电影","quote":""},"timeout":10000},"archive_generator":{"per_page":20,"yearly":true,"monthly":true,"daily":false},"category_generator":{"per_page":20},"index_generator":{"per_page":20,"order_by":"-date"},"tag_generator":{"per_page":20},"marked":{"gfm":true,"pedantic":false,"sanitize":false,"tables":true,"breaks":true,"smartLists":true,"smartypants":true},"server":{"port":4000,"log":false,"ip":"0.0.0.0","compress":false,"header":true},"search":{"path":"search.json","source":"all","trim_html":false},"since":2017,"favicon":"/favicon.ico","rss":"default","menu":{"Home":"/","Archives":"/archives/","Tags":"/tags","Categories":"/categories","About":"/about","Movie":"/movies/index.html","Books":"/books/index.html"},"color":"default","mode":"default","toc":true,"fancybox":true,"pjax":true,"copyright":{"enable":true,"license":"<a rel=\"license\" href=\"http://creativecommons.org/licenses/by-nc/4.0/\" target=\"_blank\">知识共享署名-非商业性使用 4.0 国际许可协议</a>"},"reward":{"enable":false,"qrCode":{"wechat":null,"alipay":null}},"social":{"email":"zhuyichen1017@gmail.com","stack-overflow":null,"twitter":null,"facebook":null,"linkedin":null,"google":null,"github":"https://github.com/zhyzhyzhy","weibo":null,"zhihu":null,"douban":null,"pocket":null,"tumblr":null,"instagram":null},"leancloud":{"app_id":"Se9GVxIWTSOqDfTXagV7K6GX-gzGzoHsz","app_key":"QpiluJ0yCMV3lCA2becpi9At"},"baidu_analytics":"c1f963571cb3d8a4a5dc82346dc65842","baidu_verification":null,"google_analytics":"UA-125642214-1","google_verification":null,"disqus_shortname":"blog-lovezhy-cc-1","changyan":{"appid":null,"appkey":null},"livere_datauid":null,"version":"2.10.1"};
-</script>
-
-    <title> OLAP基本知识 - LoveZhy </title>
-  </head>
-
-  <body><div id="mobile-navbar" class="mobile-navbar">
-  <div class="mobile-header-logo">
-    <a href="/." class="logo">LoveZhy</a>
-  </div>
-  <div class="mobile-navbar-icon">
-    <span></span>
-    <span></span>
-    <span></span>
-  </div>
-</div>
-
-<nav id="mobile-menu" class="mobile-menu slideout-menu">
-  <ul class="mobile-menu-list">
     
-      <a href="/">
-        <li class="mobile-menu-item">
-          
-          
-            首页
-          
-        </li>
-      </a>
-    
-      <a href="/archives/">
-        <li class="mobile-menu-item">
-          
-          
-            归档
-          
-        </li>
-      </a>
-    
-      <a href="/tags">
-        <li class="mobile-menu-item">
-          
-          
-            标签
-          
-        </li>
-      </a>
-    
-      <a href="/categories">
-        <li class="mobile-menu-item">
-          
-          
-            分类
-          
-        </li>
-      </a>
-    
-      <a href="/about">
-        <li class="mobile-menu-item">
-          
-          
-            关于
-          
-        </li>
-      </a>
-    
-      <a href="/movies/index.html">
-        <li class="mobile-menu-item">
-          
-          
-            Movie
-          
-        </li>
-      </a>
-    
-      <a href="/books/index.html">
-        <li class="mobile-menu-item">
-          
-          
-            Books
-          
-        </li>
-      </a>
-    
-  </ul>
-</nav>
-
-    <div class="container" id="mobile-panel">
-      <header id="header" class="header"><div class="logo-wrapper">
-  <a href="/." class="logo">LoveZhy</a>
-</div>
-
-<nav class="site-navbar">
-  
-    <ul id="menu" class="menu">
-      
-        <li class="menu-item">
-          <a class="menu-item-link" href="/">
-            
-            
-              首页
-            
-          </a>
-        </li>
-      
-        <li class="menu-item">
-          <a class="menu-item-link" href="/archives/">
-            
-            
-              归档
-            
-          </a>
-        </li>
-      
-        <li class="menu-item">
-          <a class="menu-item-link" href="/tags">
-            
-            
-              标签
-            
-          </a>
-        </li>
-      
-        <li class="menu-item">
-          <a class="menu-item-link" href="/categories">
-            
-            
-              分类
-            
-          </a>
-        </li>
-      
-        <li class="menu-item">
-          <a class="menu-item-link" href="/about">
-            
-            
-              关于
-            
-          </a>
-        </li>
-      
-        <li class="menu-item">
-          <a class="menu-item-link" href="/movies/index.html">
-            
-            
-              Movie
-            
-          </a>
-        </li>
-      
-        <li class="menu-item">
-          <a class="menu-item-link" href="/books/index.html">
-            
-            
-              Books
-            
-          </a>
-        </li>
-      
-    </ul>
-  
-</nav>
-
-      </header>
-
-      <main id="main" class="main">
-        <div class="content-wrapper">
-          <div id="content" class="content">
-            
-  
-  <article class="post">
-    <header class="post-header">
-      <h1 class="post-title">
         
-          OLAP基本知识
-        
-      </h1>
-
-      <div class="post-meta">
-        <span class="post-time">
-          2018-05-23
-        </span>
+          
+              <link rel="shortcut icon" href="/images/favicon.ico">
+          
         
         
-        <span class="post-visits"
-             data-url="/2018/05/23/OLAP基本知识/"
-             data-title="OLAP基本知识">
-          阅读次数 0
-        </span>
+          
+            <link rel="icon" type="image/png" href="/images/favicon-192x192.png" sizes="192x192">
+          
         
-      </div>
-    </header>
+        
+          
+            <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
+          
+        
+    
+    <!-- title -->
+    <title>OLAP基本知识</title>
+    <!-- styles -->
+    <link rel="stylesheet" href="/css/style.css">
+    <!-- persian styles -->
+    
+      <link rel="stylesheet" href="/css/rtl.css">
+    
+    <!-- rss -->
+    
+    
+</head>
 
-    
-    
-  <div class="post-toc" id="post-toc">
-    <h2 class="post-toc-title">文章目录</h2>
-    <div class="post-toc-content">
-      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#OLAP和OLTP"><span class="toc-text">OLAP和OLTP</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#数据仓库"><span class="toc-text">数据仓库</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#实时数据仓库"><span class="toc-text">实时数据仓库</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Ad-hoc"><span class="toc-text">Ad-hoc</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#MPP"><span class="toc-text">MPP</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#维度表和事实表"><span class="toc-text">维度表和事实表</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#数据库分区"><span class="toc-text">数据库分区</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#参考"><span class="toc-text">参考</span></a></li></ol>
+<body class="max-width mx-auto px3 ltr">    
+      <div id="header-post">
+  <a id="menu-icon" href="#"><i class="fas fa-bars fa-lg"></i></a>
+  <a id="menu-icon-tablet" href="#"><i class="fas fa-bars fa-lg"></i></a>
+  <a id="top-icon-tablet" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');" style="display:none;"><i class="fas fa-chevron-up fa-lg"></i></a>
+  <span id="menu">
+    <span id="nav">
+      <ul>
+         
+          <li><a href="/">Home</a></li>
+         
+          <li><a href="/about/">About</a></li>
+         
+          <li><a href="/archives/">Writing</a></li>
+         
+          <li><a href="/tags/">Tags</a></li>
+         
+          <li><a href="/movies/index.html">Movie</a></li>
+         
+          <li><a href="/books/index.html">Books</a></li>
+        
+      </ul>
+    </span>
+    <br>
+    <span id="actions">
+      <ul>
+        
+        <li><a class="icon" href="/2018/06/03/Presto基本概念/"><i class="fas fa-chevron-left" aria-hidden="true" onmouseover="$('#i-prev').toggle();" onmouseout="$('#i-prev').toggle();"></i></a></li>
+        
+        
+        <li><a class="icon" href="/2018/05/01/分布式基础知识/"><i class="fas fa-chevron-right" aria-hidden="true" onmouseover="$('#i-next').toggle();" onmouseout="$('#i-next').toggle();"></i></a></li>
+        
+        <li><a class="icon" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fas fa-chevron-up" aria-hidden="true" onmouseover="$('#i-top').toggle();" onmouseout="$('#i-top').toggle();"></i></a></li>
+        <li><a class="icon" href="#"><i class="fas fa-share-alt" aria-hidden="true" onmouseover="$('#i-share').toggle();" onmouseout="$('#i-share').toggle();" onclick="$('#share').toggle();return false;"></i></a></li>
+      </ul>
+      <span id="i-prev" class="info" style="display:none;">Previous post</span>
+      <span id="i-next" class="info" style="display:none;">Next post</span>
+      <span id="i-top" class="info" style="display:none;">Back to top</span>
+      <span id="i-share" class="info" style="display:none;">Share post</span>
+    </span>
+    <br>
+    <div id="share" style="display: none">
+      <ul>
+  <li><a class="icon" href="http://www.facebook.com/sharer.php?u=http://zhyzhyzhy.github.io/2018/05/23/OLAP基本知识/"><i class="fab fa-facebook " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://twitter.com/share?url=http://zhyzhyzhy.github.io/2018/05/23/OLAP基本知识/&text=OLAP基本知识"><i class="fab fa-twitter " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://www.linkedin.com/shareArticle?url=http://zhyzhyzhy.github.io/2018/05/23/OLAP基本知识/&title=OLAP基本知识"><i class="fab fa-linkedin " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://pinterest.com/pin/create/bookmarklet/?url=http://zhyzhyzhy.github.io/2018/05/23/OLAP基本知识/&is_video=false&description=OLAP基本知识"><i class="fab fa-pinterest " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=OLAP基本知识&body=Check out this article: http://zhyzhyzhy.github.io/2018/05/23/OLAP基本知识/"><i class="fas fa-envelope " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://getpocket.com/save?url=http://zhyzhyzhy.github.io/2018/05/23/OLAP基本知识/&title=OLAP基本知识"><i class="fab fa-get-pocket " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://reddit.com/submit?url=http://zhyzhyzhy.github.io/2018/05/23/OLAP基本知识/&title=OLAP基本知识"><i class="fab fa-reddit " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://www.stumbleupon.com/submit?url=http://zhyzhyzhy.github.io/2018/05/23/OLAP基本知识/&title=OLAP基本知识"><i class="fab fa-stumbleupon " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://digg.com/submit?url=http://zhyzhyzhy.github.io/2018/05/23/OLAP基本知识/&title=OLAP基本知识"><i class="fab fa-digg " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://www.tumblr.com/share/link?url=http://zhyzhyzhy.github.io/2018/05/23/OLAP基本知识/&name=OLAP基本知识&description=&lt;h2 id=&quot;OLAP和OLTP&quot;&gt;&lt;a href=&quot;#OLAP和OLTP&quot; class=&quot;headerlink&quot; title=&quot;OLAP和OLTP&quot;&gt;&lt;/a&gt;OLAP和OLTP&lt;/h2&gt;&lt;p&gt;&lt;code&gt;OLTP&lt;/code&gt;（&lt;code&gt;OnLine Transaction Processing&lt;/code&gt; ，联机事务处理），如&lt;code&gt;MySQL&lt;/code&gt;, &lt;code&gt;MicroSoft SQL Server&lt;/code&gt;等关系数据库系统，这些关系数据库系统擅长事务处理，在数据操作中保持着很强的一致性和原子性，能够很好的支持频繁的数据插入和修改，但是，一旦需要进行计算的数据量过大，达到数千万甚至数十亿条，或需要进行的计算非常复杂的情况下，&lt;code&gt;OLTP&lt;/code&gt;类数据库系统便力不从心了。&lt;/p&gt;"><i class="fab fa-tumblr " aria-hidden="true"></i></a></li>
+</ul>
+
     </div>
-  </div>
+    <div id="toc">
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#OLAP和OLTP"><span class="toc-number">1.</span> <span class="toc-text">OLAP和OLTP</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#数据仓库"><span class="toc-number">2.</span> <span class="toc-text">数据仓库</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#实时数据仓库"><span class="toc-number">3.</span> <span class="toc-text">实时数据仓库</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Ad-hoc"><span class="toc-number">4.</span> <span class="toc-text">Ad-hoc</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#MPP"><span class="toc-number">5.</span> <span class="toc-text">MPP</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#维度表和事实表"><span class="toc-number">6.</span> <span class="toc-text">维度表和事实表</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#数据库分区"><span class="toc-number">7.</span> <span class="toc-text">数据库分区</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#参考"><span class="toc-number">8.</span> <span class="toc-text">参考</span></a></li></ol>
+    </div>
+  </span>
+</div>
+
+    
+    <div class="content index py4">
+        
+        <article class="post" itemscope="" itemtype="http://schema.org/BlogPosting">
+  <header>
+    
+    <h1 class="posttitle" itemprop="name headline">
+        OLAP基本知识
+    </h1>
 
 
 
-    <div class="post-content">
+    <div class="meta">
+      <span class="author" itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+        <span itemprop="name">LoveZhy</span>
+      </span>
       
-        <h2 id="OLAP和OLTP"><a href="#OLAP和OLTP" class="headerlink" title="OLAP和OLTP"></a>OLAP和OLTP</h2><p><code>OLTP</code>（<code>OnLine Transaction Processing</code> ，联机事务处理），如<code>MySQL</code>, <code>MicroSoft SQL Server</code>等关系数据库系统，这些关系数据库系统擅长事务处理，在数据操作中保持着很强的一致性和原子性，能够很好的支持频繁的数据插入和修改，但是，一旦需要进行计算的数据量过大，达到数千万甚至数十亿条，或需要进行的计算非常复杂的情况下，<code>OLTP</code>类数据库系统便力不从心了。</p>
+    <div class="postdate">
+      
+        <time datetime="2018-05-22T16:00:00.000Z" itemprop="datePublished">2018-05-23</time>
+        
+      
+    </div>
+
+
+      
+
+      
+    <div class="article-tag">
+        <i class="fas fa-tag"></i>
+        <a class="tag-link" href="/tags/大数据/">大数据</a>
+    </div>
+
+
+    </div>
+  </header>
+  
+
+  <div class="content" itemprop="articleBody">
+    <h2 id="OLAP和OLTP"><a href="#OLAP和OLTP" class="headerlink" title="OLAP和OLTP"></a>OLAP和OLTP</h2><p><code>OLTP</code>（<code>OnLine Transaction Processing</code> ，联机事务处理），如<code>MySQL</code>, <code>MicroSoft SQL Server</code>等关系数据库系统，这些关系数据库系统擅长事务处理，在数据操作中保持着很强的一致性和原子性，能够很好的支持频繁的数据插入和修改，但是，一旦需要进行计算的数据量过大，达到数千万甚至数十亿条，或需要进行的计算非常复杂的情况下，<code>OLTP</code>类数据库系统便力不从心了。</p>
 <a id="more"></a>
 <p>这个时候，我们便需要<code>OLAP</code>（<code>On-Line Analytical Processing</code>，联机分析处理）系统，来进行处理。从广义上，<code>OLAP</code>系统是针对<code>OLTP</code>系统而言的，暨不特别关心对数据进行输入、修改等事务性处理，而是关心对已有的大量数据进行多维度的、复杂的分析的一类数据系统。</p>
 <h2 id="数据仓库"><a href="#数据仓库" class="headerlink" title="数据仓库"></a>数据仓库</h2><blockquote>
@@ -345,226 +176,151 @@
 <p>Mysql的分区大多是指的分文件，几个分区就会被分成几个文件。</p>
 <p>但是真正在分布式数据库中的分区就不仅仅是这样了。<br>相当于一个文件就代表着一个数据节点。<br>每插入一个数据，根据分区列进行Hash，然后插入<strong>指定Node</strong>。</p>
 <h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a href="https://help.aliyun.com/document_detail/26387.html?spm=a2c4g.11186623.6.566.xHxTVZ" target="_blank" rel="noopener">https://help.aliyun.com/document_detail/26387.html?spm=a2c4g.11186623.6.566.xHxTVZ</a></p>
-<p>(<a href="https://help.aliyun.com/document_detail/64020.html?spm=a2c4g.11186623.6.632.S3SGxf)[https://help.aliyun.com/document_detail/64020.html?spm=a2c4g.11186623.6.632.S3SGxf" target="_blank" rel="noopener">https://help.aliyun.com/document_detail/64020.html?spm=a2c4g.11186623.6.632.S3SGxf)[https://help.aliyun.com/document_detail/64020.html?spm=a2c4g.11186623.6.632.S3SGxf</a>]</p>
+<p>(<a href="https://help.aliyun.com/document_detail/64020.html?spm=a2c4g.11186623.6.632.S3SGxf)[https://help.aliyun.com/document_detail/64020.html?spm=a2c4g.11186623.6.632.S3SGxf]" target="_blank" rel="noopener">https://help.aliyun.com/document_detail/64020.html?spm=a2c4g.11186623.6.632.S3SGxf)[https://help.aliyun.com/document_detail/64020.html?spm=a2c4g.11186623.6.632.S3SGxf]</a></p>
 
-      
+  </div>
+  <div class="post-copyright">
+      <p class="copyright-item">
+          <span>许可协议: </span>
+          <a rel="license" href="http://creativecommons.org/licenses/by-nc/4.0/" target="_blank">知识共享署名-非商业性使用 4.0 国际许可协议</a>
+        </p>
+  </div>
+</article>
+
+    <div class="blog-post-comments">
+        <div id="disqus_thread">
+            <noscript>Please enable JavaScript to view the comments.</noscript>
+        </div>
     </div>
 
-    
-      
-      
 
-  <div class="post-copyright">
-    <p class="copyright-item">
-      <span>原文作者: </span>
-      <a href="http://zhyzhyzhy.github.io">zhy</a>
-    </p>
-    <p class="copyright-item">
-      <span>原文链接: </span>
-      <a href="http://zhyzhyzhy.github.io/2018/05/23/OLAP基本知识/">http://zhyzhyzhy.github.io/2018/05/23/OLAP基本知识/</a>
-    </p>
-    <p class="copyright-item">
-      <span>许可协议: </span>
-      
-      <a rel="license" href="http://creativecommons.org/licenses/by-nc/4.0/" target="_blank">知识共享署名-非商业性使用 4.0 国际许可协议</a>
-    </p>
+
+        
+          <div id="footer-post-container">
+  <div id="footer-post">
+
+    <div id="nav-footer" style="display: none">
+      <ul>
+         
+          <li><a href="/">Home</a></li>
+         
+          <li><a href="/about/">About</a></li>
+         
+          <li><a href="/archives/">Writing</a></li>
+         
+          <li><a href="/tags/">Tags</a></li>
+         
+          <li><a href="/movies/index.html">Movie</a></li>
+         
+          <li><a href="/books/index.html">Books</a></li>
+        
+      </ul>
+    </div>
+
+    <div id="toc-footer" style="display: none">
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#OLAP和OLTP"><span class="toc-number">1.</span> <span class="toc-text">OLAP和OLTP</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#数据仓库"><span class="toc-number">2.</span> <span class="toc-text">数据仓库</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#实时数据仓库"><span class="toc-number">3.</span> <span class="toc-text">实时数据仓库</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Ad-hoc"><span class="toc-number">4.</span> <span class="toc-text">Ad-hoc</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#MPP"><span class="toc-number">5.</span> <span class="toc-text">MPP</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#维度表和事实表"><span class="toc-number">6.</span> <span class="toc-text">维度表和事实表</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#数据库分区"><span class="toc-number">7.</span> <span class="toc-text">数据库分区</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#参考"><span class="toc-number">8.</span> <span class="toc-text">参考</span></a></li></ol>
+    </div>
+
+    <div id="share-footer" style="display: none">
+      <ul>
+  <li><a class="icon" href="http://www.facebook.com/sharer.php?u=http://zhyzhyzhy.github.io/2018/05/23/OLAP基本知识/"><i class="fab fa-facebook fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://twitter.com/share?url=http://zhyzhyzhy.github.io/2018/05/23/OLAP基本知识/&text=OLAP基本知识"><i class="fab fa-twitter fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://www.linkedin.com/shareArticle?url=http://zhyzhyzhy.github.io/2018/05/23/OLAP基本知识/&title=OLAP基本知识"><i class="fab fa-linkedin fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://pinterest.com/pin/create/bookmarklet/?url=http://zhyzhyzhy.github.io/2018/05/23/OLAP基本知识/&is_video=false&description=OLAP基本知识"><i class="fab fa-pinterest fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=OLAP基本知识&body=Check out this article: http://zhyzhyzhy.github.io/2018/05/23/OLAP基本知识/"><i class="fas fa-envelope fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://getpocket.com/save?url=http://zhyzhyzhy.github.io/2018/05/23/OLAP基本知识/&title=OLAP基本知识"><i class="fab fa-get-pocket fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://reddit.com/submit?url=http://zhyzhyzhy.github.io/2018/05/23/OLAP基本知识/&title=OLAP基本知识"><i class="fab fa-reddit fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://www.stumbleupon.com/submit?url=http://zhyzhyzhy.github.io/2018/05/23/OLAP基本知识/&title=OLAP基本知识"><i class="fab fa-stumbleupon fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://digg.com/submit?url=http://zhyzhyzhy.github.io/2018/05/23/OLAP基本知识/&title=OLAP基本知识"><i class="fab fa-digg fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://www.tumblr.com/share/link?url=http://zhyzhyzhy.github.io/2018/05/23/OLAP基本知识/&name=OLAP基本知识&description=&lt;h2 id=&quot;OLAP和OLTP&quot;&gt;&lt;a href=&quot;#OLAP和OLTP&quot; class=&quot;headerlink&quot; title=&quot;OLAP和OLTP&quot;&gt;&lt;/a&gt;OLAP和OLTP&lt;/h2&gt;&lt;p&gt;&lt;code&gt;OLTP&lt;/code&gt;（&lt;code&gt;OnLine Transaction Processing&lt;/code&gt; ，联机事务处理），如&lt;code&gt;MySQL&lt;/code&gt;, &lt;code&gt;MicroSoft SQL Server&lt;/code&gt;等关系数据库系统，这些关系数据库系统擅长事务处理，在数据操作中保持着很强的一致性和原子性，能够很好的支持频繁的数据插入和修改，但是，一旦需要进行计算的数据量过大，达到数千万甚至数十亿条，或需要进行的计算非常复杂的情况下，&lt;code&gt;OLTP&lt;/code&gt;类数据库系统便力不从心了。&lt;/p&gt;"><i class="fab fa-tumblr fa-lg" aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+
+    <div id="actions-footer">
+        <a id="menu" class="icon" href="#" onclick="$('#nav-footer').toggle();return false;"><i class="fas fa-bars fa-lg" aria-hidden="true"></i> Menu</a>
+        <a id="toc" class="icon" href="#" onclick="$('#toc-footer').toggle();return false;"><i class="fas fa-list fa-lg" aria-hidden="true"></i> TOC</a>
+        <a id="share" class="icon" href="#" onclick="$('#share-footer').toggle();return false;"><i class="fas fa-share-alt fa-lg" aria-hidden="true"></i> Share</a>
+        <a id="top" style="display:none" class="icon" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fas fa-chevron-up fa-lg" aria-hidden="true"></i> Top</a>
+    </div>
+
   </div>
-
-
-
-      
-      
-    
-
-    
-      <footer class="post-footer">
-        
-          <div class="post-tags">
-            
-              <a href="/tags/大数据/">大数据</a>
-            
-          </div>
-        
-        
-        
-  <nav class="post-nav">
-    
-      <a class="prev" href="/2018/06/03/Presto基本概念/">
-        <i class="iconfont icon-left"></i>
-        <span class="prev-text nav-default">Presto基本概念</span>
-        <span class="prev-text nav-mobile">上一篇</span>
-      </a>
-    
-    
-      <a class="next" href="/2018/05/01/分布式基础知识/">
-        <span class="next-text nav-default">分布式基础知识</span>
-        <span class="prev-text nav-mobile">下一篇</span>
-        <i class="iconfont icon-right"></i>
-      </a>
-    
-  </nav>
-
-
-      </footer>
-    
-
-  </article>
-
-
-          </div>
-          
-  <div class="comments" id="comments">
-    
-      <div id="disqus_thread">
-        <noscript>
-          Please enable JavaScript to view the
-          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
-        </noscript>
-      </div>
-    
-  </div>
-
-
-        </div>
-      </main>
-
-      <footer id="footer" class="footer">
-
-  <div class="social-links">
-    
-      
-        
-          <a href="mailto:zhuyichen1017@gmail.com" class="iconfont icon-email" title="email"></a>
-        
-      
-    
-      
-    
-      
-    
-      
-    
-      
-    
-      
-    
-      
-        
-          <a href="https://github.com/zhyzhyzhy" class="iconfont icon-github" title="github"></a>
-        
-      
-    
-      
-    
-      
-    
-      
-    
-      
-    
-      
-    
-      
-    
-
-    
-      
-      <a href="/atom.xml" class="iconfont icon-rss" title="rss"></a>
-    
-  </div>
-
-
-
-<div class="copyright">
-  <span class="power-by">
-    由 <a class="hexo-link" href="https://hexo.io/">Hexo</a> 强力驱动
-  </span>
-  <span class="division">|</span>
-  <span class="theme-info">
-    主题 - 
-    <a class="theme-link" href="https://github.com/ahonn/hexo-theme-even">Even</a>
-  </span>
-
-  <span class="copyright-year">
-    
-    &copy; 
-     
-      2017 - 
-    
-    2019
-
-    <span class="heart">
-      <i class="iconfont icon-heart"></i>
-    </span>
-    <span class="author">zhy</span>
-  </span>
 </div>
 
-      </footer>
+        
+        <footer id="footer">
+  <div class="footer-left">
+    Copyright &copy; 2019 zhy
+  </div>
+  <div class="footer-right">
+    <nav>
+      <ul>
+         
+          <li><a href="/">Home</a></li>
+         
+          <li><a href="/about/">About</a></li>
+         
+          <li><a href="/archives/">Writing</a></li>
+         
+          <li><a href="/tags/">Tags</a></li>
+         
+          <li><a href="/movies/index.html">Movie</a></li>
+         
+          <li><a href="/books/index.html">Books</a></li>
+        
+      </ul>
+    </nav>
+  </div>
+</footer>
 
-      <div class="back-to-top" id="back-to-top">
-        <i class="iconfont icon-up"></i>
-      </div>
     </div>
-
-    
-  
-  <script type="text/javascript">
-    var disqus_config = function () {
-        this.page.url = 'http://zhyzhyzhy.github.io/2018/05/23/OLAP基本知识/';
-        this.page.identifier = '2018/05/23/OLAP基本知识/';
-        this.page.title = 'OLAP基本知识';
-    };
-    (function() {
-    var d = document, s = d.createElement('script');
-
-    s.src = '//blog-lovezhy-cc-1.disqus.com/embed.js';
-
-    s.setAttribute('data-timestamp', +new Date());
-    (d.head || d.body).appendChild(s);
-    })();  
-  </script>
-
-  
-
-  
-
-
-
-    
-  
-
-
-
-  
-  
-
-
-
-
-
-  
-    <script type="text/javascript" src="/lib/jquery/jquery.min.js"></script>
-  
-
-  
-    <script type="text/javascript" src="/lib/slideout/slideout.js"></script>
-  
-
-  
-    <script type="text/javascript" src="/lib/fancybox/jquery.fancybox.pack.js"></script>
-  
-
-  
-    <script type="text/javascript" src="/lib/pjax/jquery.pjax.min.js"></script>
-  
-
-  
-    <script type="text/javascript" src="/lib/nprogress/nprogress.min.js"></script>
-  
-
-
-    <script type="text/javascript" src="/js/src/even.js?v=2.10.1"></script>
-
-  </body>
+</body>
 </html>
+<!-- styles -->
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+<link rel="stylesheet" href="/lib/justified-gallery/css/justifiedGallery.min.css">
+
+<!-- jquery -->
+<script src="/lib/jquery/jquery.min.js"></script>
+<script src="/lib/justified-gallery/js/jquery.justifiedGallery.min.js"></script>
+<script src="/js/main.js"></script>
+<!-- search -->
+
+<!-- Google Analytics -->
+
+    <script type="text/javascript">
+        (function(i,s,o,g,r,a,m) {i['GoogleAnalyticsObject']=r;i[r]=i[r]||function() {
+        (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+        m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+        })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+        ga('create', 'UA-125642214-1', 'auto');
+        ga('send', 'pageview');
+    </script>
+
+<!-- Baidu Analytics -->
+
+    <script type="text/javascript">
+        var _hmt = _hmt || [];
+        (function() {
+            var hm = document.createElement("script");
+            hm.src = "https://hm.baidu.com/hm.js?c1f963571cb3d8a4a5dc82346dc65842";
+            var s = document.getElementsByTagName("script")[0];
+            s.parentNode.insertBefore(hm, s);
+        })();
+    </script>
+
+<!-- Disqus Comments -->
+
+    <script type="text/javascript">
+        var disqus_shortname = 'blog-lovezhy-cc-1';
+
+        (function(){
+            var dsq = document.createElement('script');
+            dsq.type = 'text/javascript';
+            dsq.async = true;
+            dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+            (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+        }());
+    </script>
+
+
