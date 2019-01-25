@@ -15,7 +15,7 @@
 <meta property="og:description" content="Java SPIJava的spi约定是在源代码目录下的META-INF/services中，新建一个文件，文件名是接口的全限定名，内容是我们想要进行动态Loader的类的全限定名。">
 <meta property="og:locale" content="zh-cn">
 <meta property="og:image" content="http://zhyzhyzhy.github.io/images/spi.png">
-<meta property="og:updated_time" content="2018-11-12T15:19:02.000Z">
+<meta property="og:updated_time" content="2019-01-25T13:56:51.000Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="spi和破坏双亲委派">
 <meta name="twitter:description" content="Java SPIJava的spi约定是在源代码目录下的META-INF/services中，新建一个文件，文件名是接口的全限定名，内容是我们想要进行动态Loader的类的全限定名。">
@@ -103,12 +103,12 @@
   <li><a class="icon" href="http://reddit.com/submit?url=http://zhyzhyzhy.github.io/2018/03/03/spi和破坏双亲委派/&title=spi和破坏双亲委派"><i class="fab fa-reddit " aria-hidden="true"></i></a></li>
   <li><a class="icon" href="http://www.stumbleupon.com/submit?url=http://zhyzhyzhy.github.io/2018/03/03/spi和破坏双亲委派/&title=spi和破坏双亲委派"><i class="fab fa-stumbleupon " aria-hidden="true"></i></a></li>
   <li><a class="icon" href="http://digg.com/submit?url=http://zhyzhyzhy.github.io/2018/03/03/spi和破坏双亲委派/&title=spi和破坏双亲委派"><i class="fab fa-digg " aria-hidden="true"></i></a></li>
-  <li><a class="icon" href="http://www.tumblr.com/share/link?url=http://zhyzhyzhy.github.io/2018/03/03/spi和破坏双亲委派/&name=spi和破坏双亲委派&description=&lt;h1 id=&quot;Java-SPI&quot;&gt;&lt;a href=&quot;#Java-SPI&quot; class=&quot;headerlink&quot; title=&quot;Java SPI&quot;&gt;&lt;/a&gt;Java SPI&lt;/h1&gt;&lt;p&gt;Java的spi约定是在源代码目录下的&lt;code&gt;META-INF/services&lt;/code&gt;中，新建一个文件，文件名是接口的全限定名，内容是我们想要进行动态Loader的类的全限定名。&lt;/p&gt;"><i class="fab fa-tumblr " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://www.tumblr.com/share/link?url=http://zhyzhyzhy.github.io/2018/03/03/spi和破坏双亲委派/&name=spi和破坏双亲委派&description=&lt;h2 id=&quot;Java-SPI&quot;&gt;&lt;a href=&quot;#Java-SPI&quot; class=&quot;headerlink&quot; title=&quot;Java SPI&quot;&gt;&lt;/a&gt;Java SPI&lt;/h2&gt;&lt;p&gt;Java的spi约定是在源代码目录下的&lt;code&gt;META-INF/services&lt;/code&gt;中，新建一个文件，文件名是接口的全限定名，内容是我们想要进行动态Loader的类的全限定名。&lt;/p&gt;"><i class="fab fa-tumblr " aria-hidden="true"></i></a></li>
 </ul>
 
     </div>
     <div id="toc">
-      <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#Java-SPI"><span class="toc-number">1.</span> <span class="toc-text">Java SPI</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#破坏双亲委派"><span class="toc-number">2.</span> <span class="toc-text">破坏双亲委派</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#双亲委派"><span class="toc-number">2.0.1.</span> <span class="toc-text">双亲委派</span></a></li></ol></li></ol>
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#Java-SPI"><span class="toc-number">1.</span> <span class="toc-text">Java SPI</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#破坏双亲委派"><span class="toc-number">2.</span> <span class="toc-text">破坏双亲委派</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#双亲委派"><span class="toc-number">2.1.</span> <span class="toc-text">双亲委派</span></a></li></ol></li></ol>
     </div>
   </span>
 </div>
@@ -152,7 +152,7 @@
   
 
   <div class="content" itemprop="articleBody">
-    <h1 id="Java-SPI"><a href="#Java-SPI" class="headerlink" title="Java SPI"></a>Java SPI</h1><p>Java的spi约定是在源代码目录下的<code>META-INF/services</code>中，新建一个文件，文件名是接口的全限定名，内容是我们想要进行动态Loader的类的全限定名。</p>
+    <h2 id="Java-SPI"><a href="#Java-SPI" class="headerlink" title="Java SPI"></a>Java SPI</h2><p>Java的spi约定是在源代码目录下的<code>META-INF/services</code>中，新建一个文件，文件名是接口的全限定名，内容是我们想要进行动态Loader的类的全限定名。</p>
 <a id="more"></a>
 <p>比如我们有一个NameLog的接口</p>
 <figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> cc.lovezhy.spi;</span><br><span class="line">  </span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">interface</span> <span class="title">NameLog</span> </span>&#123;</span><br><span class="line">  </span><br><span class="line">    <span class="function"><span class="keyword">void</span> <span class="title">printName</span><span class="params">()</span></span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
@@ -167,7 +167,7 @@
 <p>我一开始想的是运行时的实现，后来发现不是，运行时改了时候似乎并没有重新Load</p>
 <p>在最近看的pigeon的源代码中其实也看到了很多这样的用法。<br><img src="/images/spi.png" alt=""></p>
 <p>经典用法莫过于经常提到的<code>jdbc</code>驱动了，我们只要引入了数据库的jar包，就可以自动找到数据库驱动。</p>
-<h1 id="破坏双亲委派"><a href="#破坏双亲委派" class="headerlink" title="破坏双亲委派"></a>破坏双亲委派</h1><p>这也是意外在某个文章里看到的，之前看Java虚拟机书的时候也看到了，但是没太注意。</p>
+<h2 id="破坏双亲委派"><a href="#破坏双亲委派" class="headerlink" title="破坏双亲委派"></a>破坏双亲委派</h2><p>这也是意外在某个文章里看到的，之前看Java虚拟机书的时候也看到了，但是没太注意。</p>
 <h3 id="双亲委派"><a href="#双亲委派" class="headerlink" title="双亲委派"></a>双亲委派</h3><p>jvm的类加载机制，最经典的就是双亲委派机制。<br>jvm类加载器，系统中一般有三个</p>
 <ul>
 <li>BootstrapClassloader<br>这个是虚拟机层次的，对用户是不可见的，lang包中的类一般是由这个加载器加载。如果我们输出<code>String.class.getClassLoader()</code>会得到null。    </li>
@@ -228,7 +228,7 @@
     </div>
 
     <div id="toc-footer" style="display: none">
-      <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#Java-SPI"><span class="toc-number">1.</span> <span class="toc-text">Java SPI</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#破坏双亲委派"><span class="toc-number">2.</span> <span class="toc-text">破坏双亲委派</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#双亲委派"><span class="toc-number">2.0.1.</span> <span class="toc-text">双亲委派</span></a></li></ol></li></ol>
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#Java-SPI"><span class="toc-number">1.</span> <span class="toc-text">Java SPI</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#破坏双亲委派"><span class="toc-number">2.</span> <span class="toc-text">破坏双亲委派</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#双亲委派"><span class="toc-number">2.1.</span> <span class="toc-text">双亲委派</span></a></li></ol></li></ol>
     </div>
 
     <div id="share-footer" style="display: none">
@@ -242,7 +242,7 @@
   <li><a class="icon" href="http://reddit.com/submit?url=http://zhyzhyzhy.github.io/2018/03/03/spi和破坏双亲委派/&title=spi和破坏双亲委派"><i class="fab fa-reddit fa-lg" aria-hidden="true"></i></a></li>
   <li><a class="icon" href="http://www.stumbleupon.com/submit?url=http://zhyzhyzhy.github.io/2018/03/03/spi和破坏双亲委派/&title=spi和破坏双亲委派"><i class="fab fa-stumbleupon fa-lg" aria-hidden="true"></i></a></li>
   <li><a class="icon" href="http://digg.com/submit?url=http://zhyzhyzhy.github.io/2018/03/03/spi和破坏双亲委派/&title=spi和破坏双亲委派"><i class="fab fa-digg fa-lg" aria-hidden="true"></i></a></li>
-  <li><a class="icon" href="http://www.tumblr.com/share/link?url=http://zhyzhyzhy.github.io/2018/03/03/spi和破坏双亲委派/&name=spi和破坏双亲委派&description=&lt;h1 id=&quot;Java-SPI&quot;&gt;&lt;a href=&quot;#Java-SPI&quot; class=&quot;headerlink&quot; title=&quot;Java SPI&quot;&gt;&lt;/a&gt;Java SPI&lt;/h1&gt;&lt;p&gt;Java的spi约定是在源代码目录下的&lt;code&gt;META-INF/services&lt;/code&gt;中，新建一个文件，文件名是接口的全限定名，内容是我们想要进行动态Loader的类的全限定名。&lt;/p&gt;"><i class="fab fa-tumblr fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://www.tumblr.com/share/link?url=http://zhyzhyzhy.github.io/2018/03/03/spi和破坏双亲委派/&name=spi和破坏双亲委派&description=&lt;h2 id=&quot;Java-SPI&quot;&gt;&lt;a href=&quot;#Java-SPI&quot; class=&quot;headerlink&quot; title=&quot;Java SPI&quot;&gt;&lt;/a&gt;Java SPI&lt;/h2&gt;&lt;p&gt;Java的spi约定是在源代码目录下的&lt;code&gt;META-INF/services&lt;/code&gt;中，新建一个文件，文件名是接口的全限定名，内容是我们想要进行动态Loader的类的全限定名。&lt;/p&gt;"><i class="fab fa-tumblr fa-lg" aria-hidden="true"></i></a></li>
 </ul>
 
     </div>
