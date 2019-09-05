@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang=zh>
+<head><meta name="generator" content="Hexo 3.8.0">
+    <!-- so meta -->
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="HandheldFriendly" content="True">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <meta name="description" content="前言MVStore是h2数据库的底层的存储文件格式在1.4版本之前底层的文件存储都是org.h2.store.*包中的然后1.4之后默认改为了org.h2.mvstore.*包中的   官方的介绍说是根据Log Structed FS设计的，顺序写提高性能 MV的意思是multi-version 同类型的项目有个叫mapDB的项目https://github.com/jankotek/mapdb">
+<meta name="keywords" content="h2">
+<meta property="og:type" content="article">
+<meta property="og:title" content="h2database的MVStore解析">
+<meta property="og:url" content="http://zhyzhyzhy.github.io/2019/02/18/H2database的MVStore解析/index.html">
+<meta property="og:site_name" content="LoveZhy">
+<meta property="og:description" content="前言MVStore是h2数据库的底层的存储文件格式在1.4版本之前底层的文件存储都是org.h2.store.*包中的然后1.4之后默认改为了org.h2.mvstore.*包中的   官方的介绍说是根据Log Structed FS设计的，顺序写提高性能 MV的意思是multi-version 同类型的项目有个叫mapDB的项目https://github.com/jankotek/mapdb">
+<meta property="og:locale" content="zh-cn">
+<meta property="og:image" content="http://zhyzhyzhy.github.io/images/mvstore/fileformat.png">
+<meta property="og:image" content="http://zhyzhyzhy.github.io/images/mvstore/fileformat2.png">
+<meta property="og:updated_time" content="2019-02-28T14:06:05.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="h2database的MVStore解析">
+<meta name="twitter:description" content="前言MVStore是h2数据库的底层的存储文件格式在1.4版本之前底层的文件存储都是org.h2.store.*包中的然后1.4之后默认改为了org.h2.mvstore.*包中的   官方的介绍说是根据Log Structed FS设计的，顺序写提高性能 MV的意思是multi-version 同类型的项目有个叫mapDB的项目https://github.com/jankotek/mapdb">
+<meta name="twitter:image" content="http://zhyzhyzhy.github.io/images/mvstore/fileformat.png">
+    
+    
+        
+          
+              <link rel="shortcut icon" href="/images/favicon.ico">
+          
+        
+        
+          
+            <link rel="icon" type="image/png" href="/images/favicon-192x192.png" sizes="192x192">
+          
+        
+        
+          
+            <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
+          
+        
+    
+    <!-- title -->
+    <title>h2database的MVStore解析</title>
+    <!-- styles -->
+    <link rel="stylesheet" href="/css/style.css">
+    <!-- persian styles -->
+    
+      <link rel="stylesheet" href="/css/rtl.css">
+    
+    <!-- rss -->
+    
+    
+</head>
+
+<body class="max-width mx-auto px3 ltr">    
+      <div id="header-post">
+  <a id="menu-icon" href="#"><i class="fas fa-bars fa-lg"></i></a>
+  <a id="menu-icon-tablet" href="#"><i class="fas fa-bars fa-lg"></i></a>
+  <a id="top-icon-tablet" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');" style="display:none;"><i class="fas fa-chevron-up fa-lg"></i></a>
+  <span id="menu">
+    <span id="nav">
+      <ul>
+         
+          <li><a href="/">Home</a></li>
+         
+          <li><a href="/about/">About</a></li>
+         
+          <li><a href="/archives/">Writing</a></li>
+         
+          <li><a href="/tags/">Tags</a></li>
+         
+          <li><a href="/movies/index.html">Movie</a></li>
+         
+          <li><a href="/books/index.html">Books</a></li>
+        
+      </ul>
+    </span>
+    <br>
+    <span id="actions">
+      <ul>
+        
+        <li><a class="icon" href="/2019/03/29/Java中FileLock的实现细节/"><i class="fas fa-chevron-left" aria-hidden="true" onmouseover="$('#i-prev').toggle();" onmouseout="$('#i-prev').toggle();"></i></a></li>
+        
+        
+        <li><a class="icon" href="/2019/02/16/oop-klass模型/"><i class="fas fa-chevron-right" aria-hidden="true" onmouseover="$('#i-next').toggle();" onmouseout="$('#i-next').toggle();"></i></a></li>
+        
+        <li><a class="icon" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fas fa-chevron-up" aria-hidden="true" onmouseover="$('#i-top').toggle();" onmouseout="$('#i-top').toggle();"></i></a></li>
+        <li><a class="icon" href="#"><i class="fas fa-share-alt" aria-hidden="true" onmouseover="$('#i-share').toggle();" onmouseout="$('#i-share').toggle();" onclick="$('#share').toggle();return false;"></i></a></li>
+      </ul>
+      <span id="i-prev" class="info" style="display:none;">Previous post</span>
+      <span id="i-next" class="info" style="display:none;">Next post</span>
+      <span id="i-top" class="info" style="display:none;">Back to top</span>
+      <span id="i-share" class="info" style="display:none;">Share post</span>
+    </span>
+    <br>
+    <div id="share" style="display: none">
+      <ul>
+  <li><a class="icon" href="http://www.facebook.com/sharer.php?u=http://zhyzhyzhy.github.io/2019/02/18/H2database的MVStore解析/"><i class="fab fa-facebook " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://twitter.com/share?url=http://zhyzhyzhy.github.io/2019/02/18/H2database的MVStore解析/&text=h2database的MVStore解析"><i class="fab fa-twitter " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://www.linkedin.com/shareArticle?url=http://zhyzhyzhy.github.io/2019/02/18/H2database的MVStore解析/&title=h2database的MVStore解析"><i class="fab fa-linkedin " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://pinterest.com/pin/create/bookmarklet/?url=http://zhyzhyzhy.github.io/2019/02/18/H2database的MVStore解析/&is_video=false&description=h2database的MVStore解析"><i class="fab fa-pinterest " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=h2database的MVStore解析&body=Check out this article: http://zhyzhyzhy.github.io/2019/02/18/H2database的MVStore解析/"><i class="fas fa-envelope " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://getpocket.com/save?url=http://zhyzhyzhy.github.io/2019/02/18/H2database的MVStore解析/&title=h2database的MVStore解析"><i class="fab fa-get-pocket " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://reddit.com/submit?url=http://zhyzhyzhy.github.io/2019/02/18/H2database的MVStore解析/&title=h2database的MVStore解析"><i class="fab fa-reddit " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://www.stumbleupon.com/submit?url=http://zhyzhyzhy.github.io/2019/02/18/H2database的MVStore解析/&title=h2database的MVStore解析"><i class="fab fa-stumbleupon " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://digg.com/submit?url=http://zhyzhyzhy.github.io/2019/02/18/H2database的MVStore解析/&title=h2database的MVStore解析"><i class="fab fa-digg " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://www.tumblr.com/share/link?url=http://zhyzhyzhy.github.io/2019/02/18/H2database的MVStore解析/&name=h2database的MVStore解析&description=&lt;h1 id=&quot;前言&quot;&gt;&lt;a href=&quot;#前言&quot; class=&quot;headerlink&quot; title=&quot;前言&quot;&gt;&lt;/a&gt;前言&lt;/h1&gt;&lt;p&gt;MVStore是h2数据库的底层的存储文件格式&lt;br&gt;在1.4版本之前底层的文件存储都是&lt;code&gt;org.h2.store.*&lt;/code&gt;包中的&lt;br&gt;然后1.4之后默认改为了&lt;code&gt;org.h2.mvstore.*&lt;/code&gt;包中的  &lt;/p&gt;
+&lt;p&gt;官方的介绍说是根据&lt;code&gt;Log Structed FS&lt;/code&gt;设计的，顺序写提高性能&lt;/p&gt;
+&lt;p&gt;MV的意思是&lt;code&gt;multi-version&lt;/code&gt;&lt;/p&gt;
+&lt;p&gt;同类型的项目有个叫&lt;code&gt;mapDB&lt;/code&gt;的项目&lt;br&gt;&lt;a href=&quot;https://github.com/jankotek/mapdb&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;&gt;https://github.com/jankotek/mapdb&lt;/a&gt;  &lt;/p&gt;
+&lt;p&gt;还有一个Apache的项目&lt;code&gt;mavibot&lt;/code&gt;&lt;br&gt;&lt;a href=&quot;http://directory.apache.org/mavibot/downloads.html&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;&gt;http://directory.apache.org/mavibot/downloads.html&lt;/a&gt;  &lt;/p&gt;"><i class="fab fa-tumblr " aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+    <div id="toc">
+      <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#前言"><span class="toc-number">1.</span> <span class="toc-text">前言</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#简单使用"><span class="toc-number">2.</span> <span class="toc-text">简单使用</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#文件格式"><span class="toc-number">3.</span> <span class="toc-text">文件格式</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#总体"><span class="toc-number">3.1.</span> <span class="toc-text">总体</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Chunk"><span class="toc-number">3.2.</span> <span class="toc-text">Chunk</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Page"><span class="toc-number">3.3.</span> <span class="toc-text">Page</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#metaMap"><span class="toc-number">4.</span> <span class="toc-text">metaMap</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#文件新建"><span class="toc-number">5.</span> <span class="toc-text">文件新建</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#文件打开"><span class="toc-number">6.</span> <span class="toc-text">文件打开</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#新建Map"><span class="toc-number">7.</span> <span class="toc-text">新建Map</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#基于Page的B-树"><span class="toc-number">8.</span> <span class="toc-text">基于Page的B+树</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#页分裂"><span class="toc-number">8.1.</span> <span class="toc-text">页分裂</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#持久化流程"><span class="toc-number">9.</span> <span class="toc-text">持久化流程</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#手动持久化"><span class="toc-number">9.1.</span> <span class="toc-text">手动持久化</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#后台定时持久化"><span class="toc-number">9.2.</span> <span class="toc-text">后台定时持久化</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#GC"><span class="toc-number">10.</span> <span class="toc-text">GC</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#Compact"><span class="toc-number">11.</span> <span class="toc-text">Compact</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#Page-Cache"><span class="toc-number">12.</span> <span class="toc-text">Page Cache</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#Debug技巧"><span class="toc-number">13.</span> <span class="toc-text">Debug技巧</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#源码环境导入Idea"><span class="toc-number">13.1.</span> <span class="toc-text">源码环境导入Idea</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#dump-file"><span class="toc-number">13.2.</span> <span class="toc-text">dump file</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#PR"><span class="toc-number">14.</span> <span class="toc-text">PR</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#参考文档"><span class="toc-number">15.</span> <span class="toc-text">参考文档</span></a></li></ol>
+    </div>
+  </span>
+</div>
+
+    
+    <div class="content index py4">
+        
+        <article class="post" itemscope="" itemtype="http://schema.org/BlogPosting">
+  <header>
+    
+    <h1 class="posttitle" itemprop="name headline">
+        h2database的MVStore解析
+    </h1>
+
+
+
+    <div class="meta">
+      <span class="author" itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+        <span itemprop="name">LoveZhy</span>
+      </span>
+      
+    <div class="postdate">
+      
+        <time datetime="2019-02-17T16:00:00.000Z" itemprop="datePublished">2019-02-18</time>
+        
+      
+    </div>
+
+
+      
+    <div class="article-category">
+        <i class="fas fa-archive"></i>
+        <a class="category-link" href="/categories/数据库/">数据库</a>
+    </div>
+
+
+      
+    <div class="article-tag">
+        <i class="fas fa-tag"></i>
+        <a class="tag-link" href="/tags/h2/">h2</a>
+    </div>
+
+
+    </div>
+  </header>
+  
+
+  <div class="content" itemprop="articleBody">
+    <h1 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h1><p>MVStore是h2数据库的底层的存储文件格式<br>在1.4版本之前底层的文件存储都是<code>org.h2.store.*</code>包中的<br>然后1.4之后默认改为了<code>org.h2.mvstore.*</code>包中的  </p>
+<p>官方的介绍说是根据<code>Log Structed FS</code>设计的，顺序写提高性能</p>
+<p>MV的意思是<code>multi-version</code></p>
+<p>同类型的项目有个叫<code>mapDB</code>的项目<br><a href="https://github.com/jankotek/mapdb" target="_blank" rel="noopener">https://github.com/jankotek/mapdb</a>  </p>
+<p>还有一个Apache的项目<code>mavibot</code><br><a href="http://directory.apache.org/mavibot/downloads.html" target="_blank" rel="noopener">http://directory.apache.org/mavibot/downloads.html</a>  </p>
+<a id="more"></a>
+<h1 id="简单使用"><a href="#简单使用" class="headerlink" title="简单使用"></a>简单使用</h1><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> org.h2.mvstore.*;</span><br><span class="line"></span><br><span class="line"><span class="comment">// open the store (in-memory if fileName is null)</span></span><br><span class="line">MVStore s = MVStore.open(fileName);</span><br><span class="line"></span><br><span class="line"><span class="comment">// create/get the map named "data"</span></span><br><span class="line">MVMap&lt;Integer, String&gt; map = s.openMap(<span class="string">"data"</span>);</span><br><span class="line"></span><br><span class="line"><span class="comment">// add and read some data</span></span><br><span class="line">map.put(<span class="number">1</span>, <span class="string">"Hello World"</span>);</span><br><span class="line">System.out.println(map.get(<span class="number">1</span>));</span><br><span class="line"></span><br><span class="line"><span class="comment">// close the store (this will persist changes)</span></span><br><span class="line">s.close();</span><br></pre></td></tr></table></figure>
+<p>来自官网的例子<br>就当做一个普通的Map使用就行，不过这里支持持久化到磁盘上</p>
+<h1 id="文件格式"><a href="#文件格式" class="headerlink" title="文件格式"></a>文件格式</h1><p>在参考文档中有详细的讲述，不过和最新的代码版本有一些出入<br><img src="/images/mvstore/fileformat.png" alt=""></p>
+<p>先谈谈<code>block</code>的概念<br><code>block</code>是一个扇区的大小，也就是磁盘一次读取的大小。<br>所以H2里定为<strong>4k</strong>，然后无论是<code>file header</code>还是<code>chunk</code>，都是对齐到<code>block</code>的整数倍 </p>
+<h2 id="总体"><a href="#总体" class="headerlink" title="总体"></a>总体</h2><p><code>[ file header 1 ] [ file header 2 ] [ chunk ] [ chunk ] ... [ chunk ]</code></p>
+<p>整个文件的格式是这样<br>其中<code>file header</code>是个KV的格式，<strong>大小是一个<code>block</code></strong><br>形如<br><code>H:2,blockSize:1000,created:167a11ebf8d,format:1,fletcher:9f80997e</code></p>
+<ul>
+<li><code>H:2</code>:固定的，表示这个是h2数据库文件</li>
+<li><code>blockSize:1000</code>：<code>block</code>的大小，size是16进制的，换成存储的就是4K</li>
+<li><code>created:167a11ebf8d</code>：创建时间，v也是16进制的</li>
+<li><code>format:1</code>：文件格式版本，为了防止后续如果新版本文件格式更改，现在都是1</li>
+<li><code>fletcher:9f80997e</code>：checkSum</li>
+</ul>
+<p><code>file header</code>写了两份，header1和header2内容是一样的，官网的描述是防止文件损坏破坏了一份，也是有道理的。</p>
+<h2 id="Chunk"><a href="#Chunk" class="headerlink" title="Chunk"></a>Chunk</h2><p>由于是Version的概念，所以每一次Commit，都会把这个阶段进行了修改的Page都放在新的Chunk中，Version++ （当然如果这段时间内没有修改，就不会commit）</p>
+<p>每次Commit结束，只保留RootPage，把Children的Page缓存全部清空</p>
+<p>下面的<code>chunk</code>是真正存储数据的地方，格式如下：<br><code>[ header ] [ page ] [ page ] ... [ page ] [ footer ]</code></p>
+<p><code>Chunk</code>的大小是不固定的，但是肯定是<code>block</code>的整数倍大小  </p>
+<p>header也是KV的格式，长度限定了最大值<code>Chunk.MAX_HEADER_LENGTH = 1k</code><br>header的header生成来自函数<code>Chunk#asString</code><br>结果是header形如：<br><code>chunk:5,block:5,len:1,map:c,max:980,next:6,pages:5,root:14000016194,time:102cc,version:5</code></p>
+<ul>
+<li><code>chunk:5</code>: 每个chunk都有一个id，这里的id为5，id是原子自增的</li>
+<li><code>block:5</code>：chunk开始的block，用<code>5*blockSize</code>就可以定为到chunk在file中的offset</li>
+<li><code>len:1</code>:chunk的长度，单位为block</li>
+<li><code>map:c</code>：最新的map的id，这里是16进制，每新建一个Map都会分配一个id，自增的，其实我觉得是记录map的个数</li>
+<li><code>max:980</code>:每个Page有个MaxLen（见下面Page的格式)，这里是chunk中所有的maxLen加起来的值</li>
+<li><code>next:6</code>：预测的下一个chunk的开始位置，单位为block</li>
+<li><code>pages:5</code>：此chunk中的包含的page的个数</li>
+<li><code>root:14000016194</code>: MetaMap Root Page的位置，但不是指在文件中的绝对位置，参见Page中的Children编码，一般是chunkId+offset来表示</li>
+<li><code>time:102cc</code>：时间戳，16进制，从文件创建后到chunk写入的时间差</li>
+<li><code>version:5</code>：版本号，一般来说一个commit就会创建一个chunk，每个chunk都是一个新的版本号，这里的chunk包含的数据版本是5</li>
+</ul>
+<p>除了上面这些，可能还有</p>
+<ul>
+<li><code>liveMax</code>:  回去看max的含义，是每个Page的MaxLen的和，就是无论这个Page是否还被使用，liveMax就是所有还在被使用的Page的MaxLen的和</li>
+<li><code>livePages</code>：和上面的Pages的对应，也是还在被使用的Page的个数，而Pages统计的是所有<br>那么统计上面这个两个参数有啥含义呢，当我们回收一个Chunk的时候，如果其中Pages很多，但是目前还在被使用的极少，那么就会进行compact，把还在使用的移动到新的Chunk中，然后回收这个Chunk</li>
+</ul>
+<p>footer的信息和header其实和一部分是一样的<br>写入footer我感觉是为了文件初始化的时候直接从文件末尾开始构建MetaMap准备的<br><code>chunk:5,block:5,version:5,checkSum:{checkSum}</code></p>
+<h2 id="Page"><a href="#Page" class="headerlink" title="Page"></a>Page</h2><p><code>page</code><br>page是进行数据读写和操作的最小单位<br>但是和其他的框架中的Page定义不同的是，这里的<strong>page的大小并不一定</strong>，虽然不固定，但是也有一个阈值的<br>当超过阈值条件后，会进行页分裂，关于页分裂的参见下文</p>
+<p>每一个Map的底层都是一个B+树，然后每一个节点都是一个Page<br>但是其实不是标准的B+树，是一种变形，叫<code>Counted B+ Tree</code><br>这个奇怪的结构，网上并没有找到介绍，但是其实就是进行了B+Tree的优化<br>参见我的另一个文章<strong>Counted-B+Tree原理</strong></p>
+<p>一个Page的结构是<br><code>[length][checkSum][mapId][len][type][children][childCount][keys][values]</code></p>
+<ul>
+<li><code>length</code>：page的大小，int类型</li>
+<li><code>checkSum</code>: checkSum，计算方式是<code>chunkId ^ page在chunk中的offset ^ length</code>，short类型</li>
+<li><code>mapId</code>：page所属的map的id，variable size int类型 </li>
+<li><code>len</code>：key的个数，variable size int类型</li>
+<li><code>type</code>：page的类型，0代表叶子节点，1代表内部节点，如果值+2了表示key和value进行了LZF压缩，如果值+6表示key和value进行了Deflate压缩，byte类型</li>
+<li><code>children</code>：long[]类型，值为子节点的位置，其中<ul>
+<li>26bit为chunkId，</li>
+<li>32bit为page在chunk中的offset，</li>
+<li>5bit位lengthCode，标志page的maxLen<ul>
+<li>0 =&gt; 32bytes</li>
+<li>1 =&gt; 48bytes</li>
+<li>2 =&gt; 64bytes</li>
+<li>3 =&gt; 96bytes</li>
+<li>…</li>
+</ul>
+</li>
+<li>1bit为children的type，叶子节点还是内部节点</li>
+</ul>
+</li>
+<li><code>childCount</code>：表示子节点中的key个数，类型是variable size long数组</li>
+<li><code>keys</code>:放的是key，byte[]类型</li>
+<li><code>values</code>：只有子节点有，放的是值，byte[]类型</li>
+</ul>
+<p>问：为什么不用绝对位置的信息来存放Page的位置呢<br>答：这样灵活性更大，可以移动整个chunk而不用进行Page位置的修改<br>问：什么时候会移动Chunk呢<br>答：目前没看到</p>
+<h1 id="metaMap"><a href="#metaMap" class="headerlink" title="metaMap"></a>metaMap</h1><p>在文件初始化的时候，会创建一个metaMap<br>这个Map中存放的是文件的一些元信息<br>每次Chunk进行写入的时候，最后写入metaMap的Page的信息</p>
+<p>metaMap中存放着这些信息</p>
+<ul>
+<li><code>name.{mapName}</code> =&gt; mapId，由map的名字对应MapId，mapId是16进制</li>
+<li><code>map.{id}</code> =&gt; <code>name:{mapName}</code></li>
+<li><code>root.{mapId}</code>：mapId所指的map的RootPage的位置</li>
+<li><code>chunk.{chunkId}</code> =&gt; <code>chunk:2,block:3,len:1,liveMax:100,livePages:1,map:1,max:3c0,next:4,pages:5,root:800000be0a,time:824,version:2</code> 表示chunk为id的信息</li>
+</ul>
+<p>但是整个MVStore会进行GC的，就是定期清除那些有用的Page不多的Chunk，然后把空出来的空间放新的Chunk。<br>这就导致了一个问题，就是<strong>最新的Chunk不一定就是就在文件的最后</strong><br>所以怎么找到最新的MetaMap的地址呢<br>记得每个Chunk里有个next的KV吗，在MVStore进行初始化的时候，会直接读取最后一个Chunk，然后依次根据他的next值寻找下去，从而找到最后一个Chunk。</p>
+<h1 id="文件新建"><a href="#文件新建" class="headerlink" title="文件新建"></a>文件新建</h1><p>h2抽象出了操作文件接口和上层的业务<br>文件的实现都是在<code>org.h2.store.fs.*</code>中，读写接口是FileChannel。<br>当我们调用</p>
+<p><code>MVStore s = MVStore.open(&quot;/Users/zhuyichen/h2/data.mv&quot;);</code></p>
+<p>时，MVStore会打开一个新的文件，当然是文件不存在的时候<br>写上<code>file header</code>部分，写两份<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">storeHeader.put(<span class="string">"H"</span>, <span class="number">2</span>);</span><br><span class="line">storeHeader.put(<span class="string">"blockSize"</span>, BLOCK_SIZE); <span class="comment">//BLOCK_SIZE = 4 * 1024</span></span><br><span class="line">storeHeader.put(<span class="string">"format"</span>, FORMAT_WRITE);  <span class="comment">//FORMAT_WRITE = 1</span></span><br><span class="line">storeHeader.put(<span class="string">"created"</span>, creationTime);</span><br></pre></td></tr></table></figure></p>
+<h1 id="文件打开"><a href="#文件打开" class="headerlink" title="文件打开"></a>文件打开</h1><p>如果是打开旧的文件，那么会分为下面几个步骤</p>
+<ul>
+<li>读取Header信息</li>
+<li>读取最后一个Chunk的Footer信息</li>
+<li>读取最后一个Chunk的Header信息</li>
+<li>定位MetaMap的位置</li>
+<li>读取MetaMap的信息，定位所有Map的RootPage的信息</li>
+</ul>
+<p>所以其实整个核心就是找到MetaMap的位置，然后读取，只要得到MetaMap的信息，就可以找到所有的Map的位置了</p>
+<p>这里还是略复杂，为了讲清楚，我们举例子<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">MVStore s = MVStore.open(<span class="string">"/Users/zhuyichen/h2/data.mv"</span>);</span><br><span class="line">MVMap&lt;Integer, String&gt; map1 = s.openMap(<span class="string">"data1"</span>);</span><br><span class="line">MVMap&lt;Integer, String&gt; map2 = s.openMap(<span class="string">"data2"</span>);</span><br><span class="line"><span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; <span class="number">100</span>; i++) &#123;</span><br><span class="line">    map1.put(i, <span class="string">"Hello1"</span>);</span><br><span class="line">    map2.put(i, <span class="string">"hello2"</span>);</span><br><span class="line">&#125;</span><br><span class="line">s.commit();</span><br><span class="line"></span><br><span class="line"><span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; <span class="number">50</span>; i++) &#123;</span><br><span class="line">    map1.put(i, <span class="string">"hi1"</span>);</span><br><span class="line">    map2.put(i, <span class="string">"hi2"</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">s.close();</span><br></pre></td></tr></table></figure></p>
+<p>我们在运行上面的代码之后，会产生两个Chunk<br><img src="/images/mvstore/fileformat2.png" alt=""><br>如上图<br>第一个Chunk中包含了两个B+树  每一个RootPage包含四个Leaf Page<br>在第二次修改中，我们只修改了50个元素，所以没有动到第4个Leaf Page的数据<br>当我们进行commit之后，只save了3个Page，第4个没有动Page，我们还是指向了Chunk1的数据  具体的基于Page的B+树，请看下面</p>
+<p>这里我们知道了文件的布局，下面看看文件的打开流程<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">MVStore s = MVStore.open(<span class="string">"/Users/zhuyichen/h2/data.mv"</span>);</span><br></pre></td></tr></table></figure></p>
+<p>当我们调用这句话的时候</p>
+<h1 id="新建Map"><a href="#新建Map" class="headerlink" title="新建Map"></a>新建Map</h1><p>打开文件之后，新建一个Map实例</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">MVMap&lt;String, String&gt; map = mvStore.openMap(<span class="string">"data"</span>);</span><br></pre></td></tr></table></figure>
+<p>其实还有第二个参数，是Map的一些可配置参数<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">MVMap.Builder&lt;Integer, String&gt; mvMapConfig = <span class="keyword">new</span> MVMap.Builder&lt;&gt;();</span><br><span class="line">MVMap&lt;Integer, String&gt; map = s.openMap(<span class="string">"data1"</span>, mvMapConfig);</span><br></pre></td></tr></table></figure></p>
+<p>参数列表</p>
+<ul>
+<li>keyType:  默认是ObjectDataType</li>
+<li>valueType:  默认是ObjectDataType</li>
+<li>singleWriter: </li>
+</ul>
+<p>我们假设文件是新建的，也就是metaMap中查询不到这个Map的信息<br>然后会给这个Map分配一个唯一的ID<br>然后向metaMap中写入自己的信息</p>
+<p>然后新建一个空Leaf作为Map的RootPage，keys和values都是长度为0的数组</p>
+<h1 id="基于Page的B-树"><a href="#基于Page的B-树" class="headerlink" title="基于Page的B+树"></a>基于Page的B+树</h1><p>每个Page上能放的key的个数是限制的</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">map.put(<span class="string">"key1"</span>, <span class="string">"value1"</span>);</span><br></pre></td></tr></table></figure>
+<p>假设我们这么进行写入<br>假设我们是新打开的Map，那么此时Map上只有一个空的Leaf数组  </p>
+<p>在进行写入之前，会对整个MVStore进行一个检查，检查文件的有效性<br>类似于JVM会检查Class文件的MagicWord，cafebabe一样。</p>
+<p>下面就是查找过程，由于是Empty-Leaf，所以找到的index是-1。<br>继而把这个Leaf进行扩容，把<code>key1</code>放到Page对应的keys数组中<br>既然扩容values，把<code>value1</code>放到数组中</p>
+<h2 id="页分裂"><a href="#页分裂" class="headerlink" title="页分裂"></a>页分裂</h2><p>页分裂的条件<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">(keyCount = p.getKeyCount()) &gt; store.getKeysPerPage() || </span><br><span class="line">p.getMemory() &gt; store.getMaxPageSize() &amp;&amp; keyCount &gt; (p.isLeaf() ? <span class="number">1</span> : <span class="number">2</span>)</span><br></pre></td></tr></table></figure></p>
+<p>看起来还是挺简单的</p>
+<p>store.getKeysPerPage默认是48<br>store.getMaxPageSize和Cache有关，不过默认是64K<br>如果Page是Leaf的话，还必须至少有一个Value，是Node的话，至少有两个子节点<br>但是我理解的话，如果是因为内存过大而分裂，那么Node节点其实是不太可能的</p>
+<h1 id="持久化流程"><a href="#持久化流程" class="headerlink" title="持久化流程"></a>持久化流程</h1><p>和正常的数据库一样，当我们读取和写入数据的时候，都会先从磁盘上把该数据所在的Page加载到内存中<br>然后持久化的最小单位也是Page<br>也就是说，如果Chunk 1中的Leaf Page中有48个KeyValue，但是我们只修改了<strong>一个Value</strong>，然后整个Page还是会持久化到Chunk 2中  </p>
+<h2 id="手动持久化"><a href="#手动持久化" class="headerlink" title="手动持久化"></a>手动持久化</h2><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">mvStore.commit();</span><br><span class="line">mvStore.close();</span><br></pre></td></tr></table></figure>
+<p>当我们手动进行commit或者直接close的时候，其实就是告诉MVStore进行一次Version的持久化<br>结果就是创建一个<code>Version = currentVersion</code>的Chunk</p>
+<p>写chunk的时候，首先写入header<br>然后开始写Page的信息</p>
+<p>写完用户的Map的Page信息之后，最后写入MetaMap的Pages</p>
+<h2 id="后台定时持久化"><a href="#后台定时持久化" class="headerlink" title="后台定时持久化"></a>后台定时持久化</h2><p>在MVStore进行初始化之后，会启动一个后台线程<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> <span class="class"><span class="keyword">class</span> <span class="title">BackgroundWriterThread</span> <span class="keyword">extends</span> <span class="title">Thread</span> </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">run</span><span class="params">()</span> </span>&#123;</span><br><span class="line">            <span class="keyword">while</span> (store.backgroundWriterThread != <span class="keyword">null</span>) &#123;</span><br><span class="line">                <span class="keyword">synchronized</span> (sync) &#123;</span><br><span class="line">                    <span class="keyword">try</span> &#123;</span><br><span class="line">                        sync.wait(sleep);</span><br><span class="line">                    &#125; <span class="keyword">catch</span> (InterruptedException ignore) &#123;</span><br><span class="line">                    &#125;</span><br><span class="line">                &#125;</span><br><span class="line">                <span class="keyword">if</span> (store.backgroundWriterThread == <span class="keyword">null</span>) &#123;</span><br><span class="line">                    <span class="keyword">break</span>;</span><br><span class="line">                &#125;</span><br><span class="line">                store.writeInBackground();</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>同时传递给它一个sleep的time，每隔sleepTime，就进行一次commit，默认的sleep的时间是1000ms<br>当他醒来之后，如果发现数据有改变，就会进行一次commit</p>
+<p>由于时间很短，所以正常情况下，不需要手动进行commit</p>
+<p>在我们调用<code>MVStore#close</code>的时候，也会调用一次进行commit</p>
+<h1 id="GC"><a href="#GC" class="headerlink" title="GC"></a>GC</h1><p>随着使用时间变长，肯定不会没有限制的创建Chunk的，MVStore也有回收机制，去回收很久之前的版本的Chunk<br>在官方文档中写的是</p>
+<blockquote>
+<p>Old data is kept for at least 45 seconds (configurable), so that there are no explicit sync operations required to guarantee data consistency. An application can also sync explicitly when needed. To reuse disk space, the chunks with the lowest amount of live data are compacted (the live data is stored again in the next chunk). To improve data locality and disk space usage, the plan is to automatically defragment and compact data.  </p>
+</blockquote>
+<p>我们知道MVStore不会保存所有的Version，很久之前的Version肯定会清除<br>那么就需要一个文件空间标记机制，标记那一块没有被使用已经被Free了，然后下面的Chunk进行写入的时候，可以复写那一块磁盘地址  </p>
+<p>这个机制在MVStore的底层文件操作类FileStore中<br>底层使用了BitSet来表示，单位为BLOCK_SIZE<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line">#FileStore</span><br><span class="line"><span class="keyword">protected</span> <span class="keyword">final</span> FreeSpaceBitSet freeSpace =</span><br><span class="line">            <span class="keyword">new</span> FreeSpaceBitSet(<span class="number">2</span>, MVStore.BLOCK_SIZE);</span><br><span class="line">            </span><br><span class="line">            </span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">markUsed</span><span class="params">(<span class="keyword">long</span> pos, <span class="keyword">int</span> length)</span> </span>&#123;</span><br><span class="line">        freeSpace.markUsed(pos, length);</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line"><span class="comment">//这个是核心方法，从FileStore中寻找length长度的位置</span></span><br><span class="line"><span class="comment">//注意，不是直接从文件末尾找一块地方</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">long</span> <span class="title">allocate</span><span class="params">(<span class="keyword">int</span> length)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> freeSpace.allocate(length);</span><br><span class="line">    &#125;</span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">long</span> <span class="title">predictAllocation</span><span class="params">(<span class="keyword">int</span> length)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> freeSpace.predictAllocation(length);</span><br><span class="line">    &#125;</span><br><span class="line"><span class="comment">//free从pos开始的空间</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">free</span><span class="params">(<span class="keyword">long</span> pos, <span class="keyword">int</span> length)</span> </span>&#123;</span><br><span class="line">        freeSpace.free(pos, length);</span><br><span class="line">    &#125;</span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">int</span> <span class="title">getFillRate</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> freeSpace.getFillRate();</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="function"><span class="keyword">long</span> <span class="title">getFirstFree</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> freeSpace.getFirstFree();</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="function"><span class="keyword">long</span> <span class="title">getFileLengthInUse</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> freeSpace.getLastFree();</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure></p>
+<p>在我们进行store的时候<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">MVStore#storeNow()</span><br><span class="line"><span class="keyword">long</span> filePos = allocateFileSpace(length, !reuseSpace);</span><br></pre></td></tr></table></figure></p>
+<p>就能看到分配的逻辑在里面</p>
+<p>同时我们还能看到Free的方法在里面，就是标记一块Chunk所在的地方已经可以进行reuse<br>那么怎么进行判定了，从上图我们可以知道其实即使在Chunk2中，还是有Page是引用的Chunk1</p>
+<p>MVStore解决的方法也比较简单，就是DFS<br>遍历所有的Map的Node和Page，找到一个Chunk，就把ChunkId放在一个Map中，最后遍历当前文件中的所有Chunk，如果在Map中未找到，那么就是可以回收的<br>有点类似引用计数的方法，但是会不会出现循环引用呢<br>由于所有的Map的RootMap都是存在最新的Chunk中，所有不会出现循环引用的情况</p>
+<p>方法在<code>MVStore#collectReferencedChunks</code><br>这里为了加速DFS的速度，还启动了一个线程池</p>
+<p>带来的问题：<br>GC的机制也带来了问题，就是最新的Chunk在哪儿的问题<br>我们知道如果真的是Log Structed FS的格式的话，那么最新写入的肯定是在最后，而MetaMap的Root Page是在最新的Chunk中的<br>所以我们需要一个机制在打开文件的时候，找到最新的Chunk的位置<br>这个查找的过程，前面已经描述了一遍了</p>
+<h1 id="Compact"><a href="#Compact" class="headerlink" title="Compact"></a>Compact</h1><p>当一个Chunk中LivePages比较少的时候，H2会进行Compact<br><figure class="highlight"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">MVStore#compact</span><br></pre></td></tr></table></figure></p>
+<p>Compact的方式<br>我只能表示非常的tricky<br>把LivePages中比较少的Page上的数据，全部replace了一遍，这样Chunk1指向chunk0的数据相当于全部update了一遍，但是数据没有变化</p>
+<p>等Compact完之后，再进行上面一步</p>
+<h1 id="Page-Cache"><a href="#Page-Cache" class="headerlink" title="Page Cache"></a>Page Cache</h1><p>Page的Cache机制不是LRU，而是LIRS<br>说实话这种Cache机制我是第一次见</p>
+<h1 id="Debug技巧"><a href="#Debug技巧" class="headerlink" title="Debug技巧"></a>Debug技巧</h1><h2 id="源码环境导入Idea"><a href="#源码环境导入Idea" class="headerlink" title="源码环境导入Idea"></a>源码环境导入Idea</h2><p>会出现提示<code>configure OSGI</code>，<strong>别点</strong></p>
+<h2 id="dump-file"><a href="#dump-file" class="headerlink" title="dump file"></a>dump file</h2><p>如果想要观察Commit发生了什么<br>可以把<code>BackgroundWriterThread</code>给关闭了，防止在背后每隔1s自己<code>commit</code><br>h2的作者提供了一个dump方法<br><code>MVStoreTool.dump()</code><br>可以把文件的内容打印出来</p>
+<h1 id="PR"><a href="#PR" class="headerlink" title="PR"></a>PR</h1><p>在阅读MVStore源码的过程中，还发现了一个comment的错误<br>已经提了PR进行了修复</p>
+<h1 id="参考文档"><a href="#参考文档" class="headerlink" title="参考文档"></a>参考文档</h1><ul>
+<li><a href="http://www.h2database.com/html/mvstore.html" target="_blank" rel="noopener">http://www.h2database.com/html/mvstore.html</a></li>
+<li><a href="https://en.wikipedia.org/wiki/Variable-length_quantity" target="_blank" rel="noopener">https://en.wikipedia.org/wiki/Variable-length_quantity</a></li>
+</ul>
+
+  </div>
+  <div class="post-copyright">
+      <p class="copyright-item">
+          <span>许可协议: </span>
+          <a rel="license" href="http://creativecommons.org/licenses/by-nc/4.0/" target="_blank">知识共享署名-非商业性使用 4.0 国际许可协议</a>
+        </p>
+  </div>
+</article>
+
+    <div class="blog-post-comments">
+        <div id="disqus_thread">
+            <noscript>Please enable JavaScript to view the comments.</noscript>
+        </div>
+    </div>
+
+
+
+        
+          <div id="footer-post-container">
+  <div id="footer-post">
+
+    <div id="nav-footer" style="display: none">
+      <ul>
+         
+          <li><a href="/">Home</a></li>
+         
+          <li><a href="/about/">About</a></li>
+         
+          <li><a href="/archives/">Writing</a></li>
+         
+          <li><a href="/tags/">Tags</a></li>
+         
+          <li><a href="/movies/index.html">Movie</a></li>
+         
+          <li><a href="/books/index.html">Books</a></li>
+        
+      </ul>
+    </div>
+
+    <div id="toc-footer" style="display: none">
+      <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#前言"><span class="toc-number">1.</span> <span class="toc-text">前言</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#简单使用"><span class="toc-number">2.</span> <span class="toc-text">简单使用</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#文件格式"><span class="toc-number">3.</span> <span class="toc-text">文件格式</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#总体"><span class="toc-number">3.1.</span> <span class="toc-text">总体</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Chunk"><span class="toc-number">3.2.</span> <span class="toc-text">Chunk</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Page"><span class="toc-number">3.3.</span> <span class="toc-text">Page</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#metaMap"><span class="toc-number">4.</span> <span class="toc-text">metaMap</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#文件新建"><span class="toc-number">5.</span> <span class="toc-text">文件新建</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#文件打开"><span class="toc-number">6.</span> <span class="toc-text">文件打开</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#新建Map"><span class="toc-number">7.</span> <span class="toc-text">新建Map</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#基于Page的B-树"><span class="toc-number">8.</span> <span class="toc-text">基于Page的B+树</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#页分裂"><span class="toc-number">8.1.</span> <span class="toc-text">页分裂</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#持久化流程"><span class="toc-number">9.</span> <span class="toc-text">持久化流程</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#手动持久化"><span class="toc-number">9.1.</span> <span class="toc-text">手动持久化</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#后台定时持久化"><span class="toc-number">9.2.</span> <span class="toc-text">后台定时持久化</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#GC"><span class="toc-number">10.</span> <span class="toc-text">GC</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#Compact"><span class="toc-number">11.</span> <span class="toc-text">Compact</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#Page-Cache"><span class="toc-number">12.</span> <span class="toc-text">Page Cache</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#Debug技巧"><span class="toc-number">13.</span> <span class="toc-text">Debug技巧</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#源码环境导入Idea"><span class="toc-number">13.1.</span> <span class="toc-text">源码环境导入Idea</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#dump-file"><span class="toc-number">13.2.</span> <span class="toc-text">dump file</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#PR"><span class="toc-number">14.</span> <span class="toc-text">PR</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#参考文档"><span class="toc-number">15.</span> <span class="toc-text">参考文档</span></a></li></ol>
+    </div>
+
+    <div id="share-footer" style="display: none">
+      <ul>
+  <li><a class="icon" href="http://www.facebook.com/sharer.php?u=http://zhyzhyzhy.github.io/2019/02/18/H2database的MVStore解析/"><i class="fab fa-facebook fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://twitter.com/share?url=http://zhyzhyzhy.github.io/2019/02/18/H2database的MVStore解析/&text=h2database的MVStore解析"><i class="fab fa-twitter fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://www.linkedin.com/shareArticle?url=http://zhyzhyzhy.github.io/2019/02/18/H2database的MVStore解析/&title=h2database的MVStore解析"><i class="fab fa-linkedin fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://pinterest.com/pin/create/bookmarklet/?url=http://zhyzhyzhy.github.io/2019/02/18/H2database的MVStore解析/&is_video=false&description=h2database的MVStore解析"><i class="fab fa-pinterest fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=h2database的MVStore解析&body=Check out this article: http://zhyzhyzhy.github.io/2019/02/18/H2database的MVStore解析/"><i class="fas fa-envelope fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://getpocket.com/save?url=http://zhyzhyzhy.github.io/2019/02/18/H2database的MVStore解析/&title=h2database的MVStore解析"><i class="fab fa-get-pocket fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://reddit.com/submit?url=http://zhyzhyzhy.github.io/2019/02/18/H2database的MVStore解析/&title=h2database的MVStore解析"><i class="fab fa-reddit fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://www.stumbleupon.com/submit?url=http://zhyzhyzhy.github.io/2019/02/18/H2database的MVStore解析/&title=h2database的MVStore解析"><i class="fab fa-stumbleupon fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://digg.com/submit?url=http://zhyzhyzhy.github.io/2019/02/18/H2database的MVStore解析/&title=h2database的MVStore解析"><i class="fab fa-digg fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://www.tumblr.com/share/link?url=http://zhyzhyzhy.github.io/2019/02/18/H2database的MVStore解析/&name=h2database的MVStore解析&description=&lt;h1 id=&quot;前言&quot;&gt;&lt;a href=&quot;#前言&quot; class=&quot;headerlink&quot; title=&quot;前言&quot;&gt;&lt;/a&gt;前言&lt;/h1&gt;&lt;p&gt;MVStore是h2数据库的底层的存储文件格式&lt;br&gt;在1.4版本之前底层的文件存储都是&lt;code&gt;org.h2.store.*&lt;/code&gt;包中的&lt;br&gt;然后1.4之后默认改为了&lt;code&gt;org.h2.mvstore.*&lt;/code&gt;包中的  &lt;/p&gt;
+&lt;p&gt;官方的介绍说是根据&lt;code&gt;Log Structed FS&lt;/code&gt;设计的，顺序写提高性能&lt;/p&gt;
+&lt;p&gt;MV的意思是&lt;code&gt;multi-version&lt;/code&gt;&lt;/p&gt;
+&lt;p&gt;同类型的项目有个叫&lt;code&gt;mapDB&lt;/code&gt;的项目&lt;br&gt;&lt;a href=&quot;https://github.com/jankotek/mapdb&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;&gt;https://github.com/jankotek/mapdb&lt;/a&gt;  &lt;/p&gt;
+&lt;p&gt;还有一个Apache的项目&lt;code&gt;mavibot&lt;/code&gt;&lt;br&gt;&lt;a href=&quot;http://directory.apache.org/mavibot/downloads.html&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;&gt;http://directory.apache.org/mavibot/downloads.html&lt;/a&gt;  &lt;/p&gt;"><i class="fab fa-tumblr fa-lg" aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+
+    <div id="actions-footer">
+        <a id="menu" class="icon" href="#" onclick="$('#nav-footer').toggle();return false;"><i class="fas fa-bars fa-lg" aria-hidden="true"></i> Menu</a>
+        <a id="toc" class="icon" href="#" onclick="$('#toc-footer').toggle();return false;"><i class="fas fa-list fa-lg" aria-hidden="true"></i> TOC</a>
+        <a id="share" class="icon" href="#" onclick="$('#share-footer').toggle();return false;"><i class="fas fa-share-alt fa-lg" aria-hidden="true"></i> Share</a>
+        <a id="top" style="display:none" class="icon" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fas fa-chevron-up fa-lg" aria-hidden="true"></i> Top</a>
+    </div>
+
+  </div>
+</div>
+
+        
+        <footer id="footer">
+  <div class="footer-left">
+    Copyright &copy; 2019 zhy
+  </div>
+  <div class="footer-right">
+    <nav>
+      <ul>
+         
+          <li><a href="/">Home</a></li>
+         
+          <li><a href="/about/">About</a></li>
+         
+          <li><a href="/archives/">Writing</a></li>
+         
+          <li><a href="/tags/">Tags</a></li>
+         
+          <li><a href="/movies/index.html">Movie</a></li>
+         
+          <li><a href="/books/index.html">Books</a></li>
+        
+      </ul>
+    </nav>
+  </div>
+</footer>
+
+    </div>
+</body>
+</html>
+<!-- styles -->
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+<link rel="stylesheet" href="/lib/justified-gallery/css/justifiedGallery.min.css">
+
+<!-- jquery -->
+<script src="/lib/jquery/jquery.min.js"></script>
+<script src="/lib/justified-gallery/js/jquery.justifiedGallery.min.js"></script>
+<script src="/js/main.js"></script>
+<!-- search -->
+
+<!-- Google Analytics -->
+
+    <script type="text/javascript">
+        (function(i,s,o,g,r,a,m) {i['GoogleAnalyticsObject']=r;i[r]=i[r]||function() {
+        (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+        m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+        })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+        ga('create', 'UA-125642214-1', 'auto');
+        ga('send', 'pageview');
+    </script>
+
+<!-- Baidu Analytics -->
+
+    <script type="text/javascript">
+        var _hmt = _hmt || [];
+        (function() {
+            var hm = document.createElement("script");
+            hm.src = "https://hm.baidu.com/hm.js?c1f963571cb3d8a4a5dc82346dc65842";
+            var s = document.getElementsByTagName("script")[0];
+            s.parentNode.insertBefore(hm, s);
+        })();
+    </script>
+
+<!-- Disqus Comments -->
+
+    <script type="text/javascript">
+        var disqus_shortname = 'blog-lovezhy-cc-1';
+
+        (function(){
+            var dsq = document.createElement('script');
+            dsq.type = 'text/javascript';
+            dsq.async = true;
+            dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+            (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+        }());
+    </script>
+
+

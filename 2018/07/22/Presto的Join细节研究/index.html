@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang=zh>
+<head><meta name="generator" content="Hexo 3.8.0">
+    <!-- so meta -->
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="HandheldFriendly" content="True">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <meta name="description" content="前言Presto的Join操作可以说是极为复杂的几个步骤之一加上又无其文档和注释，所以想要了解其细节需要自己去耐心的阅读源码笔者进行了一些研究后，进行了一些自己的理解的整理总结出来，希望对你有用">
+<meta name="keywords" content="Presto">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Presto的Join的细节研究">
+<meta property="og:url" content="http://zhyzhyzhy.github.io/2018/07/22/Presto的Join细节研究/index.html">
+<meta property="og:site_name" content="LoveZhy">
+<meta property="og:description" content="前言Presto的Join操作可以说是极为复杂的几个步骤之一加上又无其文档和注释，所以想要了解其细节需要自己去耐心的阅读源码笔者进行了一些研究后，进行了一些自己的理解的整理总结出来，希望对你有用">
+<meta property="og:locale" content="zh-cn">
+<meta property="og:image" content="http://zhyzhyzhy.github.io/images/presto-join/demo1.png">
+<meta property="og:image" content="http://zhyzhyzhy.github.io/images/presto-join/demo2.png">
+<meta property="og:image" content="http://zhyzhyzhy.github.io/images/presto-join/demo3.png">
+<meta property="og:image" content="http://zhyzhyzhy.github.io/images/presto-join/demo4.png">
+<meta property="og:image" content="http://zhyzhyzhy.github.io/images/presto-join/demo5.png">
+<meta property="og:image" content="http://zhyzhyzhy.github.io/images/presto-join/demo6.png">
+<meta property="og:image" content="http://zhyzhyzhy.github.io/images/presto-join/demo7.png">
+<meta property="og:image" content="http://zhyzhyzhy.github.io/images/presto-join/demo8.png">
+<meta property="og:updated_time" content="2018-09-12T16:17:02.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Presto的Join的细节研究">
+<meta name="twitter:description" content="前言Presto的Join操作可以说是极为复杂的几个步骤之一加上又无其文档和注释，所以想要了解其细节需要自己去耐心的阅读源码笔者进行了一些研究后，进行了一些自己的理解的整理总结出来，希望对你有用">
+<meta name="twitter:image" content="http://zhyzhyzhy.github.io/images/presto-join/demo1.png">
+    
+    
+        
+          
+              <link rel="shortcut icon" href="/images/favicon.ico">
+          
+        
+        
+          
+            <link rel="icon" type="image/png" href="/images/favicon-192x192.png" sizes="192x192">
+          
+        
+        
+          
+            <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
+          
+        
+    
+    <!-- title -->
+    <title>Presto的Join的细节研究</title>
+    <!-- styles -->
+    <link rel="stylesheet" href="/css/style.css">
+    <!-- persian styles -->
+    
+      <link rel="stylesheet" href="/css/rtl.css">
+    
+    <!-- rss -->
+    
+    
+</head>
+
+<body class="max-width mx-auto px3 ltr">    
+      <div id="header-post">
+  <a id="menu-icon" href="#"><i class="fas fa-bars fa-lg"></i></a>
+  <a id="menu-icon-tablet" href="#"><i class="fas fa-bars fa-lg"></i></a>
+  <a id="top-icon-tablet" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');" style="display:none;"><i class="fas fa-chevron-up fa-lg"></i></a>
+  <span id="menu">
+    <span id="nav">
+      <ul>
+         
+          <li><a href="/">Home</a></li>
+         
+          <li><a href="/about/">About</a></li>
+         
+          <li><a href="/archives/">Writing</a></li>
+         
+          <li><a href="/tags/">Tags</a></li>
+         
+          <li><a href="/movies/index.html">Movie</a></li>
+         
+          <li><a href="/books/index.html">Books</a></li>
+        
+      </ul>
+    </span>
+    <br>
+    <span id="actions">
+      <ul>
+        
+        <li><a class="icon" href="/2018/08/27/从Netty的Connect到lookupAllHostAddr/"><i class="fas fa-chevron-left" aria-hidden="true" onmouseover="$('#i-prev').toggle();" onmouseout="$('#i-prev').toggle();"></i></a></li>
+        
+        
+        <li><a class="icon" href="/2018/07/21/Guava库学习之Collections/"><i class="fas fa-chevron-right" aria-hidden="true" onmouseover="$('#i-next').toggle();" onmouseout="$('#i-next').toggle();"></i></a></li>
+        
+        <li><a class="icon" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fas fa-chevron-up" aria-hidden="true" onmouseover="$('#i-top').toggle();" onmouseout="$('#i-top').toggle();"></i></a></li>
+        <li><a class="icon" href="#"><i class="fas fa-share-alt" aria-hidden="true" onmouseover="$('#i-share').toggle();" onmouseout="$('#i-share').toggle();" onclick="$('#share').toggle();return false;"></i></a></li>
+      </ul>
+      <span id="i-prev" class="info" style="display:none;">Previous post</span>
+      <span id="i-next" class="info" style="display:none;">Next post</span>
+      <span id="i-top" class="info" style="display:none;">Back to top</span>
+      <span id="i-share" class="info" style="display:none;">Share post</span>
+    </span>
+    <br>
+    <div id="share" style="display: none">
+      <ul>
+  <li><a class="icon" href="http://www.facebook.com/sharer.php?u=http://zhyzhyzhy.github.io/2018/07/22/Presto的Join细节研究/"><i class="fab fa-facebook " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://twitter.com/share?url=http://zhyzhyzhy.github.io/2018/07/22/Presto的Join细节研究/&text=Presto的Join的细节研究"><i class="fab fa-twitter " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://www.linkedin.com/shareArticle?url=http://zhyzhyzhy.github.io/2018/07/22/Presto的Join细节研究/&title=Presto的Join的细节研究"><i class="fab fa-linkedin " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://pinterest.com/pin/create/bookmarklet/?url=http://zhyzhyzhy.github.io/2018/07/22/Presto的Join细节研究/&is_video=false&description=Presto的Join的细节研究"><i class="fab fa-pinterest " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=Presto的Join的细节研究&body=Check out this article: http://zhyzhyzhy.github.io/2018/07/22/Presto的Join细节研究/"><i class="fas fa-envelope " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://getpocket.com/save?url=http://zhyzhyzhy.github.io/2018/07/22/Presto的Join细节研究/&title=Presto的Join的细节研究"><i class="fab fa-get-pocket " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://reddit.com/submit?url=http://zhyzhyzhy.github.io/2018/07/22/Presto的Join细节研究/&title=Presto的Join的细节研究"><i class="fab fa-reddit " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://www.stumbleupon.com/submit?url=http://zhyzhyzhy.github.io/2018/07/22/Presto的Join细节研究/&title=Presto的Join的细节研究"><i class="fab fa-stumbleupon " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://digg.com/submit?url=http://zhyzhyzhy.github.io/2018/07/22/Presto的Join细节研究/&title=Presto的Join的细节研究"><i class="fab fa-digg " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://www.tumblr.com/share/link?url=http://zhyzhyzhy.github.io/2018/07/22/Presto的Join细节研究/&name=Presto的Join的细节研究&description=&lt;h2 id=&quot;前言&quot;&gt;&lt;a href=&quot;#前言&quot; class=&quot;headerlink&quot; title=&quot;前言&quot;&gt;&lt;/a&gt;前言&lt;/h2&gt;&lt;p&gt;Presto的Join操作可以说是极为复杂的几个步骤之一&lt;br&gt;加上又无其文档和注释，所以想要了解其细节需要自己去耐心的阅读源码&lt;br&gt;笔者进行了一些研究后，进行了一些自己的理解的整理&lt;br&gt;总结出来，希望对你有用&lt;/p&gt;"><i class="fab fa-tumblr " aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+    <div id="toc">
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#前言"><span class="toc-number">1.</span> <span class="toc-text">前言</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Partition和Broadcast"><span class="toc-number">2.</span> <span class="toc-text">Partition和Broadcast</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#DistributionType"><span class="toc-number">3.</span> <span class="toc-text">DistributionType</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Probe和Build"><span class="toc-number">4.</span> <span class="toc-text">Probe和Build</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Merge-Join和NestLoopJoin"><span class="toc-number">5.</span> <span class="toc-text">Merge Join和NestLoopJoin</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Join流程"><span class="toc-number">6.</span> <span class="toc-text">Join流程</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#FastInequalityJoin"><span class="toc-number">7.</span> <span class="toc-text">FastInequalityJoin</span></a></li></ol>
+    </div>
+  </span>
+</div>
+
+    
+    <div class="content index py4">
+        
+        <article class="post" itemscope="" itemtype="http://schema.org/BlogPosting">
+  <header>
+    
+    <h1 class="posttitle" itemprop="name headline">
+        Presto的Join的细节研究
+    </h1>
+
+
+
+    <div class="meta">
+      <span class="author" itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+        <span itemprop="name">LoveZhy</span>
+      </span>
+      
+    <div class="postdate">
+      
+        <time datetime="2018-07-21T16:00:00.000Z" itemprop="datePublished">2018-07-22</time>
+        
+      
+    </div>
+
+
+      
+
+      
+    <div class="article-tag">
+        <i class="fas fa-tag"></i>
+        <a class="tag-link" href="/tags/Presto/">Presto</a>
+    </div>
+
+
+    </div>
+  </header>
+  
+
+  <div class="content" itemprop="articleBody">
+    <h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>Presto的Join操作可以说是极为复杂的几个步骤之一<br>加上又无其文档和注释，所以想要了解其细节需要自己去耐心的阅读源码<br>笔者进行了一些研究后，进行了一些自己的理解的整理<br>总结出来，希望对你有用</p>
+<a id="more"></a>
+<h2 id="Partition和Broadcast"><a href="#Partition和Broadcast" class="headerlink" title="Partition和Broadcast"></a>Partition和Broadcast</h2><p>站在整个Presto的体系中，其实数据到底是Partition的分发还是Broadcast的分发在很多环节都有的。<br>那么对于Join而言，Partition肯定是有的。<br>想象对于下面一句话<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> video v <span class="keyword">join</span> <span class="keyword">user</span> u <span class="keyword">on</span> v.user_id = u.id</span><br></pre></td></tr></table></figure></p>
+<p>那么对于整个分布式环境而言，完全可以把video和user表的数据根据join的key按照Hash的方式partition到不同的节点上去进行运算<br>这样提高整体的效率是极好的。  </p>
+<p>那么Join需要Broadcast吗<br>想象下面一句话<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> video v <span class="keyword">left</span> <span class="keyword">join</span> <span class="keyword">user</span> u <span class="keyword">on</span> v.user_id = u.id</span><br></pre></td></tr></table></figure></p>
+<p>那么对于这么一句话，两个表还可以根据key按照Hash的方法partition到不同的节点上去吗？<br>肯定是不行的</p>
+<p>我们可以对左边的表进行partition到不同的节点上，但是对于右边的表，partition肯定是不行了，只有进行Broadcast才能保证数据Join出来是正确的结果  </p>
+<h2 id="DistributionType"><a href="#DistributionType" class="headerlink" title="DistributionType"></a>DistributionType</h2><p>对应到源码级别的就是在JoinNode中<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">enum</span> DistributionType</span><br><span class="line">&#123;</span><br><span class="line">	PARTITIONED,</span><br><span class="line">	REPLICATED</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>这个<code>DistributionType</code>的意思就是针对于右表而言的分发方式，那么是怎么进行判断的呢<br>在<code>DetermineJoinDistributionType</code>类<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> JoinNode.<span class="function">DistributionType <span class="title">getTargetJoinDistributionType</span><span class="params">(JoinNode node)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	</span><br><span class="line">	JoinNode.Type type = node.getType();</span><br><span class="line">	<span class="keyword">if</span> (type == RIGHT || type == FULL || (isDistributedJoinEnabled(session) &amp;&amp; !mustBroadcastJoin(node))) &#123;</span><br><span class="line">		<span class="keyword">return</span> JoinNode.DistributionType.PARTITIONED;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> JoinNode.DistributionType.REPLICATED;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">boolean</span> <span class="title">mustBroadcastJoin</span><span class="params">(JoinNode node)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="keyword">return</span> isScalar(node.getRight()) || isCrossJoin(node);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">boolean</span> <span class="title">isCrossJoin</span><span class="params">(JoinNode node)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="keyword">return</span> node.getType() == INNER &amp;&amp; node.getCriteria().isEmpty();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>整体逻辑其实很挺好懂的<br>如果是right join或者是full join，那么右表肯定就是partition的了<br>因为如果是replicated的话，那么肯定就会多出数据来  </p>
+<p>如果是cross join的话，那么也只能是replicated的方式了。<br>这个其实也不难理解，想象下面这句sql<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> video v <span class="keyword">join</span> <span class="keyword">user</span> u <span class="keyword">on</span> v.user_id &gt; u.id</span><br></pre></td></tr></table></figure></p>
+<p>这种情况和下面这种情况是不同的<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> video v <span class="keyword">join</span> <span class="keyword">user</span> u <span class="keyword">on</span> v.user_id = u.id</span><br></pre></td></tr></table></figure></p>
+<p>因为不是等于关系的Join，所以无法根据Hash(user.id) = Hash(u.id)进行partition分发着Join<br>最多只允许一个表去partition，另外一个表是replicated的。<br>那左边的表replicated还是右边的replicated，对于最终的结果是没有区别的。<br>但是在某些情况下并不等同，这个我们留到下面reorder再讲。</p>
+<h2 id="Probe和Build"><a href="#Probe和Build" class="headerlink" title="Probe和Build"></a>Probe和Build</h2><p>对于Presto而言，其实只有一个Join模式。<br>那就是<br>pipeLine0: 读左表 -&gt; LookupJoin<br>pipeLine1: 读右边 -&gt; HashBuilder</p>
+<p>其中是pipeLine1的任务先行，把右表读出来，然后建立一个bucket为N的HashTable。<br>pipeLine0的任务是先读取左边的数据，然后等待HashTable的建立完成，然后进行Join操作。</p>
+<p>其实更细节的话，在pipeLine0的读左表和建立HashTable是两个pipeLine的操作，中间还需要进行数据Hash到Bucket的操作和建立PageIndex的操作。</p>
+<p>那么抽象就是左表是Probe表，然后右表是Build表。<br>永远是右表去Build一个东西，然后左表是Probe数据。</p>
+<p>那你发现问题了吗？<br>如果是这种sql语句呢<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> video v <span class="keyword">right</span> <span class="keyword">join</span> <span class="keyword">user</span> u <span class="keyword">on</span> v.user_id = u.id</span><br></pre></td></tr></table></figure></p>
+<p>对于right join而言，肯定是右表出的是全量的数据，它如果还是build的话，那肯定是不行的。<br>那么怎么解决呢? </p>
+<p><strong>方案：</strong><br>当然这也不是个致命的问题，可选方案也是有好几个。</p>
+<p><strong>1.</strong><br>Reorder<br>就是调换两边的Join顺序<br>把上面的Join变成<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> <span class="keyword">user</span> u <span class="keyword">left</span> <span class="keyword">join</span> video v <span class="keyword">on</span> v.user_id = u.id</span><br></pre></td></tr></table></figure></p>
+<p>这样把左表变成右表，然后把right join变成Left join，可以解决这个问题。</p>
+<p><strong>2.</strong><br>Tracker<br>当然Presto并没有选择上面这种方法，他在build端增加了一个Tracker。<br>这个Tracker的作用就是记录没有被Probe到的行，然后LookupJoin结束后，把那些没有Join扫过的一把抓回去。</p>
+<h2 id="Merge-Join和NestLoopJoin"><a href="#Merge-Join和NestLoopJoin" class="headerlink" title="Merge Join和NestLoopJoin"></a>Merge Join和NestLoopJoin</h2><p>我们分析下可以发现Presto不管对于什么情况的Join，都是由HashBuilderOperator类去进行Build的。<br>这很容易让人理解为Presto中只有Hash Join。<br>但是理论上Hash Join并不是万能的，有些情况是不能解决的。<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> video v <span class="keyword">join</span> <span class="keyword">user</span> u <span class="keyword">on</span> v.user_id &gt; u.is</span><br></pre></td></tr></table></figure></p>
+<p>这种情况，肯定是不可能用HashBuilder去完成的，或者更准确点，不能用HashJoin去完成的。<br>那么肯定是需要NestedLoop Join和Merge Join的存在的。<br>这个其实蕴含在了Hash Join的具体的实现中了。<br>只不过是HashBuilderOperator算子的实现是相同的而已。</p>
+<h2 id="Join流程"><a href="#Join流程" class="headerlink" title="Join流程"></a>Join流程</h2><p>Presto的Join流程还是稍微有点复杂，我花了一天的时间大致梳理一下。<br>这里涉及到几个比较重要的类<br><code>HashBuilderOperator</code><br><code>PagesIndex</code><br><code>PositionLinks</code></p>
+<p>我们假设有这么两张表进行Join，而且Join的语句是这样<br><img src="/images/presto-join/demo1.png" alt=""></p>
+<p>这时候右表的数据以Page为单位进入到HashBuilderOperaor中<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">addInput</span><span class="params">(Page page)</span></span></span><br><span class="line"><span class="function">    </span>&#123;</span><br><span class="line">        requireNonNull(page, <span class="string">"page is null"</span>);</span><br><span class="line">        checkState(!isFinished(), <span class="string">"Operator is already finished"</span>);</span><br><span class="line"></span><br><span class="line">        index.addPage(page);</span><br><span class="line">        <span class="keyword">if</span> (!operatorContext.trySetMemoryReservation(index.getEstimatedSize().toBytes())) &#123;</span><br><span class="line">            index.compact();</span><br><span class="line">        &#125;</span><br><span class="line">        operatorContext.setMemoryReservation(index.getEstimatedSize().toBytes());</span><br><span class="line">        operatorContext.recordGeneratedOutput(page.getSizeInBytes(), page.getPositionCount());</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure></p>
+<p>我们假设右表分为了两个Page进入。<br><img src="/images/presto-join/demo2.png" alt=""></p>
+<p>从代码里可以看到的是HashBuilderOperator直接把Page加到了PagesIndex中，从类的名字中我们就可以看出来，这个类是为了建立索引用的。<br>但是具体是如何建立索引呢。让我们再来看看源码<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">addPage</span><span class="params">(Page page)</span></span></span><br><span class="line"><span class="function">   </span>&#123;</span><br><span class="line">       <span class="comment">// ignore empty pages</span></span><br><span class="line">       <span class="keyword">if</span> (page.getPositionCount() == <span class="number">0</span>) &#123;</span><br><span class="line">           <span class="keyword">return</span>;</span><br><span class="line">       &#125;</span><br><span class="line"></span><br><span class="line">       positionCount += page.getPositionCount();</span><br><span class="line"></span><br><span class="line">       <span class="keyword">int</span> pageIndex = (channels.length &gt; <span class="number">0</span>) ? channels[<span class="number">0</span>].size() : <span class="number">0</span>;</span><br><span class="line">       <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; channels.length; i++) &#123;</span><br><span class="line">           Block block = page.getBlock(i);</span><br><span class="line">           channels[i].add(block);</span><br><span class="line">           pagesMemorySize += block.getRetainedSizeInBytes();</span><br><span class="line">       &#125;</span><br><span class="line"></span><br><span class="line">       <span class="keyword">for</span> (<span class="keyword">int</span> position = <span class="number">0</span>; position &lt; page.getPositionCount(); position++) &#123;</span><br><span class="line">           <span class="keyword">long</span> sliceAddress = encodeSyntheticAddress(pageIndex, position);</span><br><span class="line">           valueAddresses.add(sliceAddress);</span><br><span class="line">       &#125;</span><br><span class="line"></span><br><span class="line">       estimatedSize = calculateEstimatedSize();</span><br><span class="line">   &#125;</span><br></pre></td></tr></table></figure></p>
+<p>这里比较让人困惑的就是valueAddresses了，这个类是建立Page到channels的索引的类。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">final</span> <span class="class"><span class="keyword">class</span> <span class="title">SyntheticAddress</span></span></span><br><span class="line"><span class="class"></span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="title">SyntheticAddress</span><span class="params">()</span></span></span><br><span class="line"><span class="function">    </span>&#123;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">long</span> <span class="title">encodeSyntheticAddress</span><span class="params">(<span class="keyword">int</span> sliceIndex, <span class="keyword">int</span> sliceOffset)</span></span></span><br><span class="line"><span class="function">    </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> (((<span class="keyword">long</span>) sliceIndex) &lt;&lt; <span class="number">32</span>) | sliceOffset;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">int</span> <span class="title">decodeSliceIndex</span><span class="params">(<span class="keyword">long</span> sliceAddress)</span></span></span><br><span class="line"><span class="function">    </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> ((<span class="keyword">int</span>) (sliceAddress &gt;&gt; <span class="number">32</span>));</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">int</span> <span class="title">decodePosition</span><span class="params">(<span class="keyword">long</span> sliceAddress)</span></span></span><br><span class="line"><span class="function">    </span>&#123;</span><br><span class="line">        <span class="comment">// low order bits contain the raw offset, so a simple cast here will suffice</span></span><br><span class="line">        <span class="keyword">return</span> (<span class="keyword">int</span>) sliceAddress;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>我们直接看整个类，就是把Page和每一个Page中的Position进行了编码，编成了一个long类型的字段，前32位为Page的Index，后32位为PostionIndex。<br>那么我们把右表的两个Page加进去的时候，addresses数组和channels就变成了这个样子<br><img src="/images/presto-join/demo3.png" alt=""></p>
+<p><strong>HashRow</strong><br>到上面这一步其实都是为下面做准备的，因为Join而言，如果左表的每个字段都来和右表的每个字段进行比对，那么效率是很低的，这里既然我们准备了t1.col1 = t2.col1，那么不如把col1进行Hash一下好了。</p>
+<p>我们创建一个Key的数据，长度就是所有行数。这里就是4个。<br>然后把col1进行Hash，把addresses的index塞到key数组中，<br><img src="/images/presto-join/demo4.png" alt=""><br>比如图中，第一行的col1是1，我们进行Hash，等于1，于是把addresses对应的数据index放在Key数组中。</p>
+<p>那么下面就是查找了。查找的流程其实和Build的过程类似，先把col1进行Hash，然后去key数组中查找，如果能查到，那么就是拿到了addresses的index，因为addresses中的value是对应的实例的值的pageIndex和PositionIndex的索引，所以再去channels中查找就行。<br>如下图所示<br><img src="/images/presto-join/demo5.png" alt=""></p>
+<p>但是这么还是不够，我们如何处理Hash碰撞的情况呢？<br><img src="/images/presto-join/demo6.png" alt=""><br>像上面这种情况，col1有多个都是1，那么key只是个一维数组，肯定是不行的。<br>那么PositionLinks就排上用场了，思路就是为key的每个Index维护一个一维的链表，<br>在Join的时候，Hash(row)之后去一个一个的找那个链表中的值。</p>
+<p>那么，到现在为止已经很完美了，还有优化的空间吗？<br>答案是有的，看下文。</p>
+<h2 id="FastInequalityJoin"><a href="#FastInequalityJoin" class="headerlink" title="FastInequalityJoin"></a>FastInequalityJoin</h2><p>我们在扩展一下情况，假设col1相等的情况异常的多。</p>
+<p><img src="/images/presto-join/demo7.png" alt=""><br>让我们假设有一千万个，那么单链表就会异常的长，每一行都要去遍历链表吗？<br>显然我们可以再优化一下。</p>
+<p><img src="/images/presto-join/demo8.png" alt=""><br>和图中讲的一样，如果我们修改为Sort，那么在进行col2的查找的时候，直接进行二分查找就行了。</p>
+<p>这个优化在Presto中是默认开启的，叫做<code>fast_inequality_join</code><br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">## JoinHashSupplier</span><br><span class="line">PositionLinks.FactoryBuilder positionLinksFactoryBuilder;</span><br><span class="line">        <span class="keyword">if</span> (sortChannel.isPresent() &amp;&amp;</span><br><span class="line">                isFastInequalityJoin(session)) &#123;</span><br><span class="line">            checkArgument(filterFunctionFactory.isPresent(), <span class="string">"filterFunctionFactory not set while sortChannel set"</span>);</span><br><span class="line">            positionLinksFactoryBuilder = SortedPositionLinks.builder(</span><br><span class="line">                    addresses.size(),</span><br><span class="line">                    pagesHashStrategy,</span><br><span class="line">                    addresses);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">else</span> &#123;</span><br><span class="line">            positionLinksFactoryBuilder = ArrayPositionLinks.builder(addresses.size());</span><br><span class="line">        &#125;</span><br></pre></td></tr></table></figure></p>
+<p>我们可以看到在JoinHashSupplier的源码中，如果开启了fast_inequality_join，那么默认就会创建<br>SortedPositionLinks，这个和ArrayPositionLinks区别从名字就可以看出是会进行排序的。</p>
+
+  </div>
+  <div class="post-copyright">
+      <p class="copyright-item">
+          <span>许可协议: </span>
+          <a rel="license" href="http://creativecommons.org/licenses/by-nc/4.0/" target="_blank">知识共享署名-非商业性使用 4.0 国际许可协议</a>
+        </p>
+  </div>
+</article>
+
+    <div class="blog-post-comments">
+        <div id="disqus_thread">
+            <noscript>Please enable JavaScript to view the comments.</noscript>
+        </div>
+    </div>
+
+
+
+        
+          <div id="footer-post-container">
+  <div id="footer-post">
+
+    <div id="nav-footer" style="display: none">
+      <ul>
+         
+          <li><a href="/">Home</a></li>
+         
+          <li><a href="/about/">About</a></li>
+         
+          <li><a href="/archives/">Writing</a></li>
+         
+          <li><a href="/tags/">Tags</a></li>
+         
+          <li><a href="/movies/index.html">Movie</a></li>
+         
+          <li><a href="/books/index.html">Books</a></li>
+        
+      </ul>
+    </div>
+
+    <div id="toc-footer" style="display: none">
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#前言"><span class="toc-number">1.</span> <span class="toc-text">前言</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Partition和Broadcast"><span class="toc-number">2.</span> <span class="toc-text">Partition和Broadcast</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#DistributionType"><span class="toc-number">3.</span> <span class="toc-text">DistributionType</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Probe和Build"><span class="toc-number">4.</span> <span class="toc-text">Probe和Build</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Merge-Join和NestLoopJoin"><span class="toc-number">5.</span> <span class="toc-text">Merge Join和NestLoopJoin</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Join流程"><span class="toc-number">6.</span> <span class="toc-text">Join流程</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#FastInequalityJoin"><span class="toc-number">7.</span> <span class="toc-text">FastInequalityJoin</span></a></li></ol>
+    </div>
+
+    <div id="share-footer" style="display: none">
+      <ul>
+  <li><a class="icon" href="http://www.facebook.com/sharer.php?u=http://zhyzhyzhy.github.io/2018/07/22/Presto的Join细节研究/"><i class="fab fa-facebook fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://twitter.com/share?url=http://zhyzhyzhy.github.io/2018/07/22/Presto的Join细节研究/&text=Presto的Join的细节研究"><i class="fab fa-twitter fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://www.linkedin.com/shareArticle?url=http://zhyzhyzhy.github.io/2018/07/22/Presto的Join细节研究/&title=Presto的Join的细节研究"><i class="fab fa-linkedin fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://pinterest.com/pin/create/bookmarklet/?url=http://zhyzhyzhy.github.io/2018/07/22/Presto的Join细节研究/&is_video=false&description=Presto的Join的细节研究"><i class="fab fa-pinterest fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=Presto的Join的细节研究&body=Check out this article: http://zhyzhyzhy.github.io/2018/07/22/Presto的Join细节研究/"><i class="fas fa-envelope fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://getpocket.com/save?url=http://zhyzhyzhy.github.io/2018/07/22/Presto的Join细节研究/&title=Presto的Join的细节研究"><i class="fab fa-get-pocket fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://reddit.com/submit?url=http://zhyzhyzhy.github.io/2018/07/22/Presto的Join细节研究/&title=Presto的Join的细节研究"><i class="fab fa-reddit fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://www.stumbleupon.com/submit?url=http://zhyzhyzhy.github.io/2018/07/22/Presto的Join细节研究/&title=Presto的Join的细节研究"><i class="fab fa-stumbleupon fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://digg.com/submit?url=http://zhyzhyzhy.github.io/2018/07/22/Presto的Join细节研究/&title=Presto的Join的细节研究"><i class="fab fa-digg fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://www.tumblr.com/share/link?url=http://zhyzhyzhy.github.io/2018/07/22/Presto的Join细节研究/&name=Presto的Join的细节研究&description=&lt;h2 id=&quot;前言&quot;&gt;&lt;a href=&quot;#前言&quot; class=&quot;headerlink&quot; title=&quot;前言&quot;&gt;&lt;/a&gt;前言&lt;/h2&gt;&lt;p&gt;Presto的Join操作可以说是极为复杂的几个步骤之一&lt;br&gt;加上又无其文档和注释，所以想要了解其细节需要自己去耐心的阅读源码&lt;br&gt;笔者进行了一些研究后，进行了一些自己的理解的整理&lt;br&gt;总结出来，希望对你有用&lt;/p&gt;"><i class="fab fa-tumblr fa-lg" aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+
+    <div id="actions-footer">
+        <a id="menu" class="icon" href="#" onclick="$('#nav-footer').toggle();return false;"><i class="fas fa-bars fa-lg" aria-hidden="true"></i> Menu</a>
+        <a id="toc" class="icon" href="#" onclick="$('#toc-footer').toggle();return false;"><i class="fas fa-list fa-lg" aria-hidden="true"></i> TOC</a>
+        <a id="share" class="icon" href="#" onclick="$('#share-footer').toggle();return false;"><i class="fas fa-share-alt fa-lg" aria-hidden="true"></i> Share</a>
+        <a id="top" style="display:none" class="icon" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fas fa-chevron-up fa-lg" aria-hidden="true"></i> Top</a>
+    </div>
+
+  </div>
+</div>
+
+        
+        <footer id="footer">
+  <div class="footer-left">
+    Copyright &copy; 2019 zhy
+  </div>
+  <div class="footer-right">
+    <nav>
+      <ul>
+         
+          <li><a href="/">Home</a></li>
+         
+          <li><a href="/about/">About</a></li>
+         
+          <li><a href="/archives/">Writing</a></li>
+         
+          <li><a href="/tags/">Tags</a></li>
+         
+          <li><a href="/movies/index.html">Movie</a></li>
+         
+          <li><a href="/books/index.html">Books</a></li>
+        
+      </ul>
+    </nav>
+  </div>
+</footer>
+
+    </div>
+</body>
+</html>
+<!-- styles -->
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+<link rel="stylesheet" href="/lib/justified-gallery/css/justifiedGallery.min.css">
+
+<!-- jquery -->
+<script src="/lib/jquery/jquery.min.js"></script>
+<script src="/lib/justified-gallery/js/jquery.justifiedGallery.min.js"></script>
+<script src="/js/main.js"></script>
+<!-- search -->
+
+<!-- Google Analytics -->
+
+    <script type="text/javascript">
+        (function(i,s,o,g,r,a,m) {i['GoogleAnalyticsObject']=r;i[r]=i[r]||function() {
+        (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+        m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+        })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+        ga('create', 'UA-125642214-1', 'auto');
+        ga('send', 'pageview');
+    </script>
+
+<!-- Baidu Analytics -->
+
+    <script type="text/javascript">
+        var _hmt = _hmt || [];
+        (function() {
+            var hm = document.createElement("script");
+            hm.src = "https://hm.baidu.com/hm.js?c1f963571cb3d8a4a5dc82346dc65842";
+            var s = document.getElementsByTagName("script")[0];
+            s.parentNode.insertBefore(hm, s);
+        })();
+    </script>
+
+<!-- Disqus Comments -->
+
+    <script type="text/javascript">
+        var disqus_shortname = 'blog-lovezhy-cc-1';
+
+        (function(){
+            var dsq = document.createElement('script');
+            dsq.type = 'text/javascript';
+            dsq.async = true;
+            dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+            (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+        }());
+    </script>
+
+

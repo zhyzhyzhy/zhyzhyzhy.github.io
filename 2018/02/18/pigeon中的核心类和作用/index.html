@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang=zh>
+<head><meta name="generator" content="Hexo 3.8.0">
+    <!-- so meta -->
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="HandheldFriendly" content="True">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <meta name="description" content="ServiceFactory这个类的作用就是服务的注册发布和get的最外层接口 内部有两个主要的类">
+<meta name="keywords" content="pigeon">
+<meta property="og:type" content="article">
+<meta property="og:title" content="pigeon中的核心类和作用">
+<meta property="og:url" content="http://zhyzhyzhy.github.io/2018/02/18/pigeon中的核心类和作用/index.html">
+<meta property="og:site_name" content="LoveZhy">
+<meta property="og:description" content="ServiceFactory这个类的作用就是服务的注册发布和get的最外层接口 内部有两个主要的类">
+<meta property="og:locale" content="zh-cn">
+<meta property="og:image" content="http://zhyzhyzhy.github.io/images/pigeon中的核心类和作用/1.png">
+<meta property="og:updated_time" content="2018-09-20T13:50:58.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="pigeon中的核心类和作用">
+<meta name="twitter:description" content="ServiceFactory这个类的作用就是服务的注册发布和get的最外层接口 内部有两个主要的类">
+<meta name="twitter:image" content="http://zhyzhyzhy.github.io/images/pigeon中的核心类和作用/1.png">
+    
+    
+        
+          
+              <link rel="shortcut icon" href="/images/favicon.ico">
+          
+        
+        
+          
+            <link rel="icon" type="image/png" href="/images/favicon-192x192.png" sizes="192x192">
+          
+        
+        
+          
+            <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
+          
+        
+    
+    <!-- title -->
+    <title>pigeon中的核心类和作用</title>
+    <!-- styles -->
+    <link rel="stylesheet" href="/css/style.css">
+    <!-- persian styles -->
+    
+      <link rel="stylesheet" href="/css/rtl.css">
+    
+    <!-- rss -->
+    
+    
+</head>
+
+<body class="max-width mx-auto px3 ltr">    
+      <div id="header-post">
+  <a id="menu-icon" href="#"><i class="fas fa-bars fa-lg"></i></a>
+  <a id="menu-icon-tablet" href="#"><i class="fas fa-bars fa-lg"></i></a>
+  <a id="top-icon-tablet" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');" style="display:none;"><i class="fas fa-chevron-up fa-lg"></i></a>
+  <span id="menu">
+    <span id="nav">
+      <ul>
+         
+          <li><a href="/">Home</a></li>
+         
+          <li><a href="/about/">About</a></li>
+         
+          <li><a href="/archives/">Writing</a></li>
+         
+          <li><a href="/tags/">Tags</a></li>
+         
+          <li><a href="/movies/index.html">Movie</a></li>
+         
+          <li><a href="/books/index.html">Books</a></li>
+        
+      </ul>
+    </span>
+    <br>
+    <span id="actions">
+      <ul>
+        
+        <li><a class="icon" href="/2018/02/23/LongAdder解析/"><i class="fas fa-chevron-left" aria-hidden="true" onmouseover="$('#i-prev').toggle();" onmouseout="$('#i-prev').toggle();"></i></a></li>
+        
+        
+        <li><a class="icon" href="/2018/02/18/pigeon的服务注册与发现/"><i class="fas fa-chevron-right" aria-hidden="true" onmouseover="$('#i-next').toggle();" onmouseout="$('#i-next').toggle();"></i></a></li>
+        
+        <li><a class="icon" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fas fa-chevron-up" aria-hidden="true" onmouseover="$('#i-top').toggle();" onmouseout="$('#i-top').toggle();"></i></a></li>
+        <li><a class="icon" href="#"><i class="fas fa-share-alt" aria-hidden="true" onmouseover="$('#i-share').toggle();" onmouseout="$('#i-share').toggle();" onclick="$('#share').toggle();return false;"></i></a></li>
+      </ul>
+      <span id="i-prev" class="info" style="display:none;">Previous post</span>
+      <span id="i-next" class="info" style="display:none;">Next post</span>
+      <span id="i-top" class="info" style="display:none;">Back to top</span>
+      <span id="i-share" class="info" style="display:none;">Share post</span>
+    </span>
+    <br>
+    <div id="share" style="display: none">
+      <ul>
+  <li><a class="icon" href="http://www.facebook.com/sharer.php?u=http://zhyzhyzhy.github.io/2018/02/18/pigeon中的核心类和作用/"><i class="fab fa-facebook " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://twitter.com/share?url=http://zhyzhyzhy.github.io/2018/02/18/pigeon中的核心类和作用/&text=pigeon中的核心类和作用"><i class="fab fa-twitter " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://www.linkedin.com/shareArticle?url=http://zhyzhyzhy.github.io/2018/02/18/pigeon中的核心类和作用/&title=pigeon中的核心类和作用"><i class="fab fa-linkedin " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://pinterest.com/pin/create/bookmarklet/?url=http://zhyzhyzhy.github.io/2018/02/18/pigeon中的核心类和作用/&is_video=false&description=pigeon中的核心类和作用"><i class="fab fa-pinterest " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=pigeon中的核心类和作用&body=Check out this article: http://zhyzhyzhy.github.io/2018/02/18/pigeon中的核心类和作用/"><i class="fas fa-envelope " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://getpocket.com/save?url=http://zhyzhyzhy.github.io/2018/02/18/pigeon中的核心类和作用/&title=pigeon中的核心类和作用"><i class="fab fa-get-pocket " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://reddit.com/submit?url=http://zhyzhyzhy.github.io/2018/02/18/pigeon中的核心类和作用/&title=pigeon中的核心类和作用"><i class="fab fa-reddit " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://www.stumbleupon.com/submit?url=http://zhyzhyzhy.github.io/2018/02/18/pigeon中的核心类和作用/&title=pigeon中的核心类和作用"><i class="fab fa-stumbleupon " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://digg.com/submit?url=http://zhyzhyzhy.github.io/2018/02/18/pigeon中的核心类和作用/&title=pigeon中的核心类和作用"><i class="fab fa-digg " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://www.tumblr.com/share/link?url=http://zhyzhyzhy.github.io/2018/02/18/pigeon中的核心类和作用/&name=pigeon中的核心类和作用&description=&lt;h1 id=&quot;ServiceFactory&quot;&gt;&lt;a href=&quot;#ServiceFactory&quot; class=&quot;headerlink&quot; title=&quot;ServiceFactory&quot;&gt;&lt;/a&gt;ServiceFactory&lt;/h1&gt;&lt;p&gt;这个类的作用就是服务的注册发布和get的最外层接口&lt;/p&gt;
+&lt;p&gt;内部有两个主要的类&lt;/p&gt;"><i class="fab fa-tumblr " aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+    <div id="toc">
+      <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#ServiceFactory"><span class="toc-number">1.</span> <span class="toc-text">ServiceFactory</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#RegistryManager"><span class="toc-number">2.</span> <span class="toc-text">RegistryManager</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#InvokerBootStrap"><span class="toc-number">3.</span> <span class="toc-text">InvokerBootStrap</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#ProviderBootStrap"><span class="toc-number">4.</span> <span class="toc-text">ProviderBootStrap</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#初始化"><span class="toc-number">4.1.</span> <span class="toc-text">初始化</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#关闭"><span class="toc-number">4.2.</span> <span class="toc-text">关闭</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#SerializerFactory"><span class="toc-number">5.</span> <span class="toc-text">SerializerFactory</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#ProviderProcessHandlerFactory"><span class="toc-number">6.</span> <span class="toc-text">ProviderProcessHandlerFactory</span></a></li></ol>
+    </div>
+  </span>
+</div>
+
+    
+    <div class="content index py4">
+        
+        <article class="post" itemscope="" itemtype="http://schema.org/BlogPosting">
+  <header>
+    
+    <h1 class="posttitle" itemprop="name headline">
+        pigeon中的核心类和作用
+    </h1>
+
+
+
+    <div class="meta">
+      <span class="author" itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+        <span itemprop="name">LoveZhy</span>
+      </span>
+      
+    <div class="postdate">
+      
+        <time datetime="2018-02-17T16:00:00.000Z" itemprop="datePublished">2018-02-18</time>
+        
+      
+    </div>
+
+
+      
+
+      
+    <div class="article-tag">
+        <i class="fas fa-tag"></i>
+        <a class="tag-link" href="/tags/pigeon/">pigeon</a>
+    </div>
+
+
+    </div>
+  </header>
+  
+
+  <div class="content" itemprop="articleBody">
+    <h1 id="ServiceFactory"><a href="#ServiceFactory" class="headerlink" title="ServiceFactory"></a>ServiceFactory</h1><p>这个类的作用就是服务的注册发布和get的最外层接口</p>
+<p>内部有两个主要的类</p>
+<a id="more"></a>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> ServiceProxy serviceProxy = ServiceProxyLoader.getServiceProxy();</span><br><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> PublishPolicy publishPolicy = PublishPolicyLoader.getPublishPolicy();</span><br></pre></td></tr></table></figure>
+<p><code>ServiceProxy</code>用来获取<code>service</code>的，就是包一层<code>proxy</code>吧。</p>
+<p><code>PublishPolicy</code>简单说就是发布<code>service</code>的，但是内部还是借助于<code>ServicePublisher</code>进行操作的。</p>
+<h1 id="RegistryManager"><a href="#RegistryManager" class="headerlink" title="RegistryManager"></a>RegistryManager</h1><p>这个类的作用其实是为<code>ServicePublisher</code>的<code>addService</code>到<code>zookeeper</code>中和<code>unpublish</code>指定的<code>service</code>提供API支持的。</p>
+<p>更通俗点就是为<code>invoker</code>和<code>provider</code>提供了<code>zookeeper</code>的交流的。</p>
+<p>但是内部还是使用的<code>registry</code>类进行和<code>zookeeper</code>调用的。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">interface</span> <span class="title">Registry</span> </span>&#123;</span><br><span class="line">    <span class="comment">//删除了好多，可以自己去看源码</span></span><br><span class="line">    <span class="comment">// for invoker</span></span><br><span class="line">    <span class="function"><span class="keyword">boolean</span> <span class="title">isSupportNewProtocol</span><span class="params">(String serviceAddress, String serviceName)</span> <span class="keyword">throws</span> RegistryException</span>;</span><br><span class="line">  </span><br><span class="line">    <span class="comment">// for provider</span></span><br><span class="line">    <span class="function"><span class="keyword">void</span> <span class="title">setSupportNewProtocol</span><span class="params">(String serviceAddress, String serviceName, <span class="keyword">boolean</span> support)</span> <span class="keyword">throws</span> RegistryException</span>;</span><br><span class="line">  </span><br><span class="line">    <span class="comment">// for invoker/provider</span></span><br><span class="line">    <span class="function">RegistryConfig <span class="title">getRegistryConfig</span><span class="params">(String ip)</span> <span class="keyword">throws</span> RegistryException</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h1 id="InvokerBootStrap"><a href="#InvokerBootStrap" class="headerlink" title="InvokerBootStrap"></a>InvokerBootStrap</h1><p>这个类看名字也知道是为了<code>invoker</code>提供方便的。</p>
+<p>看调用也是<code>AbstractServiceProxy</code>这个类调用的最多</p>
+<p>主要有两个方法，<code>startup</code>和<code>shutdown</code>，也没什么重要的成员变量。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">startup</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (!isStartup) &#123;</span><br><span class="line">        <span class="keyword">synchronized</span> (InvokerBootStrap.class) &#123;</span><br><span class="line">            <span class="keyword">if</span> (!isStartup) &#123;</span><br><span class="line">                ServiceInvocationRepository.getInstance().init();</span><br><span class="line">                InvokerProcessHandlerFactory.init();</span><br><span class="line">                SerializerFactory.init();</span><br><span class="line">                LoadBalanceManager.init();</span><br><span class="line">                RegionPolicyManager.INSTANCE.init();</span><br><span class="line">                Monitor monitor = MonitorLoader.getMonitor();</span><br><span class="line">                <span class="keyword">if</span> (monitor != <span class="keyword">null</span>) &#123;</span><br><span class="line">                    monitor.init();</span><br><span class="line">                &#125;</span><br><span class="line">                isStartup = <span class="keyword">true</span>;</span><br><span class="line">                logger.warn(<span class="string">"pigeon client[version:"</span> + VersionUtils.VERSION + <span class="string">"] has been started"</span>);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>其中<code>ServiceInvocationRepository</code>的<code>init</code>方法主要是启动了一个<code>InvocationTimeoutListener</code>线程，看样子是用来检测调用超时问题。</p>
+<p>在<code>InvokerProcessHandlerFactory</code>的<code>init</code>方法中，就是在<code>service</code>的<code>proxy</code>中，加入了一条责任链。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">registerBizProcessFilter(<span class="keyword">new</span> TraceFilter());</span><br><span class="line">registerBizProcessFilter(<span class="keyword">new</span> DegradationFilter());</span><br><span class="line">registerBizProcessFilter(<span class="keyword">new</span> ClusterInvokeFilter());</span><br><span class="line">registerBizProcessFilter(<span class="keyword">new</span> GatewayInvokeFilter());</span><br><span class="line">registerBizProcessFilter(<span class="keyword">new</span> ContextPrepareInvokeFilter());</span><br><span class="line">registerBizProcessFilter(<span class="keyword">new</span> SecurityFilter());</span><br><span class="line">registerBizProcessFilter(<span class="keyword">new</span> RemoteCallInvokeFilter());</span><br></pre></td></tr></table></figure>
+<p><code>SerializerFactory</code>见下</p>
+<p><code>LoadBalanceManager</code>的<code>init</code>方法，初始化了<code>pigeon</code>支持的四种负载均衡的算法。</p>
+<ul>
+<li><code>RandomLoadBalance</code></li>
+<li><code>AutoawareLoadBalance</code></li>
+<li><code>RoundRobinLoadBalance</code></li>
+<li><code>WeightedAutoawareLoadBalance</code></li>
+</ul>
+<p>在<code>RegionPolicyManager</code>的<code>init</code>方法中，就是对<code>Region</code>的选择算法进行了初始化。</p>
+<p>那个<code>monitor</code>的方法，我看好像还没写好。。。。</p>
+<h1 id="ProviderBootStrap"><a href="#ProviderBootStrap" class="headerlink" title="ProviderBootStrap"></a>ProviderBootStrap</h1><h2 id="初始化"><a href="#初始化" class="headerlink" title="初始化"></a>初始化</h2><p>包含了<code>SerializerFactory</code>和<code>ProviderProcessHandlerFactory</code>的初始化。</p>
+<p>同时对<code>jetty server</code>和<code>netty server</code>两个<code>server</code>进行了初始化和启动。</p>
+<p>同时启动了一个监听服务器的线程<code>ShutdownHookListener</code></p>
+<p>如果服务器关闭，那么就会调用一些类的关闭方法</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//从zookeeper上unpublish掉所有的服务</span></span><br><span class="line">ServiceFactory.unpublishAllServices();</span><br><span class="line">InvokerBootStrap.shutdown();</span><br><span class="line">ProviderBootStrap.shutdown();</span><br></pre></td></tr></table></figure>
+<h2 id="关闭"><a href="#关闭" class="headerlink" title="关闭"></a>关闭</h2><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">shutdown</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">for</span> (Server server : serversMap.values()) &#123;</span><br><span class="line">        <span class="keyword">if</span> (server != <span class="keyword">null</span>) &#123;</span><br><span class="line">            logger.info(<span class="string">"start to stop "</span> + server);</span><br><span class="line">            <span class="keyword">try</span> &#123;</span><br><span class="line">                unregisterConsoleServer(server.getServerConfig());</span><br><span class="line">                server.stop();</span><br><span class="line">                &#125; <span class="keyword">catch</span> (Throwable e) &#123;</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">if</span> (logger.isInfoEnabled()) &#123;</span><br><span class="line">                logger.info(server + <span class="string">" has been shutdown"</span>);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        ProviderProcessHandlerFactory.destroy();</span><br><span class="line">        &#125; <span class="keyword">catch</span> (Throwable e) &#123;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>把<code>server</code>从<code>zookeeper</code>上下掉，这个过程调用了<code>RegistryManager</code>的方法。</p>
+<p>然后调用了<code>ProviderProcessHandlerFactory</code>的<code>destroy</code>方法。</p>
+<h1 id="SerializerFactory"><a href="#SerializerFactory" class="headerlink" title="SerializerFactory"></a>SerializerFactory</h1><p>对框架支持的序列化方法进行了注册。</p>
+<p>内部维护了两个map</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">ConcurrentHashMap&lt;String, Byte&gt; serializerTypes;</span><br><span class="line">ConcurrentHashMap&lt;Byte, Serializer&gt; serializers</span><br></pre></td></tr></table></figure>
+<p>这个Serializer类有啥用呢，这个其实还值得我们去研究研究。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">interface</span> <span class="title">Serializer</span> </span>&#123;</span><br><span class="line">    </span><br><span class="line">    <span class="function">Object <span class="title">deserializeRequest</span><span class="params">(InputStream is)</span> <span class="keyword">throws</span> SerializationException</span>;</span><br><span class="line">    </span><br><span class="line">    <span class="function"><span class="keyword">void</span> <span class="title">serializeRequest</span><span class="params">(OutputStream os, Object obj)</span> <span class="keyword">throws</span> SerializationException</span>;</span><br><span class="line">    </span><br><span class="line">    <span class="function">Object <span class="title">deserializeResponse</span><span class="params">(InputStream is)</span> <span class="keyword">throws</span> SerializationException</span>;</span><br><span class="line">    </span><br><span class="line">    <span class="function"><span class="keyword">void</span> <span class="title">serializeResponse</span><span class="params">(OutputStream os, Object obj)</span> <span class="keyword">throws</span> SerializationException</span>;</span><br><span class="line">    </span><br><span class="line">    <span class="function">Object <span class="title">proxyRequest</span><span class="params">(InvokerConfig&lt;?&gt; invokerConfig)</span> <span class="keyword">throws</span> SerializationException</span>;</span><br><span class="line">    </span><br><span class="line">    <span class="function">InvocationResponse <span class="title">newResponse</span><span class="params">()</span> <span class="keyword">throws</span> SerializationException</span>;</span><br><span class="line">    </span><br><span class="line">    <span class="function">InvocationRequest <span class="title">newRequest</span><span class="params">(InvokerContext invokerContext)</span> <span class="keyword">throws</span> SerializationException</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><code>Serializer</code>接口中有七个方法，都是和序列化有关，其中<code>proxyRequest</code>方法请看pigeon的服务注册与发布.</p>
+<p>我们进行方法调用，发送请求，获取调用结果。这中间的过程都是需要进行序列化的。</p>
+<p><code>pigeon</code>支持11种序列化方法</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">enum</span> SerializerType &#123;</span><br><span class="line">  </span><br><span class="line">    INTERNAL_THRIFT((<span class="keyword">byte</span>) <span class="number">1</span>, <span class="string">"internalThrift"</span>),</span><br><span class="line">  </span><br><span class="line">    HESSIAN((<span class="keyword">byte</span>) <span class="number">2</span>, <span class="string">"hessian"</span>),</span><br><span class="line">  </span><br><span class="line">    JAVA((<span class="keyword">byte</span>) <span class="number">3</span>, <span class="string">"java"</span>),</span><br><span class="line">  </span><br><span class="line">    PROTO((<span class="keyword">byte</span>) <span class="number">5</span>, <span class="string">"proto"</span>),</span><br><span class="line">  </span><br><span class="line">    HESSIAN1((<span class="keyword">byte</span>) <span class="number">6</span>, <span class="string">"hessian1"</span>),</span><br><span class="line">  </span><br><span class="line">    JSON((<span class="keyword">byte</span>) <span class="number">7</span>, <span class="string">"json"</span>),</span><br><span class="line">  </span><br><span class="line">    FST((<span class="keyword">byte</span>) <span class="number">8</span>, <span class="string">"fst"</span>),</span><br><span class="line">  </span><br><span class="line">    PROTOBUF((<span class="keyword">byte</span>) <span class="number">9</span>, <span class="string">"protobuf"</span>),</span><br><span class="line">  </span><br><span class="line">    THRIFT((<span class="keyword">byte</span>) <span class="number">10</span>, <span class="string">"thrift"</span>),</span><br><span class="line">  </span><br><span class="line">    PROTOBUF3((<span class="keyword">byte</span>) <span class="number">11</span>, <span class="string">"protobuf3"</span>);</span><br></pre></td></tr></table></figure>
+<p>同时有八个进行序列化操作的实体类。</p>
+<p><img src="/images/pigeon中的核心类和作用/1.png" alt=""></p>
+<h1 id="ProviderProcessHandlerFactory"><a href="#ProviderProcessHandlerFactory" class="headerlink" title="ProviderProcessHandlerFactory"></a>ProviderProcessHandlerFactory</h1><p>我们知道在<code>InvokerProcessHandlerFactory</code>中，给<code>invoke</code>的过程加上了一天责任链。</p>
+<p>那么这个的<code>init</code>方法就是给<code>Provide</code>的时候，也加上一条责任链。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">registerBizProcessFilter(<span class="keyword">new</span> TraceFilter());</span><br><span class="line"><span class="keyword">if</span> (Constants.MONITOR_ENABLE) &#123;</span><br><span class="line">    registerBizProcessFilter(<span class="keyword">new</span> MonitorProcessFilter());</span><br><span class="line">&#125;</span><br><span class="line">registerBizProcessFilter(<span class="keyword">new</span> WriteResponseProcessFilter());</span><br><span class="line">registerBizProcessFilter(<span class="keyword">new</span> ContextTransferProcessFilter());</span><br><span class="line">registerBizProcessFilter(<span class="keyword">new</span> ExceptionProcessFilter());</span><br><span class="line">registerBizProcessFilter(<span class="keyword">new</span> SecurityFilter());</span><br><span class="line">registerBizProcessFilter(<span class="keyword">new</span> GatewayProcessFilter());</span><br><span class="line">registerBizProcessFilter(<span class="keyword">new</span> BusinessProcessFilter());</span><br></pre></td></tr></table></figure>
+
+  </div>
+  <div class="post-copyright">
+      <p class="copyright-item">
+          <span>许可协议: </span>
+          <a rel="license" href="http://creativecommons.org/licenses/by-nc/4.0/" target="_blank">知识共享署名-非商业性使用 4.0 国际许可协议</a>
+        </p>
+  </div>
+</article>
+
+    <div class="blog-post-comments">
+        <div id="disqus_thread">
+            <noscript>Please enable JavaScript to view the comments.</noscript>
+        </div>
+    </div>
+
+
+
+        
+          <div id="footer-post-container">
+  <div id="footer-post">
+
+    <div id="nav-footer" style="display: none">
+      <ul>
+         
+          <li><a href="/">Home</a></li>
+         
+          <li><a href="/about/">About</a></li>
+         
+          <li><a href="/archives/">Writing</a></li>
+         
+          <li><a href="/tags/">Tags</a></li>
+         
+          <li><a href="/movies/index.html">Movie</a></li>
+         
+          <li><a href="/books/index.html">Books</a></li>
+        
+      </ul>
+    </div>
+
+    <div id="toc-footer" style="display: none">
+      <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#ServiceFactory"><span class="toc-number">1.</span> <span class="toc-text">ServiceFactory</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#RegistryManager"><span class="toc-number">2.</span> <span class="toc-text">RegistryManager</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#InvokerBootStrap"><span class="toc-number">3.</span> <span class="toc-text">InvokerBootStrap</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#ProviderBootStrap"><span class="toc-number">4.</span> <span class="toc-text">ProviderBootStrap</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#初始化"><span class="toc-number">4.1.</span> <span class="toc-text">初始化</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#关闭"><span class="toc-number">4.2.</span> <span class="toc-text">关闭</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#SerializerFactory"><span class="toc-number">5.</span> <span class="toc-text">SerializerFactory</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#ProviderProcessHandlerFactory"><span class="toc-number">6.</span> <span class="toc-text">ProviderProcessHandlerFactory</span></a></li></ol>
+    </div>
+
+    <div id="share-footer" style="display: none">
+      <ul>
+  <li><a class="icon" href="http://www.facebook.com/sharer.php?u=http://zhyzhyzhy.github.io/2018/02/18/pigeon中的核心类和作用/"><i class="fab fa-facebook fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://twitter.com/share?url=http://zhyzhyzhy.github.io/2018/02/18/pigeon中的核心类和作用/&text=pigeon中的核心类和作用"><i class="fab fa-twitter fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://www.linkedin.com/shareArticle?url=http://zhyzhyzhy.github.io/2018/02/18/pigeon中的核心类和作用/&title=pigeon中的核心类和作用"><i class="fab fa-linkedin fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://pinterest.com/pin/create/bookmarklet/?url=http://zhyzhyzhy.github.io/2018/02/18/pigeon中的核心类和作用/&is_video=false&description=pigeon中的核心类和作用"><i class="fab fa-pinterest fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=pigeon中的核心类和作用&body=Check out this article: http://zhyzhyzhy.github.io/2018/02/18/pigeon中的核心类和作用/"><i class="fas fa-envelope fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://getpocket.com/save?url=http://zhyzhyzhy.github.io/2018/02/18/pigeon中的核心类和作用/&title=pigeon中的核心类和作用"><i class="fab fa-get-pocket fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://reddit.com/submit?url=http://zhyzhyzhy.github.io/2018/02/18/pigeon中的核心类和作用/&title=pigeon中的核心类和作用"><i class="fab fa-reddit fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://www.stumbleupon.com/submit?url=http://zhyzhyzhy.github.io/2018/02/18/pigeon中的核心类和作用/&title=pigeon中的核心类和作用"><i class="fab fa-stumbleupon fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://digg.com/submit?url=http://zhyzhyzhy.github.io/2018/02/18/pigeon中的核心类和作用/&title=pigeon中的核心类和作用"><i class="fab fa-digg fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://www.tumblr.com/share/link?url=http://zhyzhyzhy.github.io/2018/02/18/pigeon中的核心类和作用/&name=pigeon中的核心类和作用&description=&lt;h1 id=&quot;ServiceFactory&quot;&gt;&lt;a href=&quot;#ServiceFactory&quot; class=&quot;headerlink&quot; title=&quot;ServiceFactory&quot;&gt;&lt;/a&gt;ServiceFactory&lt;/h1&gt;&lt;p&gt;这个类的作用就是服务的注册发布和get的最外层接口&lt;/p&gt;
+&lt;p&gt;内部有两个主要的类&lt;/p&gt;"><i class="fab fa-tumblr fa-lg" aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+
+    <div id="actions-footer">
+        <a id="menu" class="icon" href="#" onclick="$('#nav-footer').toggle();return false;"><i class="fas fa-bars fa-lg" aria-hidden="true"></i> Menu</a>
+        <a id="toc" class="icon" href="#" onclick="$('#toc-footer').toggle();return false;"><i class="fas fa-list fa-lg" aria-hidden="true"></i> TOC</a>
+        <a id="share" class="icon" href="#" onclick="$('#share-footer').toggle();return false;"><i class="fas fa-share-alt fa-lg" aria-hidden="true"></i> Share</a>
+        <a id="top" style="display:none" class="icon" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fas fa-chevron-up fa-lg" aria-hidden="true"></i> Top</a>
+    </div>
+
+  </div>
+</div>
+
+        
+        <footer id="footer">
+  <div class="footer-left">
+    Copyright &copy; 2019 zhy
+  </div>
+  <div class="footer-right">
+    <nav>
+      <ul>
+         
+          <li><a href="/">Home</a></li>
+         
+          <li><a href="/about/">About</a></li>
+         
+          <li><a href="/archives/">Writing</a></li>
+         
+          <li><a href="/tags/">Tags</a></li>
+         
+          <li><a href="/movies/index.html">Movie</a></li>
+         
+          <li><a href="/books/index.html">Books</a></li>
+        
+      </ul>
+    </nav>
+  </div>
+</footer>
+
+    </div>
+</body>
+</html>
+<!-- styles -->
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+<link rel="stylesheet" href="/lib/justified-gallery/css/justifiedGallery.min.css">
+
+<!-- jquery -->
+<script src="/lib/jquery/jquery.min.js"></script>
+<script src="/lib/justified-gallery/js/jquery.justifiedGallery.min.js"></script>
+<script src="/js/main.js"></script>
+<!-- search -->
+
+<!-- Google Analytics -->
+
+    <script type="text/javascript">
+        (function(i,s,o,g,r,a,m) {i['GoogleAnalyticsObject']=r;i[r]=i[r]||function() {
+        (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+        m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+        })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+        ga('create', 'UA-125642214-1', 'auto');
+        ga('send', 'pageview');
+    </script>
+
+<!-- Baidu Analytics -->
+
+    <script type="text/javascript">
+        var _hmt = _hmt || [];
+        (function() {
+            var hm = document.createElement("script");
+            hm.src = "https://hm.baidu.com/hm.js?c1f963571cb3d8a4a5dc82346dc65842";
+            var s = document.getElementsByTagName("script")[0];
+            s.parentNode.insertBefore(hm, s);
+        })();
+    </script>
+
+<!-- Disqus Comments -->
+
+    <script type="text/javascript">
+        var disqus_shortname = 'blog-lovezhy-cc-1';
+
+        (function(){
+            var dsq = document.createElement('script');
+            dsq.type = 'text/javascript';
+            dsq.async = true;
+            dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+            (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+        }());
+    </script>
+
+

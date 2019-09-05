@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang=zh>
+<head><meta name="generator" content="Hexo 3.8.0">
+    <!-- so meta -->
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="HandheldFriendly" content="True">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <meta name="description" content="先行流程在进行分段之前，已经建立好计划数PlanNode，并且已经进行了所有的planOptimizers进行优化。最后在SqlQueryExecution#doAnalyzeQuery()的PlanFragmenter中进行分段。">
+<meta name="keywords" content="Presto">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Presto的分段源码解析">
+<meta property="og:url" content="http://zhyzhyzhy.github.io/2018/07/10/Presto的分段源码解析/index.html">
+<meta property="og:site_name" content="LoveZhy">
+<meta property="og:description" content="先行流程在进行分段之前，已经建立好计划数PlanNode，并且已经进行了所有的planOptimizers进行优化。最后在SqlQueryExecution#doAnalyzeQuery()的PlanFragmenter中进行分段。">
+<meta property="og:locale" content="zh-cn">
+<meta property="og:image" content="http://zhyzhyzhy.github.io/images/presto-stage/JoinStage1.png">
+<meta property="og:image" content="http://zhyzhyzhy.github.io/images/presto-stage/JoinStage2.png">
+<meta property="og:updated_time" content="2018-09-22T13:30:46.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Presto的分段源码解析">
+<meta name="twitter:description" content="先行流程在进行分段之前，已经建立好计划数PlanNode，并且已经进行了所有的planOptimizers进行优化。最后在SqlQueryExecution#doAnalyzeQuery()的PlanFragmenter中进行分段。">
+<meta name="twitter:image" content="http://zhyzhyzhy.github.io/images/presto-stage/JoinStage1.png">
+    
+    
+        
+          
+              <link rel="shortcut icon" href="/images/favicon.ico">
+          
+        
+        
+          
+            <link rel="icon" type="image/png" href="/images/favicon-192x192.png" sizes="192x192">
+          
+        
+        
+          
+            <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
+          
+        
+    
+    <!-- title -->
+    <title>Presto的分段源码解析</title>
+    <!-- styles -->
+    <link rel="stylesheet" href="/css/style.css">
+    <!-- persian styles -->
+    
+      <link rel="stylesheet" href="/css/rtl.css">
+    
+    <!-- rss -->
+    
+    
+</head>
+
+<body class="max-width mx-auto px3 ltr">    
+      <div id="header-post">
+  <a id="menu-icon" href="#"><i class="fas fa-bars fa-lg"></i></a>
+  <a id="menu-icon-tablet" href="#"><i class="fas fa-bars fa-lg"></i></a>
+  <a id="top-icon-tablet" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');" style="display:none;"><i class="fas fa-chevron-up fa-lg"></i></a>
+  <span id="menu">
+    <span id="nav">
+      <ul>
+         
+          <li><a href="/">Home</a></li>
+         
+          <li><a href="/about/">About</a></li>
+         
+          <li><a href="/archives/">Writing</a></li>
+         
+          <li><a href="/tags/">Tags</a></li>
+         
+          <li><a href="/movies/index.html">Movie</a></li>
+         
+          <li><a href="/books/index.html">Books</a></li>
+        
+      </ul>
+    </span>
+    <br>
+    <span id="actions">
+      <ul>
+        
+        <li><a class="icon" href="/2018/07/19/Presto源码解析-Slice实现/"><i class="fas fa-chevron-left" aria-hidden="true" onmouseover="$('#i-prev').toggle();" onmouseout="$('#i-prev').toggle();"></i></a></li>
+        
+        
+        <li><a class="icon" href="/2018/06/05/行列存储的区别/"><i class="fas fa-chevron-right" aria-hidden="true" onmouseover="$('#i-next').toggle();" onmouseout="$('#i-next').toggle();"></i></a></li>
+        
+        <li><a class="icon" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fas fa-chevron-up" aria-hidden="true" onmouseover="$('#i-top').toggle();" onmouseout="$('#i-top').toggle();"></i></a></li>
+        <li><a class="icon" href="#"><i class="fas fa-share-alt" aria-hidden="true" onmouseover="$('#i-share').toggle();" onmouseout="$('#i-share').toggle();" onclick="$('#share').toggle();return false;"></i></a></li>
+      </ul>
+      <span id="i-prev" class="info" style="display:none;">Previous post</span>
+      <span id="i-next" class="info" style="display:none;">Next post</span>
+      <span id="i-top" class="info" style="display:none;">Back to top</span>
+      <span id="i-share" class="info" style="display:none;">Share post</span>
+    </span>
+    <br>
+    <div id="share" style="display: none">
+      <ul>
+  <li><a class="icon" href="http://www.facebook.com/sharer.php?u=http://zhyzhyzhy.github.io/2018/07/10/Presto的分段源码解析/"><i class="fab fa-facebook " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://twitter.com/share?url=http://zhyzhyzhy.github.io/2018/07/10/Presto的分段源码解析/&text=Presto的分段源码解析"><i class="fab fa-twitter " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://www.linkedin.com/shareArticle?url=http://zhyzhyzhy.github.io/2018/07/10/Presto的分段源码解析/&title=Presto的分段源码解析"><i class="fab fa-linkedin " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://pinterest.com/pin/create/bookmarklet/?url=http://zhyzhyzhy.github.io/2018/07/10/Presto的分段源码解析/&is_video=false&description=Presto的分段源码解析"><i class="fab fa-pinterest " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=Presto的分段源码解析&body=Check out this article: http://zhyzhyzhy.github.io/2018/07/10/Presto的分段源码解析/"><i class="fas fa-envelope " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://getpocket.com/save?url=http://zhyzhyzhy.github.io/2018/07/10/Presto的分段源码解析/&title=Presto的分段源码解析"><i class="fab fa-get-pocket " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://reddit.com/submit?url=http://zhyzhyzhy.github.io/2018/07/10/Presto的分段源码解析/&title=Presto的分段源码解析"><i class="fab fa-reddit " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://www.stumbleupon.com/submit?url=http://zhyzhyzhy.github.io/2018/07/10/Presto的分段源码解析/&title=Presto的分段源码解析"><i class="fab fa-stumbleupon " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://digg.com/submit?url=http://zhyzhyzhy.github.io/2018/07/10/Presto的分段源码解析/&title=Presto的分段源码解析"><i class="fab fa-digg " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://www.tumblr.com/share/link?url=http://zhyzhyzhy.github.io/2018/07/10/Presto的分段源码解析/&name=Presto的分段源码解析&description=&lt;h2 id=&quot;先行流程&quot;&gt;&lt;a href=&quot;#先行流程&quot; class=&quot;headerlink&quot; title=&quot;先行流程&quot;&gt;&lt;/a&gt;先行流程&lt;/h2&gt;&lt;p&gt;在进行分段之前，已经建立好计划数PlanNode，并且已经进行了所有的planOptimizers进行优化。&lt;br&gt;最后在SqlQueryExecution#doAnalyzeQuery()的PlanFragmenter中进行分段。&lt;/p&gt;"><i class="fab fa-tumblr " aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+    <div id="toc">
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#先行流程"><span class="toc-number">1.</span> <span class="toc-text">先行流程</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Stage抽象"><span class="toc-number">2.</span> <span class="toc-text">Stage抽象</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#PlanFragmenter"><span class="toc-number">3.</span> <span class="toc-text">PlanFragmenter</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#AddExchanges"><span class="toc-number">4.</span> <span class="toc-text">AddExchanges</span></a></li></ol>
+    </div>
+  </span>
+</div>
+
+    
+    <div class="content index py4">
+        
+        <article class="post" itemscope="" itemtype="http://schema.org/BlogPosting">
+  <header>
+    
+    <h1 class="posttitle" itemprop="name headline">
+        Presto的分段源码解析
+    </h1>
+
+
+
+    <div class="meta">
+      <span class="author" itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+        <span itemprop="name">LoveZhy</span>
+      </span>
+      
+    <div class="postdate">
+      
+        <time datetime="2018-07-09T16:00:00.000Z" itemprop="datePublished">2018-07-10</time>
+        
+      
+    </div>
+
+
+      
+
+      
+    <div class="article-tag">
+        <i class="fas fa-tag"></i>
+        <a class="tag-link" href="/tags/Presto/">Presto</a>
+    </div>
+
+
+    </div>
+  </header>
+  
+
+  <div class="content" itemprop="articleBody">
+    <h2 id="先行流程"><a href="#先行流程" class="headerlink" title="先行流程"></a>先行流程</h2><p>在进行分段之前，已经建立好计划数PlanNode，并且已经进行了所有的planOptimizers进行优化。<br>最后在SqlQueryExecution#doAnalyzeQuery()的PlanFragmenter中进行分段。</p>
+<a id="more"></a>
+<h2 id="Stage抽象"><a href="#Stage抽象" class="headerlink" title="Stage抽象"></a>Stage抽象</h2><blockquote>
+<p>Stage：unit of work that does not require shuffling  </p>
+</blockquote>
+<p>这个定义是抄的某个PPT上面的，虽然有点抽象，但是也算是个通俗的原则。</p>
+<h2 id="PlanFragmenter"><a href="#PlanFragmenter" class="headerlink" title="PlanFragmenter"></a>PlanFragmenter</h2><p>在进行分段的流程同样是Visit模式，这里的Visit类是PlanFragmenter的内部类Fragmenter。</p>
+<p>每一段之间的分段标记符是RemoteSourceNode</p>
+<p>在看Fragmenter源码时，我们会发现每遇到一个Remote的ExchangeNode，都会创建一个RemoteSourceNode。在其他的地方都不会创建。<br>所以核心在ExchangeNode上。</p>
+<h2 id="AddExchanges"><a href="#AddExchanges" class="headerlink" title="AddExchanges"></a>AddExchanges</h2><p>既然是Remote的ExchangeNode决定了分段，那么这些ExchangeNode是什么时候添加进去的呢。</p>
+<p>经过查找发现是在AddExchanges的Optimizer类中。</p>
+<p>他在进行优化的时候，也是运用的Visit模式。</p>
+<p><strong>聚合数据节点</strong><br>首先在OutputNode的时候，如果Child计划不是运行在一个Node上的，就会加上一个Remote的ExchangeNode，同时Type是GATHER，意思就是Child节点的数据远程传输集中到这个OutPutNode上来。</p>
+<p>在SortNode上，如果底层的Child计划不是SingleNode运行的，那么就会加上Remote的ExchangeNode，同时Type是GATHER</p>
+<p>在TopNNode上，同样的，如果是FINAL级别的TopN(因为TopN是可以先进行Partition的)，并且Child不是在一个节点上，那么就会创建一个Remote的ExchangeNode，同时Type是GATHER。</p>
+<p>同时在LimitNode节点上也是如此。</p>
+<p><strong>总结：</strong><br>在进行OutputNode，SortNode，TopNNode，或者是LimitNode这种需要聚合所有节点的数据来进行操作的，如果Child的执行计划是在多个节点上运行，那么就会加上RemoteExchangeNode来进行分段。</p>
+<p><strong>Join节点</strong><br>和上面的聚合数据的节点不同，Join节点的处理方式较为复杂。<br><code>select * from video v join user u on v.user_id = u.user_id</code><br>想象这么一句话。<br>如果不考虑数据分布的情况，正常的处理就是</p>
+<ul>
+<li>随机选择Fixed阶段处理节点</li>
+<li>从Source把数据读出</li>
+<li>video的数据按照user_id的Hash进行shuffle到Fixed节点</li>
+<li>user的数据按照user_id的Hash进行shuffle到Fixed节点</li>
+</ul>
+<p>但是如果video的原先数据分布就是按照user_id进行分布的呢。<br>那我们这时候，把user的数据按照user_id分到video的节点上。<br>是不是更好呢。</p>
+<p>那么这样的话，原先是这样的结构。<br><img src="/images/presto-stage/JoinStage1.png" alt=""></p>
+<p>那么就可以变成这样的结构<br><img src="/images/presto-stage/JoinStage2.png" alt=""><br>如果左表特别大的话，那么就省去了很多的shuffle时间。</p>
+
+  </div>
+  <div class="post-copyright">
+      <p class="copyright-item">
+          <span>许可协议: </span>
+          <a rel="license" href="http://creativecommons.org/licenses/by-nc/4.0/" target="_blank">知识共享署名-非商业性使用 4.0 国际许可协议</a>
+        </p>
+  </div>
+</article>
+
+    <div class="blog-post-comments">
+        <div id="disqus_thread">
+            <noscript>Please enable JavaScript to view the comments.</noscript>
+        </div>
+    </div>
+
+
+
+        
+          <div id="footer-post-container">
+  <div id="footer-post">
+
+    <div id="nav-footer" style="display: none">
+      <ul>
+         
+          <li><a href="/">Home</a></li>
+         
+          <li><a href="/about/">About</a></li>
+         
+          <li><a href="/archives/">Writing</a></li>
+         
+          <li><a href="/tags/">Tags</a></li>
+         
+          <li><a href="/movies/index.html">Movie</a></li>
+         
+          <li><a href="/books/index.html">Books</a></li>
+        
+      </ul>
+    </div>
+
+    <div id="toc-footer" style="display: none">
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#先行流程"><span class="toc-number">1.</span> <span class="toc-text">先行流程</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Stage抽象"><span class="toc-number">2.</span> <span class="toc-text">Stage抽象</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#PlanFragmenter"><span class="toc-number">3.</span> <span class="toc-text">PlanFragmenter</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#AddExchanges"><span class="toc-number">4.</span> <span class="toc-text">AddExchanges</span></a></li></ol>
+    </div>
+
+    <div id="share-footer" style="display: none">
+      <ul>
+  <li><a class="icon" href="http://www.facebook.com/sharer.php?u=http://zhyzhyzhy.github.io/2018/07/10/Presto的分段源码解析/"><i class="fab fa-facebook fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://twitter.com/share?url=http://zhyzhyzhy.github.io/2018/07/10/Presto的分段源码解析/&text=Presto的分段源码解析"><i class="fab fa-twitter fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://www.linkedin.com/shareArticle?url=http://zhyzhyzhy.github.io/2018/07/10/Presto的分段源码解析/&title=Presto的分段源码解析"><i class="fab fa-linkedin fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://pinterest.com/pin/create/bookmarklet/?url=http://zhyzhyzhy.github.io/2018/07/10/Presto的分段源码解析/&is_video=false&description=Presto的分段源码解析"><i class="fab fa-pinterest fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=Presto的分段源码解析&body=Check out this article: http://zhyzhyzhy.github.io/2018/07/10/Presto的分段源码解析/"><i class="fas fa-envelope fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://getpocket.com/save?url=http://zhyzhyzhy.github.io/2018/07/10/Presto的分段源码解析/&title=Presto的分段源码解析"><i class="fab fa-get-pocket fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://reddit.com/submit?url=http://zhyzhyzhy.github.io/2018/07/10/Presto的分段源码解析/&title=Presto的分段源码解析"><i class="fab fa-reddit fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://www.stumbleupon.com/submit?url=http://zhyzhyzhy.github.io/2018/07/10/Presto的分段源码解析/&title=Presto的分段源码解析"><i class="fab fa-stumbleupon fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://digg.com/submit?url=http://zhyzhyzhy.github.io/2018/07/10/Presto的分段源码解析/&title=Presto的分段源码解析"><i class="fab fa-digg fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://www.tumblr.com/share/link?url=http://zhyzhyzhy.github.io/2018/07/10/Presto的分段源码解析/&name=Presto的分段源码解析&description=&lt;h2 id=&quot;先行流程&quot;&gt;&lt;a href=&quot;#先行流程&quot; class=&quot;headerlink&quot; title=&quot;先行流程&quot;&gt;&lt;/a&gt;先行流程&lt;/h2&gt;&lt;p&gt;在进行分段之前，已经建立好计划数PlanNode，并且已经进行了所有的planOptimizers进行优化。&lt;br&gt;最后在SqlQueryExecution#doAnalyzeQuery()的PlanFragmenter中进行分段。&lt;/p&gt;"><i class="fab fa-tumblr fa-lg" aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+
+    <div id="actions-footer">
+        <a id="menu" class="icon" href="#" onclick="$('#nav-footer').toggle();return false;"><i class="fas fa-bars fa-lg" aria-hidden="true"></i> Menu</a>
+        <a id="toc" class="icon" href="#" onclick="$('#toc-footer').toggle();return false;"><i class="fas fa-list fa-lg" aria-hidden="true"></i> TOC</a>
+        <a id="share" class="icon" href="#" onclick="$('#share-footer').toggle();return false;"><i class="fas fa-share-alt fa-lg" aria-hidden="true"></i> Share</a>
+        <a id="top" style="display:none" class="icon" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fas fa-chevron-up fa-lg" aria-hidden="true"></i> Top</a>
+    </div>
+
+  </div>
+</div>
+
+        
+        <footer id="footer">
+  <div class="footer-left">
+    Copyright &copy; 2019 zhy
+  </div>
+  <div class="footer-right">
+    <nav>
+      <ul>
+         
+          <li><a href="/">Home</a></li>
+         
+          <li><a href="/about/">About</a></li>
+         
+          <li><a href="/archives/">Writing</a></li>
+         
+          <li><a href="/tags/">Tags</a></li>
+         
+          <li><a href="/movies/index.html">Movie</a></li>
+         
+          <li><a href="/books/index.html">Books</a></li>
+        
+      </ul>
+    </nav>
+  </div>
+</footer>
+
+    </div>
+</body>
+</html>
+<!-- styles -->
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+<link rel="stylesheet" href="/lib/justified-gallery/css/justifiedGallery.min.css">
+
+<!-- jquery -->
+<script src="/lib/jquery/jquery.min.js"></script>
+<script src="/lib/justified-gallery/js/jquery.justifiedGallery.min.js"></script>
+<script src="/js/main.js"></script>
+<!-- search -->
+
+<!-- Google Analytics -->
+
+    <script type="text/javascript">
+        (function(i,s,o,g,r,a,m) {i['GoogleAnalyticsObject']=r;i[r]=i[r]||function() {
+        (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+        m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+        })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+        ga('create', 'UA-125642214-1', 'auto');
+        ga('send', 'pageview');
+    </script>
+
+<!-- Baidu Analytics -->
+
+    <script type="text/javascript">
+        var _hmt = _hmt || [];
+        (function() {
+            var hm = document.createElement("script");
+            hm.src = "https://hm.baidu.com/hm.js?c1f963571cb3d8a4a5dc82346dc65842";
+            var s = document.getElementsByTagName("script")[0];
+            s.parentNode.insertBefore(hm, s);
+        })();
+    </script>
+
+<!-- Disqus Comments -->
+
+    <script type="text/javascript">
+        var disqus_shortname = 'blog-lovezhy-cc-1';
+
+        (function(){
+            var dsq = document.createElement('script');
+            dsq.type = 'text/javascript';
+            dsq.async = true;
+            dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+            (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+        }());
+    </script>
+
+
