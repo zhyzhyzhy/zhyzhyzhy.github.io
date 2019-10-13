@@ -1189,6 +1189,45 @@ article .content .caption {
 .post-copyright .copyright-item {
   margin: 5px 0;
 }
+.post-reward {
+  margin-top: 20px;
+  padding-top: 10px;
+  text-align: center;
+  border-top: 1px dashed $light-gray;
+}
+.post-reward .reward-button {
+  margin: 15px 0;
+  padding: 3px 7px;
+  display: inline-block;
+  color: $theme-color;
+  border: 1px solid $theme-color;
+  border-radius: 5px;
+  cursor: pointer;
+}
+.post-reward .reward-button:hover {
+  color: $white;
+  background-color: $theme-color;
+  transition: 0.5s;
+}
+.post-reward #reward:checked ~ .qr-code {
+  display: block;
+}
+.post-reward #reward:checked ~ .reward-button {
+  display: none;
+}
+.post-reward .qr-code {
+  display: none;
+  margin-top: 15px;
+}
+.post-reward .qr-code .qr-code-image {
+  display: inline-block;
+  min-width: 200px;
+  width: 40%;
+}
+.post-reward .qr-code .image {
+  width: 200px;
+  height: 275px;
+}
 #archive .post-list {
   padding: 0;
 }
