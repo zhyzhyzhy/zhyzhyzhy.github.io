@@ -16,7 +16,7 @@
 <meta property="og:site_name" content="LoveZhy">
 <meta property="og:description" content="Redis中的字符串使用的是自己的实现，解决了使用原生字符串的一些弊端在源码中定义为sds.h">
 <meta property="og:locale" content="zh-cn">
-<meta property="og:updated_time" content="2019-01-25T14:17:00.000Z">
+<meta property="og:updated_time" content="2019-11-18T14:31:20.467Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="SDS从1.0到2.0">
 <meta name="twitter:description" content="Redis中的字符串使用的是自己的实现，解决了使用原生字符串的一些弊端在源码中定义为sds.h">
@@ -158,7 +158,8 @@
 
   <div class="content" itemprop="articleBody">
     <p>Redis中的字符串使用的是自己的实现，解决了使用原生字符串的一些弊端<br>在源码中定义为<code>sds.h</code><br><a id="more"></a></p>
-<h2 id="1-0"><a href="#1-0" class="headerlink" title="1.0"></a>1.0</h2><p>1.0 的定义是这样的<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">sdshdr</span> &#123;</span></span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">int</span> len;</span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">int</span> <span class="built_in">free</span>;</span><br><span class="line">    <span class="keyword">char</span> buf[];</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure></p>
+<h2 id="1-0"><a href="#1-0" class="headerlink" title="1.0"></a>1.0</h2><p>1.0 的定义是这样的</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">sdshdr</span> &#123;</span></span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">int</span> len;</span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">int</span> <span class="built_in">free</span>;</span><br><span class="line">    <span class="keyword">char</span> buf[];</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
 <p>通过两个字段标记buf中空闲的大小和已经有的字符串的长度<br>获得了以下的好处</p>
 <ul>
 <li>使得strlen的时间复杂度变成了O(1)</li>
@@ -169,8 +170,8 @@
 </ul>
 </li>
 </ul>
-<p>有分配就有收回<br>关于收回有两个函数<code>sdstrim</code>和<code>sdsRemoveFreeSpace</code><br>第一个并没有回收buf数组，而是把多余的空间的大小写到了free中<br>第二个是进行了回收buf数组的操作<br>我再去看sdsRemoveFreeSpace的调用，发现其实调用的并不多<br>可能是Redis的场景中，直接delete的较多，进行remove并不多<br>而且Redis提供的操作中也只有append操作可以对字符串进行增加<br>具体哪些会调用remove，TODO一下，等后面看到了再说</p>
-<p>我在看书的时候顺便去翻了下源码<br>发现3.2之后进行了一番的升级</p>
+<p>有分配就有收回<br>关于收回有两个函数<code>sdstrim</code>和<code>sdsRemoveFreeSpace</code><br>第一个并没有回收buf数组，而是把多余的空间的大小写到了free中<br>第二个是进行了回收buf数组的操作<br>我再去看sdsRemoveFreeSpace的调用，发现其实调用的并不多<br>可能是Redis的场景中，直接delete的较多，进行remove并不多<br>而且Redis提供的操作中也只有append操作可以对字符串进行增加<br>具体哪些会调用remove，TODO一下，等后面看到了再说  </p>
+<p>我在看书的时候顺便去翻了下源码<br>发现3.2之后进行了一番的升级   </p>
 <p>变得略复杂</p>
 <p>为什么要进行了升级呢，其实SDS的定义也不是毫无缺点<br>看这个issue就知道了<br><a href="https://github.com/antirez/redis/issues/757" target="_blank" rel="noopener">https://github.com/antirez/redis/issues/757</a><br>问题就在len和free的使用类型上，使用的是unsigned int</p>
 <ul>
