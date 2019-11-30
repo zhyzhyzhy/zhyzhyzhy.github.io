@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang=zh>
+<head><meta name="generator" content="Hexo 3.8.0">
+    <!-- so meta -->
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="HandheldFriendly" content="True">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <script data-ad-client="ca-pub-2778680082058669" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+    <meta name="baidu_union_verify" content="4ccf99e264b86ed667b1d733b3bdff5d">
+    <meta name="description" content="前言前面我们讲解了C1和C2的基本知识，但是我们还未触及一个核心的策略，就是什么时候触发即使编译，也就是when的问题。 对于when的问题，相信大家多多少少都大概知道，每个方法都会有一个调用次数的计数器，当这个计数器的次数到达一定的次数时，就会被认为是热点方法，继而触发JIT编译。 但是本文要科普另外一种触发条件，和方法计数器类似。 方法计数器的问题大部分人看来，维护一个方法被调用次数计数器当然">
+<meta name="keywords" content="Java">
+<meta property="og:type" content="article">
+<meta property="og:title" content="HotSpot原理指南-OSR是什么">
+<meta property="og:url" content="http://zhyzhyzhy.github.io/2019/11/28/HotSpot原理指南-OSR是什么/index.html">
+<meta property="og:site_name" content="LoveZhy">
+<meta property="og:description" content="前言前面我们讲解了C1和C2的基本知识，但是我们还未触及一个核心的策略，就是什么时候触发即使编译，也就是when的问题。 对于when的问题，相信大家多多少少都大概知道，每个方法都会有一个调用次数的计数器，当这个计数器的次数到达一定的次数时，就会被认为是热点方法，继而触发JIT编译。 但是本文要科普另外一种触发条件，和方法计数器类似。 方法计数器的问题大部分人看来，维护一个方法被调用次数计数器当然">
+<meta property="og:locale" content="zh-cn">
+<meta property="og:image" content="http://zhyzhyzhy.github.io/images/HotSpot原理指南-OSR是什么/hotLoop耗时.png">
+<meta property="og:updated_time" content="2019-11-30T08:32:51.274Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="HotSpot原理指南-OSR是什么">
+<meta name="twitter:description" content="前言前面我们讲解了C1和C2的基本知识，但是我们还未触及一个核心的策略，就是什么时候触发即使编译，也就是when的问题。 对于when的问题，相信大家多多少少都大概知道，每个方法都会有一个调用次数的计数器，当这个计数器的次数到达一定的次数时，就会被认为是热点方法，继而触发JIT编译。 但是本文要科普另外一种触发条件，和方法计数器类似。 方法计数器的问题大部分人看来，维护一个方法被调用次数计数器当然">
+<meta name="twitter:image" content="http://zhyzhyzhy.github.io/images/HotSpot原理指南-OSR是什么/hotLoop耗时.png">
+    
+    
+        
+          
+              <link rel="shortcut icon" href="/images/favicon.ico">
+          
+        
+        
+          
+            <link rel="icon" type="image/png" href="/images/favicon-192x192.png" sizes="192x192">
+          
+        
+        
+          
+            <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
+          
+        
+    
+    <!-- title -->
+    <title>HotSpot原理指南-OSR是什么</title>
+    <!-- styles -->
+    <link rel="stylesheet" href="/css/style.css">
+    <!-- persian styles -->
+    
+      <link rel="stylesheet" href="/css/rtl.css">
+    
+    <!-- rss -->
+    
+    
+</head>
+
+<body class="max-width mx-auto px3 ltr">    
+      <div id="header-post">
+  <a id="menu-icon" href="#"><i class="fas fa-bars fa-lg"></i></a>
+  <a id="menu-icon-tablet" href="#"><i class="fas fa-bars fa-lg"></i></a>
+  <a id="top-icon-tablet" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');" style="display:none;"><i class="fas fa-chevron-up fa-lg"></i></a>
+  <span id="menu">
+    <span id="nav">
+      <ul>
+         
+          <li><a href="/">Home</a></li>
+         
+          <li><a href="/about/">About</a></li>
+         
+          <li><a href="/archives/">Writing</a></li>
+         
+          <li><a href="/tags/">Tags</a></li>
+         
+          <li><a href="/movies/index.html">Movie</a></li>
+         
+          <li><a href="/books/index.html">Books</a></li>
+        
+      </ul>
+    </span>
+    <br>
+    <span id="actions">
+      <ul>
+        
+        <li><a class="icon" href="/2019/11/30/银行报考指北/"><i class="fas fa-chevron-left" aria-hidden="true" onmouseover="$('#i-prev').toggle();" onmouseout="$('#i-prev').toggle();"></i></a></li>
+        
+        
+        <li><a class="icon" href="/2019/11/28/HotSpot原理指南-内联/"><i class="fas fa-chevron-right" aria-hidden="true" onmouseover="$('#i-next').toggle();" onmouseout="$('#i-next').toggle();"></i></a></li>
+        
+        <li><a class="icon" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fas fa-chevron-up" aria-hidden="true" onmouseover="$('#i-top').toggle();" onmouseout="$('#i-top').toggle();"></i></a></li>
+        <li><a class="icon" href="#"><i class="fas fa-share-alt" aria-hidden="true" onmouseover="$('#i-share').toggle();" onmouseout="$('#i-share').toggle();" onclick="$('#share').toggle();return false;"></i></a></li>
+      </ul>
+      <span id="i-prev" class="info" style="display:none;">Previous post</span>
+      <span id="i-next" class="info" style="display:none;">Next post</span>
+      <span id="i-top" class="info" style="display:none;">Back to top</span>
+      <span id="i-share" class="info" style="display:none;">Share post</span>
+    </span>
+    <br>
+    <div id="share" style="display: none">
+      <ul>
+  <li><a class="icon" href="http://www.facebook.com/sharer.php?u=http://zhyzhyzhy.github.io/2019/11/28/HotSpot原理指南-OSR是什么/"><i class="fab fa-facebook " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://twitter.com/share?url=http://zhyzhyzhy.github.io/2019/11/28/HotSpot原理指南-OSR是什么/&text=HotSpot原理指南-OSR是什么"><i class="fab fa-twitter " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://www.linkedin.com/shareArticle?url=http://zhyzhyzhy.github.io/2019/11/28/HotSpot原理指南-OSR是什么/&title=HotSpot原理指南-OSR是什么"><i class="fab fa-linkedin " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://pinterest.com/pin/create/bookmarklet/?url=http://zhyzhyzhy.github.io/2019/11/28/HotSpot原理指南-OSR是什么/&is_video=false&description=HotSpot原理指南-OSR是什么"><i class="fab fa-pinterest " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=HotSpot原理指南-OSR是什么&body=Check out this article: http://zhyzhyzhy.github.io/2019/11/28/HotSpot原理指南-OSR是什么/"><i class="fas fa-envelope " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://getpocket.com/save?url=http://zhyzhyzhy.github.io/2019/11/28/HotSpot原理指南-OSR是什么/&title=HotSpot原理指南-OSR是什么"><i class="fab fa-get-pocket " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://reddit.com/submit?url=http://zhyzhyzhy.github.io/2019/11/28/HotSpot原理指南-OSR是什么/&title=HotSpot原理指南-OSR是什么"><i class="fab fa-reddit " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://www.stumbleupon.com/submit?url=http://zhyzhyzhy.github.io/2019/11/28/HotSpot原理指南-OSR是什么/&title=HotSpot原理指南-OSR是什么"><i class="fab fa-stumbleupon " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://digg.com/submit?url=http://zhyzhyzhy.github.io/2019/11/28/HotSpot原理指南-OSR是什么/&title=HotSpot原理指南-OSR是什么"><i class="fab fa-digg " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://www.tumblr.com/share/link?url=http://zhyzhyzhy.github.io/2019/11/28/HotSpot原理指南-OSR是什么/&name=HotSpot原理指南-OSR是什么&description="><i class="fab fa-tumblr " aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+    <div id="toc">
+      <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#前言"><span class="toc-number">1.</span> <span class="toc-text">前言</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#方法计数器的问题"><span class="toc-number">1.1.</span> <span class="toc-text">方法计数器的问题</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Hot-Loop优化"><span class="toc-number">1.2.</span> <span class="toc-text">Hot Loop优化</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#OSR"><span class="toc-number">1.3.</span> <span class="toc-text">OSR</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#后续问题"><span class="toc-number">1.4.</span> <span class="toc-text">后续问题</span></a></li></ol></li></ol>
+    </div>
+  </span>
+</div>
+
+    
+    <div class="content index py4">
+        
+        <article class="post" itemscope="" itemtype="http://schema.org/BlogPosting">
+  <header>
+    
+    <h1 class="posttitle" itemprop="name headline">
+        HotSpot原理指南-OSR是什么
+    </h1>
+
+
+
+    <div class="meta">
+      <span class="author" itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+        <span itemprop="name">LoveZhy</span>
+      </span>
+      
+    <div class="postdate">
+      
+        <time datetime="2019-11-27T16:00:00.000Z" itemprop="datePublished">2019-11-28</time>
+        
+      
+    </div>
+
+
+      
+    <div class="article-category">
+        <i class="fas fa-archive"></i>
+        <a class="category-link" href="/categories/Java/">Java</a>
+    </div>
+
+
+      
+    <div class="article-tag">
+        <i class="fas fa-tag"></i>
+        <a class="tag-link" href="/tags/Java/">Java</a>
+    </div>
+
+
+    </div>
+  </header>
+  
+
+  <div class="content" itemprop="articleBody">
+    <h1 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h1><p>前面我们讲解了C1和C2的基本知识，但是我们还未触及一个核心的策略，就是<strong>什么时候触发即使编译</strong>，也就是<strong>when</strong>的问题。</p>
+<p>对于when的问题，相信大家多多少少都大概知道，每个方法都会有一个调用次数的计数器，当这个计数器的次数到达一定的次数时，就会被认为是热点方法，继而触发JIT编译。</p>
+<p>但是本文要科普另外一种触发条件，和方法计数器类似。</p>
+<h2 id="方法计数器的问题"><a href="#方法计数器的问题" class="headerlink" title="方法计数器的问题"></a>方法计数器的问题</h2><p>大部分人看来，维护一个方法被调用次数计数器当然是一个很完美的方案</p>
+<p>但是有一类方法，即使在我们认知范围内，属于热点方法，但是却无法享受到这个计数器的好处。</p>
+<p>如下代码：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">OSRExample</span> </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">int</span> sum = <span class="number">0</span>;</span><br><span class="line">        <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; <span class="number">200000</span>; i++) &#123;</span><br><span class="line">            <span class="comment">//do a lot of things</span></span><br><span class="line">        &#125;</span><br><span class="line">        System.out.println(sum);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>在Main函数中，有一个循环，在循环中并没有调用某个方法，而是一直在线性执行一些逻辑。</p>
+<p>假如我们把循环中的逻辑看做一个函数，这个函数肯定是热点函数，需要进行JIT编译的，但是在这种场景下，并不是一个函数，也就是无法进行JIT。</p>
+<p>如果JIT无法处理这种情况，将是非常可惜的。</p>
+<h2 id="Hot-Loop优化"><a href="#Hot-Loop优化" class="headerlink" title="Hot Loop优化"></a>Hot Loop优化</h2><p>但是如果我们构造一个上面的代码的情况，并且使用计数器给每次循环的执行时间进行计时。</p>
+<p>会发现下面这张时间和次数的图</p>
+<p><img src="/images/HotSpot原理指南-OSR是什么/hotLoop耗时.png" alt=""></p>
+<p>从图中我们可以看出，大概在150次的时候，整个Loop的耗时突发的大大降低。</p>
+<p>说明在HotSpot的JIT中，是可以处理这种情况的。</p>
+<p>那么HotSpot究竟是怎么做的呢？</p>
+<p>前面我们提到过，如果在Loop中调用的是方法，将不会存在上述的问题，但是实际的情况并不是调用的方法。</p>
+<p>那么，我们能不能，把它包装成一个函数呢？</p>
+<p>举个例子，原方法如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">OSRExample</span> </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">int</span> sum = <span class="number">0</span>;</span><br><span class="line">        <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; <span class="number">20000</span>; i++) &#123;</span><br><span class="line">            sum += i;</span><br><span class="line">          	sum *= sum;</span><br><span class="line">          	sum |= sum;</span><br><span class="line">        &#125;</span><br><span class="line">        System.out.println(sum);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>我们把它改成如下的方法</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">OSRExample</span> </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">int</span> sum = <span class="number">0</span>;</span><br><span class="line">        <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; <span class="number">20000</span>; i++) &#123;</span><br><span class="line">					sum = doLoop(sum);</span><br><span class="line">        &#125;</span><br><span class="line">        System.out.println(sum);</span><br><span class="line">    &#125;</span><br><span class="line">  	</span><br><span class="line">  	<span class="function"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">int</span> <span class="title">doLoop</span><span class="params">(<span class="keyword">int</span> sum)</span> </span>&#123;</span><br><span class="line">      	sum += i;</span><br><span class="line">      	sum *= sum;</span><br><span class="line">      	sum |= sum;</span><br><span class="line">      	<span class="keyword">return</span> sum;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这样可以不可以呢？</p>
+<p>当然是可以的。</p>
+<p>但是！这是作者的猜测，HotSpot真实的情况并不是这样。</p>
+<p>事实上，这种割裂整个main方法，动态把一部分代码进行修改的操作似乎消耗太大了，性价比并不高。</p>
+<p>HotSpot并不会把Loop的内容动态生成一个函数，然后对该函数进行JIT。</p>
+<p>而是对包含这个Loop的<strong>整个方法进行了JIT</strong>。</p>
+<p>什么？对整个方法进行JIT？</p>
+<p>要知道，这个方法在运行中啊，可能再也不会运行第二次，对整个方法进行JIT有什么意义呢？</p>
+<p>稍安勿躁，虽然对整个方法进行了JIT，但是JIT后的代码和原来的函数其实还是有区别的。</p>
+<p>如果我们需要将运行到一半的函数，从一个源代码替换到另外一个源代码，遇到的问题是什么呢？</p>
+<p>首先，这个方法的循环执行到一半，这个i的具体数值肯定不是0了，是一个不可预测的值。</p>
+<p>同时这个sum的值，肯定也是一个不好预测的值。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; <span class="number">20000</span>; i++) &#123;</span><br><span class="line">		sum = doLoop(sum);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>如果要进行替换，需要把替换时的i和sum的值记录下来，那么替换后的源代码大概就长这样</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">public static void main#jit(int i, int sum) &#123;</span><br><span class="line">		<span class="keyword">for</span> (; i &lt; <span class="number">20000</span>; i++) &#123;</span><br><span class="line">        sum += i;</span><br><span class="line">      	sum *= sum;</span><br><span class="line">      	sum |= sum;</span><br><span class="line">    &#125;</span><br><span class="line">    System.out.println(sum);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>没错！把运行中动态的值作为参数传给JIT后的函数，就是HotSpot的JIT对于这种HotLoop的优化。</p>
+<h2 id="OSR"><a href="#OSR" class="headerlink" title="OSR"></a>OSR</h2><p>OSR的全称是On-Stack-Replacement。也就是栈上替换。</p>
+<p>从上一节我们了解的可以知道，对于main函数，JIT进行编译的时候，直接把运行中的main函数源代码进行了替换，替换成了修改后的main函数。那么之前的main函数栈帧其实就完全失效了，被替换成了新的函数的栈帧。</p>
+<p>这种JIT编译的方式就叫OSR编译。</p>
+<p>这种栈上替换的方式其实并不是HotSpot独有的，很多其他的语言中也有这样的优化，如V8。</p>
+<h2 id="后续问题"><a href="#后续问题" class="headerlink" title="后续问题"></a>后续问题</h2><p>OSR能够解决HotLoop的优化问题，但是其实在HotSpot中还是有几个值得深究的点。</p>
+<ol>
+<li><p>如果这个main函数方法非常大，Loop只是很小的一部分，那么把整个函数进行JIT编译的性价比就值得商榷了。核心问题其实是，为什么必须要编译整个方法呢？</p>
+<p>这个问题R大也给了我们解释，详细看文章</p>
+<p><a href="https://github.com/AdoptOpenJDK/jitwatch/wiki/Understanding-the-On-Stack-Replacement-(OSR" target="_blank" rel="noopener">Why is C1 OSR compiling the whole method?</a>-optimisation-in-the-HotSpot-C1-compiler)</p>
+</li>
+<li><p>OSR其实并不是完美的解决方案，在某些场景下它会生成非常丑陋的代码，如果有多个Loop或者Loop进行嵌套的方法。</p>
+<p>HotSpot在一篇文章中进行了解释，有兴趣可以看文章</p>
+<p><a href="https://www.h2o.ai/blog/what-the-heck-is-osr-and-why-is-it-bad-or-good/" target="_blank" rel="noopener">What ths heck is osr and why is it bad or good?</a></p>
+</li>
+</ol>
+
+  </div>
+  <div class="post-copyright">
+      <p class="copyright-item">
+          <span>许可协议: </span>
+          <a rel="license" href="http://creativecommons.org/licenses/by-nc/4.0/" target="_blank">知识共享署名-非商业性使用 4.0 国际许可协议</a>
+        </p>
+  </div>
+
+  <div class="post-reward">
+    <input type="checkbox" name="reward" id="reward" hidden>
+    <label class="reward-button" for="reward">赞赏支持</label>
+    <div class="qr-code">
+      <label class="qr-code-image" for="reward">
+        <img class="image" src="http://loveforyou.lovezhy.cc/WechatIMG108.jpeg" title="wechat">
+      </label>
+      <label class="qr-code-image" for="reward">
+        <img class="image" src="http://loveforyou.lovezhy.cc/WechatIMG109.png" title="alipay">
+      </label>
+    </div>
+  </div>
+
+</article>
+
+
+
+    <div class="blog-post-comments">
+        <div id="disqus_thread">
+            <noscript>Please enable JavaScript to view the comments.</noscript>
+        </div>
+    </div>
+
+
+
+        
+          <div id="footer-post-container">
+  <div id="footer-post">
+
+    <div id="nav-footer" style="display: none">
+      <ul>
+         
+          <li><a href="/">Home</a></li>
+         
+          <li><a href="/about/">About</a></li>
+         
+          <li><a href="/archives/">Writing</a></li>
+         
+          <li><a href="/tags/">Tags</a></li>
+         
+          <li><a href="/movies/index.html">Movie</a></li>
+         
+          <li><a href="/books/index.html">Books</a></li>
+        
+      </ul>
+    </div>
+
+    <div id="toc-footer" style="display: none">
+      <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#前言"><span class="toc-number">1.</span> <span class="toc-text">前言</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#方法计数器的问题"><span class="toc-number">1.1.</span> <span class="toc-text">方法计数器的问题</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Hot-Loop优化"><span class="toc-number">1.2.</span> <span class="toc-text">Hot Loop优化</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#OSR"><span class="toc-number">1.3.</span> <span class="toc-text">OSR</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#后续问题"><span class="toc-number">1.4.</span> <span class="toc-text">后续问题</span></a></li></ol></li></ol>
+    </div>
+
+    <div id="share-footer" style="display: none">
+      <ul>
+  <li><a class="icon" href="http://www.facebook.com/sharer.php?u=http://zhyzhyzhy.github.io/2019/11/28/HotSpot原理指南-OSR是什么/"><i class="fab fa-facebook fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://twitter.com/share?url=http://zhyzhyzhy.github.io/2019/11/28/HotSpot原理指南-OSR是什么/&text=HotSpot原理指南-OSR是什么"><i class="fab fa-twitter fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://www.linkedin.com/shareArticle?url=http://zhyzhyzhy.github.io/2019/11/28/HotSpot原理指南-OSR是什么/&title=HotSpot原理指南-OSR是什么"><i class="fab fa-linkedin fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://pinterest.com/pin/create/bookmarklet/?url=http://zhyzhyzhy.github.io/2019/11/28/HotSpot原理指南-OSR是什么/&is_video=false&description=HotSpot原理指南-OSR是什么"><i class="fab fa-pinterest fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=HotSpot原理指南-OSR是什么&body=Check out this article: http://zhyzhyzhy.github.io/2019/11/28/HotSpot原理指南-OSR是什么/"><i class="fas fa-envelope fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://getpocket.com/save?url=http://zhyzhyzhy.github.io/2019/11/28/HotSpot原理指南-OSR是什么/&title=HotSpot原理指南-OSR是什么"><i class="fab fa-get-pocket fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://reddit.com/submit?url=http://zhyzhyzhy.github.io/2019/11/28/HotSpot原理指南-OSR是什么/&title=HotSpot原理指南-OSR是什么"><i class="fab fa-reddit fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://www.stumbleupon.com/submit?url=http://zhyzhyzhy.github.io/2019/11/28/HotSpot原理指南-OSR是什么/&title=HotSpot原理指南-OSR是什么"><i class="fab fa-stumbleupon fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://digg.com/submit?url=http://zhyzhyzhy.github.io/2019/11/28/HotSpot原理指南-OSR是什么/&title=HotSpot原理指南-OSR是什么"><i class="fab fa-digg fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://www.tumblr.com/share/link?url=http://zhyzhyzhy.github.io/2019/11/28/HotSpot原理指南-OSR是什么/&name=HotSpot原理指南-OSR是什么&description="><i class="fab fa-tumblr fa-lg" aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+
+    <div id="actions-footer">
+        <a id="menu" class="icon" href="#" onclick="$('#nav-footer').toggle();return false;"><i class="fas fa-bars fa-lg" aria-hidden="true"></i> Menu</a>
+        <a id="toc" class="icon" href="#" onclick="$('#toc-footer').toggle();return false;"><i class="fas fa-list fa-lg" aria-hidden="true"></i> TOC</a>
+        <a id="share" class="icon" href="#" onclick="$('#share-footer').toggle();return false;"><i class="fas fa-share-alt fa-lg" aria-hidden="true"></i> Share</a>
+        <a id="top" style="display:none" class="icon" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fas fa-chevron-up fa-lg" aria-hidden="true"></i> Top</a>
+    </div>
+
+  </div>
+</div>
+
+        
+        <footer id="footer">
+  <div class="footer-left">
+    Copyright &copy; 2019 zhy
+  </div>
+  <div class="footer-right">
+    <nav>
+      <ul>
+         
+          <li><a href="/">Home</a></li>
+         
+          <li><a href="/about/">About</a></li>
+         
+          <li><a href="/archives/">Writing</a></li>
+         
+          <li><a href="/tags/">Tags</a></li>
+         
+          <li><a href="/movies/index.html">Movie</a></li>
+         
+          <li><a href="/books/index.html">Books</a></li>
+        
+      </ul>
+    </nav>
+  </div>
+</footer>
+
+    </div>
+</body>
+</html>
+<!-- styles -->
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+<link rel="stylesheet" href="/lib/justified-gallery/css/justifiedGallery.min.css">
+
+<!-- jquery -->
+<script src="/lib/jquery/jquery.min.js"></script>
+<script src="/lib/justified-gallery/js/jquery.justifiedGallery.min.js"></script>
+<script src="/js/main.js"></script>
+<!-- search -->
+
+<!-- Google Analytics -->
+
+    <script type="text/javascript">
+        (function(i,s,o,g,r,a,m) {i['GoogleAnalyticsObject']=r;i[r]=i[r]||function() {
+        (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+        m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+        })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+        ga('create', 'UA-125642214-1', 'auto');
+        ga('send', 'pageview');
+    </script>
+
+<!-- Baidu Analytics -->
+
+    <script type="text/javascript">
+        var _hmt = _hmt || [];
+        (function() {
+            var hm = document.createElement("script");
+            hm.src = "https://hm.baidu.com/hm.js?c1f963571cb3d8a4a5dc82346dc65842";
+            var s = document.getElementsByTagName("script")[0];
+            s.parentNode.insertBefore(hm, s);
+        })();
+    </script>
+
+<!-- Disqus Comments -->
+
+    <script type="text/javascript">
+        var disqus_shortname = 'blog-lovezhy-cc-1';
+
+        (function(){
+            var dsq = document.createElement('script');
+            dsq.type = 'text/javascript';
+            dsq.async = true;
+            dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+            (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+        }());
+    </script>
+
+
