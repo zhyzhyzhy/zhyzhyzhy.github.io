@@ -12,12 +12,12 @@
 <meta name="keywords" content="Java">
 <meta property="og:type" content="article">
 <meta property="og:title" content="HotSpot原理指南-OSR是什么">
-<meta property="og:url" content="http://zhyzhyzhy.github.io/2019/11/28/HotSpot原理指南-OSR是什么/index.html">
+<meta property="og:url" content="http://zhyzhyzhy.github.io/2019/11/30/HotSpot原理指南-OSR是什么/index.html">
 <meta property="og:site_name" content="LoveZhy">
 <meta property="og:description" content="前言前面我们讲解了C1和C2的基本知识，但是我们还未触及一个核心的策略，就是什么时候触发即使编译，也就是when的问题。 对于when的问题，相信大家多多少少都大概知道，每个方法都会有一个调用次数的计数器，当这个计数器的次数到达一定的次数时，就会被认为是热点方法，继而触发JIT编译。 但是本文要科普另外一种触发条件，和方法计数器类似。 方法计数器的问题大部分人看来，维护一个方法被调用次数计数器当然">
 <meta property="og:locale" content="zh-cn">
 <meta property="og:image" content="http://zhyzhyzhy.github.io/images/HotSpot原理指南-OSR是什么/hotLoop耗时.png">
-<meta property="og:updated_time" content="2019-11-30T08:32:51.274Z">
+<meta property="og:updated_time" content="2019-11-30T08:38:45.401Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="HotSpot原理指南-OSR是什么">
 <meta name="twitter:description" content="前言前面我们讲解了C1和C2的基本知识，但是我们还未触及一个核心的策略，就是什么时候触发即使编译，也就是when的问题。 对于when的问题，相信大家多多少少都大概知道，每个方法都会有一个调用次数的计数器，当这个计数器的次数到达一定的次数时，就会被认为是热点方法，继而触发JIT编译。 但是本文要科普另外一种触发条件，和方法计数器类似。 方法计数器的问题大部分人看来，维护一个方法被调用次数计数器当然">
@@ -80,10 +80,8 @@
     <span id="actions">
       <ul>
         
-        <li><a class="icon" href="/2019/11/30/银行报考指北/"><i class="fas fa-chevron-left" aria-hidden="true" onmouseover="$('#i-prev').toggle();" onmouseout="$('#i-prev').toggle();"></i></a></li>
         
-        
-        <li><a class="icon" href="/2019/11/28/HotSpot原理指南-内联/"><i class="fas fa-chevron-right" aria-hidden="true" onmouseover="$('#i-next').toggle();" onmouseout="$('#i-next').toggle();"></i></a></li>
+        <li><a class="icon" href="/2019/11/30/银行报考指北/"><i class="fas fa-chevron-right" aria-hidden="true" onmouseover="$('#i-next').toggle();" onmouseout="$('#i-next').toggle();"></i></a></li>
         
         <li><a class="icon" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fas fa-chevron-up" aria-hidden="true" onmouseover="$('#i-top').toggle();" onmouseout="$('#i-top').toggle();"></i></a></li>
         <li><a class="icon" href="#"><i class="fas fa-share-alt" aria-hidden="true" onmouseover="$('#i-share').toggle();" onmouseout="$('#i-share').toggle();" onclick="$('#share').toggle();return false;"></i></a></li>
@@ -96,16 +94,16 @@
     <br>
     <div id="share" style="display: none">
       <ul>
-  <li><a class="icon" href="http://www.facebook.com/sharer.php?u=http://zhyzhyzhy.github.io/2019/11/28/HotSpot原理指南-OSR是什么/"><i class="fab fa-facebook " aria-hidden="true"></i></a></li>
-  <li><a class="icon" href="https://twitter.com/share?url=http://zhyzhyzhy.github.io/2019/11/28/HotSpot原理指南-OSR是什么/&text=HotSpot原理指南-OSR是什么"><i class="fab fa-twitter " aria-hidden="true"></i></a></li>
-  <li><a class="icon" href="http://www.linkedin.com/shareArticle?url=http://zhyzhyzhy.github.io/2019/11/28/HotSpot原理指南-OSR是什么/&title=HotSpot原理指南-OSR是什么"><i class="fab fa-linkedin " aria-hidden="true"></i></a></li>
-  <li><a class="icon" href="https://pinterest.com/pin/create/bookmarklet/?url=http://zhyzhyzhy.github.io/2019/11/28/HotSpot原理指南-OSR是什么/&is_video=false&description=HotSpot原理指南-OSR是什么"><i class="fab fa-pinterest " aria-hidden="true"></i></a></li>
-  <li><a class="icon" href="mailto:?subject=HotSpot原理指南-OSR是什么&body=Check out this article: http://zhyzhyzhy.github.io/2019/11/28/HotSpot原理指南-OSR是什么/"><i class="fas fa-envelope " aria-hidden="true"></i></a></li>
-  <li><a class="icon" href="https://getpocket.com/save?url=http://zhyzhyzhy.github.io/2019/11/28/HotSpot原理指南-OSR是什么/&title=HotSpot原理指南-OSR是什么"><i class="fab fa-get-pocket " aria-hidden="true"></i></a></li>
-  <li><a class="icon" href="http://reddit.com/submit?url=http://zhyzhyzhy.github.io/2019/11/28/HotSpot原理指南-OSR是什么/&title=HotSpot原理指南-OSR是什么"><i class="fab fa-reddit " aria-hidden="true"></i></a></li>
-  <li><a class="icon" href="http://www.stumbleupon.com/submit?url=http://zhyzhyzhy.github.io/2019/11/28/HotSpot原理指南-OSR是什么/&title=HotSpot原理指南-OSR是什么"><i class="fab fa-stumbleupon " aria-hidden="true"></i></a></li>
-  <li><a class="icon" href="http://digg.com/submit?url=http://zhyzhyzhy.github.io/2019/11/28/HotSpot原理指南-OSR是什么/&title=HotSpot原理指南-OSR是什么"><i class="fab fa-digg " aria-hidden="true"></i></a></li>
-  <li><a class="icon" href="http://www.tumblr.com/share/link?url=http://zhyzhyzhy.github.io/2019/11/28/HotSpot原理指南-OSR是什么/&name=HotSpot原理指南-OSR是什么&description="><i class="fab fa-tumblr " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://www.facebook.com/sharer.php?u=http://zhyzhyzhy.github.io/2019/11/30/HotSpot原理指南-OSR是什么/"><i class="fab fa-facebook " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://twitter.com/share?url=http://zhyzhyzhy.github.io/2019/11/30/HotSpot原理指南-OSR是什么/&text=HotSpot原理指南-OSR是什么"><i class="fab fa-twitter " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://www.linkedin.com/shareArticle?url=http://zhyzhyzhy.github.io/2019/11/30/HotSpot原理指南-OSR是什么/&title=HotSpot原理指南-OSR是什么"><i class="fab fa-linkedin " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://pinterest.com/pin/create/bookmarklet/?url=http://zhyzhyzhy.github.io/2019/11/30/HotSpot原理指南-OSR是什么/&is_video=false&description=HotSpot原理指南-OSR是什么"><i class="fab fa-pinterest " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=HotSpot原理指南-OSR是什么&body=Check out this article: http://zhyzhyzhy.github.io/2019/11/30/HotSpot原理指南-OSR是什么/"><i class="fas fa-envelope " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://getpocket.com/save?url=http://zhyzhyzhy.github.io/2019/11/30/HotSpot原理指南-OSR是什么/&title=HotSpot原理指南-OSR是什么"><i class="fab fa-get-pocket " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://reddit.com/submit?url=http://zhyzhyzhy.github.io/2019/11/30/HotSpot原理指南-OSR是什么/&title=HotSpot原理指南-OSR是什么"><i class="fab fa-reddit " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://www.stumbleupon.com/submit?url=http://zhyzhyzhy.github.io/2019/11/30/HotSpot原理指南-OSR是什么/&title=HotSpot原理指南-OSR是什么"><i class="fab fa-stumbleupon " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://digg.com/submit?url=http://zhyzhyzhy.github.io/2019/11/30/HotSpot原理指南-OSR是什么/&title=HotSpot原理指南-OSR是什么"><i class="fab fa-digg " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://www.tumblr.com/share/link?url=http://zhyzhyzhy.github.io/2019/11/30/HotSpot原理指南-OSR是什么/&name=HotSpot原理指南-OSR是什么&description="><i class="fab fa-tumblr " aria-hidden="true"></i></a></li>
 </ul>
 
     </div>
@@ -134,7 +132,7 @@
       
     <div class="postdate">
       
-        <time datetime="2019-11-27T16:00:00.000Z" itemprop="datePublished">2019-11-28</time>
+        <time datetime="2019-11-29T16:00:00.000Z" itemprop="datePublished">2019-11-30</time>
         
       
     </div>
@@ -205,7 +203,7 @@
 <ol>
 <li><p>如果这个main函数方法非常大，Loop只是很小的一部分，那么把整个函数进行JIT编译的性价比就值得商榷了。核心问题其实是，为什么必须要编译整个方法呢？</p>
 <p>这个问题R大也给了我们解释，详细看文章</p>
-<p><a href="https://github.com/AdoptOpenJDK/jitwatch/wiki/Understanding-the-On-Stack-Replacement-(OSR" target="_blank" rel="noopener">Why is C1 OSR compiling the whole method?</a>-optimisation-in-the-HotSpot-C1-compiler)</p>
+<p><a href="https://github.com/AdoptOpenJDK/jitwatch/wiki/Understanding-the-On-Stack-Replacement-(OSR)-optimisation-in-the-HotSpot-C1-compiler" target="_blank" rel="noopener">https://github.com/AdoptOpenJDK/jitwatch/wiki/Understanding-the-On-Stack-Replacement-(OSR)-optimisation-in-the-HotSpot-C1-compiler</a></p>
 </li>
 <li><p>OSR其实并不是完美的解决方案，在某些场景下它会生成非常丑陋的代码，如果有多个Loop或者Loop进行嵌套的方法。</p>
 <p>HotSpot在一篇文章中进行了解释，有兴趣可以看文章</p>
@@ -274,16 +272,16 @@
 
     <div id="share-footer" style="display: none">
       <ul>
-  <li><a class="icon" href="http://www.facebook.com/sharer.php?u=http://zhyzhyzhy.github.io/2019/11/28/HotSpot原理指南-OSR是什么/"><i class="fab fa-facebook fa-lg" aria-hidden="true"></i></a></li>
-  <li><a class="icon" href="https://twitter.com/share?url=http://zhyzhyzhy.github.io/2019/11/28/HotSpot原理指南-OSR是什么/&text=HotSpot原理指南-OSR是什么"><i class="fab fa-twitter fa-lg" aria-hidden="true"></i></a></li>
-  <li><a class="icon" href="http://www.linkedin.com/shareArticle?url=http://zhyzhyzhy.github.io/2019/11/28/HotSpot原理指南-OSR是什么/&title=HotSpot原理指南-OSR是什么"><i class="fab fa-linkedin fa-lg" aria-hidden="true"></i></a></li>
-  <li><a class="icon" href="https://pinterest.com/pin/create/bookmarklet/?url=http://zhyzhyzhy.github.io/2019/11/28/HotSpot原理指南-OSR是什么/&is_video=false&description=HotSpot原理指南-OSR是什么"><i class="fab fa-pinterest fa-lg" aria-hidden="true"></i></a></li>
-  <li><a class="icon" href="mailto:?subject=HotSpot原理指南-OSR是什么&body=Check out this article: http://zhyzhyzhy.github.io/2019/11/28/HotSpot原理指南-OSR是什么/"><i class="fas fa-envelope fa-lg" aria-hidden="true"></i></a></li>
-  <li><a class="icon" href="https://getpocket.com/save?url=http://zhyzhyzhy.github.io/2019/11/28/HotSpot原理指南-OSR是什么/&title=HotSpot原理指南-OSR是什么"><i class="fab fa-get-pocket fa-lg" aria-hidden="true"></i></a></li>
-  <li><a class="icon" href="http://reddit.com/submit?url=http://zhyzhyzhy.github.io/2019/11/28/HotSpot原理指南-OSR是什么/&title=HotSpot原理指南-OSR是什么"><i class="fab fa-reddit fa-lg" aria-hidden="true"></i></a></li>
-  <li><a class="icon" href="http://www.stumbleupon.com/submit?url=http://zhyzhyzhy.github.io/2019/11/28/HotSpot原理指南-OSR是什么/&title=HotSpot原理指南-OSR是什么"><i class="fab fa-stumbleupon fa-lg" aria-hidden="true"></i></a></li>
-  <li><a class="icon" href="http://digg.com/submit?url=http://zhyzhyzhy.github.io/2019/11/28/HotSpot原理指南-OSR是什么/&title=HotSpot原理指南-OSR是什么"><i class="fab fa-digg fa-lg" aria-hidden="true"></i></a></li>
-  <li><a class="icon" href="http://www.tumblr.com/share/link?url=http://zhyzhyzhy.github.io/2019/11/28/HotSpot原理指南-OSR是什么/&name=HotSpot原理指南-OSR是什么&description="><i class="fab fa-tumblr fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://www.facebook.com/sharer.php?u=http://zhyzhyzhy.github.io/2019/11/30/HotSpot原理指南-OSR是什么/"><i class="fab fa-facebook fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://twitter.com/share?url=http://zhyzhyzhy.github.io/2019/11/30/HotSpot原理指南-OSR是什么/&text=HotSpot原理指南-OSR是什么"><i class="fab fa-twitter fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://www.linkedin.com/shareArticle?url=http://zhyzhyzhy.github.io/2019/11/30/HotSpot原理指南-OSR是什么/&title=HotSpot原理指南-OSR是什么"><i class="fab fa-linkedin fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://pinterest.com/pin/create/bookmarklet/?url=http://zhyzhyzhy.github.io/2019/11/30/HotSpot原理指南-OSR是什么/&is_video=false&description=HotSpot原理指南-OSR是什么"><i class="fab fa-pinterest fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=HotSpot原理指南-OSR是什么&body=Check out this article: http://zhyzhyzhy.github.io/2019/11/30/HotSpot原理指南-OSR是什么/"><i class="fas fa-envelope fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://getpocket.com/save?url=http://zhyzhyzhy.github.io/2019/11/30/HotSpot原理指南-OSR是什么/&title=HotSpot原理指南-OSR是什么"><i class="fab fa-get-pocket fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://reddit.com/submit?url=http://zhyzhyzhy.github.io/2019/11/30/HotSpot原理指南-OSR是什么/&title=HotSpot原理指南-OSR是什么"><i class="fab fa-reddit fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://www.stumbleupon.com/submit?url=http://zhyzhyzhy.github.io/2019/11/30/HotSpot原理指南-OSR是什么/&title=HotSpot原理指南-OSR是什么"><i class="fab fa-stumbleupon fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://digg.com/submit?url=http://zhyzhyzhy.github.io/2019/11/30/HotSpot原理指南-OSR是什么/&title=HotSpot原理指南-OSR是什么"><i class="fab fa-digg fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://www.tumblr.com/share/link?url=http://zhyzhyzhy.github.io/2019/11/30/HotSpot原理指南-OSR是什么/&name=HotSpot原理指南-OSR是什么&description="><i class="fab fa-tumblr fa-lg" aria-hidden="true"></i></a></li>
 </ul>
 
     </div>
