@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang=zh>
+<head><meta name="generator" content="Hexo 3.8.0">
+    <!-- so meta -->
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="HandheldFriendly" content="True">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <script data-ad-client="ca-pub-2778680082058669" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+    <meta name="baidu_union_verify" content="4ccf99e264b86ed667b1d733b3bdff5d">
+    <meta name="description" content="前言通过前面我们知道，对于每个方法，HotSpot都维护两个计数器  Invocation Counter：方法被调用次数，每被调用一次都会+1 BackEdge Counter：专业的说法就是字节码在执行时的回跳次数。通俗点说就是，在For或者While循环中，每执行一次，都会+1。  并且我们知道对于一个方法，JIT有两种不同的编译方式  完整的原方法编译，就是把原本的方法逻辑进行编译。入参和">
+<meta name="keywords" content="Java,HotSpot,JIT">
+<meta property="og:type" content="article">
+<meta property="og:title" content="HotSpot原理指南-JIT触发条件">
+<meta property="og:url" content="http://zhyzhyzhy.github.io/2019/12/14/HotSpot原理指南-JIT触发条件/index.html">
+<meta property="og:site_name" content="LoveZhy">
+<meta property="og:description" content="前言通过前面我们知道，对于每个方法，HotSpot都维护两个计数器  Invocation Counter：方法被调用次数，每被调用一次都会+1 BackEdge Counter：专业的说法就是字节码在执行时的回跳次数。通俗点说就是，在For或者While循环中，每执行一次，都会+1。  并且我们知道对于一个方法，JIT有两种不同的编译方式  完整的原方法编译，就是把原本的方法逻辑进行编译。入参和">
+<meta property="og:locale" content="zh-cn">
+<meta property="og:image" content="http://zhyzhyzhy.github.io/images/HotSpot原理指南-JIT触发条件/编译流程.png">
+<meta property="og:updated_time" content="2019-12-14T15:38:30.920Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="HotSpot原理指南-JIT触发条件">
+<meta name="twitter:description" content="前言通过前面我们知道，对于每个方法，HotSpot都维护两个计数器  Invocation Counter：方法被调用次数，每被调用一次都会+1 BackEdge Counter：专业的说法就是字节码在执行时的回跳次数。通俗点说就是，在For或者While循环中，每执行一次，都会+1。  并且我们知道对于一个方法，JIT有两种不同的编译方式  完整的原方法编译，就是把原本的方法逻辑进行编译。入参和">
+<meta name="twitter:image" content="http://zhyzhyzhy.github.io/images/HotSpot原理指南-JIT触发条件/编译流程.png">
+    
+    
+        
+          
+              <link rel="shortcut icon" href="/images/favicon.ico">
+          
+        
+        
+          
+            <link rel="icon" type="image/png" href="/images/favicon-192x192.png" sizes="192x192">
+          
+        
+        
+          
+            <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
+          
+        
+    
+    <!-- title -->
+    <title>HotSpot原理指南-JIT触发条件</title>
+    <!-- styles -->
+    <link rel="stylesheet" href="/css/style.css">
+    <!-- persian styles -->
+    
+      <link rel="stylesheet" href="/css/rtl.css">
+    
+    <!-- rss -->
+    
+    
+</head>
+
+<body class="max-width mx-auto px3 ltr">    
+      <div id="header-post">
+  <a id="menu-icon" href="#"><i class="fas fa-bars fa-lg"></i></a>
+  <a id="menu-icon-tablet" href="#"><i class="fas fa-bars fa-lg"></i></a>
+  <a id="top-icon-tablet" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');" style="display:none;"><i class="fas fa-chevron-up fa-lg"></i></a>
+  <span id="menu">
+    <span id="nav">
+      <ul>
+         
+          <li><a href="/">Home</a></li>
+         
+          <li><a href="/about/">About</a></li>
+         
+          <li><a href="/archives/">Writing</a></li>
+         
+          <li><a href="/tags/">Tags</a></li>
+         
+          <li><a href="/movies/index.html">Movie</a></li>
+         
+          <li><a href="/books/index.html">Books</a></li>
+        
+      </ul>
+    </span>
+    <br>
+    <span id="actions">
+      <ul>
+        
+        
+        <li><a class="icon" href="/2019/11/30/HotSpot原理指南-OSR是什么/"><i class="fas fa-chevron-right" aria-hidden="true" onmouseover="$('#i-next').toggle();" onmouseout="$('#i-next').toggle();"></i></a></li>
+        
+        <li><a class="icon" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fas fa-chevron-up" aria-hidden="true" onmouseover="$('#i-top').toggle();" onmouseout="$('#i-top').toggle();"></i></a></li>
+        <li><a class="icon" href="#"><i class="fas fa-share-alt" aria-hidden="true" onmouseover="$('#i-share').toggle();" onmouseout="$('#i-share').toggle();" onclick="$('#share').toggle();return false;"></i></a></li>
+      </ul>
+      <span id="i-prev" class="info" style="display:none;">Previous post</span>
+      <span id="i-next" class="info" style="display:none;">Next post</span>
+      <span id="i-top" class="info" style="display:none;">Back to top</span>
+      <span id="i-share" class="info" style="display:none;">Share post</span>
+    </span>
+    <br>
+    <div id="share" style="display: none">
+      <ul>
+  <li><a class="icon" href="http://www.facebook.com/sharer.php?u=http://zhyzhyzhy.github.io/2019/12/14/HotSpot原理指南-JIT触发条件/"><i class="fab fa-facebook " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://twitter.com/share?url=http://zhyzhyzhy.github.io/2019/12/14/HotSpot原理指南-JIT触发条件/&text=HotSpot原理指南-JIT触发条件"><i class="fab fa-twitter " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://www.linkedin.com/shareArticle?url=http://zhyzhyzhy.github.io/2019/12/14/HotSpot原理指南-JIT触发条件/&title=HotSpot原理指南-JIT触发条件"><i class="fab fa-linkedin " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://pinterest.com/pin/create/bookmarklet/?url=http://zhyzhyzhy.github.io/2019/12/14/HotSpot原理指南-JIT触发条件/&is_video=false&description=HotSpot原理指南-JIT触发条件"><i class="fab fa-pinterest " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=HotSpot原理指南-JIT触发条件&body=Check out this article: http://zhyzhyzhy.github.io/2019/12/14/HotSpot原理指南-JIT触发条件/"><i class="fas fa-envelope " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://getpocket.com/save?url=http://zhyzhyzhy.github.io/2019/12/14/HotSpot原理指南-JIT触发条件/&title=HotSpot原理指南-JIT触发条件"><i class="fab fa-get-pocket " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://reddit.com/submit?url=http://zhyzhyzhy.github.io/2019/12/14/HotSpot原理指南-JIT触发条件/&title=HotSpot原理指南-JIT触发条件"><i class="fab fa-reddit " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://www.stumbleupon.com/submit?url=http://zhyzhyzhy.github.io/2019/12/14/HotSpot原理指南-JIT触发条件/&title=HotSpot原理指南-JIT触发条件"><i class="fab fa-stumbleupon " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://digg.com/submit?url=http://zhyzhyzhy.github.io/2019/12/14/HotSpot原理指南-JIT触发条件/&title=HotSpot原理指南-JIT触发条件"><i class="fab fa-digg " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://www.tumblr.com/share/link?url=http://zhyzhyzhy.github.io/2019/12/14/HotSpot原理指南-JIT触发条件/&name=HotSpot原理指南-JIT触发条件&description="><i class="fab fa-tumblr " aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+    <div id="toc">
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#前言"><span class="toc-number">1.</span> <span class="toc-text">前言</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#编译流程图"><span class="toc-number">2.</span> <span class="toc-text">编译流程图</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#触发阈值"><span class="toc-number">3.</span> <span class="toc-text">触发阈值</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#衰减"><span class="toc-number">4.</span> <span class="toc-text">衰减</span></a></li></ol>
+    </div>
+  </span>
+</div>
+
+    
+    <div class="content index py4">
+        
+        <article class="post" itemscope="" itemtype="http://schema.org/BlogPosting">
+  <header>
+    
+    <h1 class="posttitle" itemprop="name headline">
+        HotSpot原理指南-JIT触发条件
+    </h1>
+
+
+
+    <div class="meta">
+      <span class="author" itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+        <span itemprop="name">LoveZhy</span>
+      </span>
+      
+    <div class="postdate">
+      
+        <time datetime="2019-12-13T16:00:00.000Z" itemprop="datePublished">2019-12-14</time>
+        
+      
+    </div>
+
+
+      
+    <div class="article-category">
+        <i class="fas fa-archive"></i>
+        <a class="category-link" href="/categories/编程/">编程</a>
+    </div>
+
+
+      
+    <div class="article-tag">
+        <i class="fas fa-tag"></i>
+        <a class="tag-link" href="/tags/HotSpot/">HotSpot</a>, <a class="tag-link" href="/tags/JIT/">JIT</a>, <a class="tag-link" href="/tags/Java/">Java</a>
+    </div>
+
+
+    </div>
+  </header>
+  
+
+  <div class="content" itemprop="articleBody">
+    <h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>通过前面我们知道，对于每个方法，HotSpot都维护两个计数器</p>
+<ul>
+<li>Invocation Counter：方法被调用次数，每被调用一次都会+1</li>
+<li>BackEdge Counter：专业的说法就是字节码在执行时的回跳次数。通俗点说就是，在For或者While循环中，每执行一次，都会+1。</li>
+</ul>
+<p>并且我们知道对于一个方法，JIT有两种不同的编译方式</p>
+<ul>
+<li>完整的原方法编译，就是把原本的方法逻辑进行编译。入参和运行结果和解释运行都是一致的。</li>
+<li>OSR编译，OSR后的方法入参以及运行流程和原方法有较大差异。</li>
+</ul>
+<p>很自然得我们就会想到，其实计数器和编译方式之间是有对应关系的。</p>
+<ul>
+<li>Invocation Counter -&gt; 完整的原方法编译</li>
+<li>BackEdge Counter  -&gt; OSR编译</li>
+</ul>
+<p>当对应的方法计数器达到一定的次数，就会触发响应的编译</p>
+<h2 id="编译流程图"><a href="#编译流程图" class="headerlink" title="编译流程图"></a>编译流程图</h2><p>完整的编译流程如下：</p>
+<p><img src="/images/HotSpot原理指南-JIT触发条件/编译流程.png" alt=""></p>
+<p><strong>注：该图引自R大的JVM分享PPT，如有侵权，请联系我删除</strong></p>
+<p>图中的流程非常的清晰，这里提几个小点：</p>
+<ul>
+<li><p>问：对于同一方法，是否两种编译方式都可能会执行？</p>
+<p>答：是的，而且两种代码可能同时被运行，但是正常情况下，只要运行的够久，都会运行完整的原方法编译后的代码。</p>
+</li>
+<li><p>问：具体哪种编译方式先触发？</p>
+<p>答：其实无法确定，看哪个计数器先达到阈值</p>
+</li>
+</ul>
+<h2 id="触发阈值"><a href="#触发阈值" class="headerlink" title="触发阈值"></a>触发阈值</h2><p>可能你还想更直观的了解下两个计数器的触发阈值到底是多少。</p>
+<p>在HotSpot源码中，有这样两个参数：</p>
+<ul>
+<li><blockquote>
+<p>intx CompileThreshold = 10000</p>
+<p>globals.hpp &gt; ”number of interpreted method invocations before (re-)compiling” </p>
+</blockquote>
+</li>
+<li><blockquote>
+<p>intx BackEdgeThreshold = 100000</p>
+<p>globals.hpp &gt; “Interpreter Back edge threshold at which an OSR compilation is invoked”</p>
+</blockquote>
+</li>
+</ul>
+<p>数值可能根据不同的发行版本略有不同，上面的数值是JDK7版本中的。</p>
+<p>那么你可能以为</p>
+<ul>
+<li>当Invocation Counter &gt; Compile Threshold时，就会触发原来方法的JIT</li>
+<li>当BackEdge Counter &gt; BackEdge Threshold时，就会触发方法的OSR编译</li>
+</ul>
+<p>但是事实并不是如此。</p>
+<p>问题出在哪儿呢？难道官方的定义还会有错吗？</p>
+<p>是的，问题出在BackEdgeThreshold上，虽然HotSpot中确实定义了该参数，描述中似乎也证实了该参数的作用，但是这个参数并没有实际使用过。</p>
+<p>对于BackEdgeThreshold的计算，是另外一套公示。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (ProfileInterpreter) &#123;</span><br><span class="line">  InterpreterBackwardBranchLimit = </span><br><span class="line">                 (CompileThreshold * (OnStackReplacePercentage - InterpreterProfilePercentage)) / <span class="number">100</span>;</span><br><span class="line">&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">  InterpreterBackwardBranchLimit = </span><br><span class="line">                ((CompileThreshold * OnStackReplacePercentage) / <span class="number">100</span>) &lt;&lt; number_of_noncount_bits;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>首先解释下<code>ProfileInterpreter</code>参数，这个参数也是在HotSpot中定义的，之前在文章<code>HotSpot原理指南-C1和C2介绍</code>中也讲解过，就是是否在运行时收集方法的Profile信息，这个字段在Server模式默认是开启的。</p>
+<p>所以大部分情况下，除非你的计算机比较老，都会根据第一个公示进行计算</p>
+<p><code>(CompileThreshold * (OnStackReplacePercentage - InterpreterProfilePercentage)) / 100</code></p>
+<p>其中<strong>OnStackReplacePercentage</strong>默认值是140，<strong>InterpreterProfilePercentage</strong>默认值是33。</p>
+<p>由此我们可以计算出真实的BackEdge Invocation阈值大概是10700左右。</p>
+<h2 id="衰减"><a href="#衰减" class="headerlink" title="衰减"></a>衰减</h2><p>假如方法计数器不会根据时间进行衰减的话，那么只要服务器运行的时间足够长，再罕见被调用的函数，也会触发到阈值，然后被JIT编译。</p>
+<p>这显然是不合理的，因为我们知道JIT后的机器码数据，还是会保存在内存中的，这样相当于一段逻辑在内存中又保存了字节码，又保存了一份机器码，十分的浪费内存。</p>
+<p>所以对于Invocation Counter而言，经过一段时间，个数就会进行减少。</p>
+<p>具体的减少逻辑，读者有兴趣的可以自己去探索。</p>
+<p>但是注意：对于BackEdge Counter，是不会作衰减的。</p>
+
+  </div>
+  <div class="post-copyright">
+      <p class="copyright-item">
+          <span>许可协议: </span>
+          <a rel="license" href="http://creativecommons.org/licenses/by-nc/4.0/" target="_blank">知识共享署名-非商业性使用 4.0 国际许可协议</a>
+        </p>
+  </div>
+
+
+  <div class="post-public">
+      <input type="checkbox" name="public" id="public" hidden>
+      <label class="public-button" for="public">公众号</label>
+      <div class="public-code">
+          <label class="public-code-image" for="public">
+              <img class="image" src="/images/卢布的技术圈.jpg" title="公众号">
+          </label>
+        </div>
+  </div>
+  
+<!--
+  <div class="post-reward">
+    <input type="checkbox" name="reward" id="reward" hidden />
+    <label class="reward-button" for="reward">赞赏支持</label>
+    <div class="qr-code">
+      <label class="qr-code-image" for="reward">
+        <img class="image" src="http://loveforyou.lovezhy.cc/WechatIMG108.jpeg" title="wechat">
+      </label>
+      <label class="qr-code-image" for="reward">
+        <img class="image" src="http://loveforyou.lovezhy.cc/WechatIMG109.png" title="alipay">
+      </label>
+    </div>
+  </div>
+-->
+
+</article>
+
+
+
+
+
+        
+          <div id="footer-post-container">
+  <div id="footer-post">
+
+    <div id="nav-footer" style="display: none">
+      <ul>
+         
+          <li><a href="/">Home</a></li>
+         
+          <li><a href="/about/">About</a></li>
+         
+          <li><a href="/archives/">Writing</a></li>
+         
+          <li><a href="/tags/">Tags</a></li>
+         
+          <li><a href="/movies/index.html">Movie</a></li>
+         
+          <li><a href="/books/index.html">Books</a></li>
+        
+      </ul>
+    </div>
+
+    <div id="toc-footer" style="display: none">
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#前言"><span class="toc-number">1.</span> <span class="toc-text">前言</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#编译流程图"><span class="toc-number">2.</span> <span class="toc-text">编译流程图</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#触发阈值"><span class="toc-number">3.</span> <span class="toc-text">触发阈值</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#衰减"><span class="toc-number">4.</span> <span class="toc-text">衰减</span></a></li></ol>
+    </div>
+
+    <div id="share-footer" style="display: none">
+      <ul>
+  <li><a class="icon" href="http://www.facebook.com/sharer.php?u=http://zhyzhyzhy.github.io/2019/12/14/HotSpot原理指南-JIT触发条件/"><i class="fab fa-facebook fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://twitter.com/share?url=http://zhyzhyzhy.github.io/2019/12/14/HotSpot原理指南-JIT触发条件/&text=HotSpot原理指南-JIT触发条件"><i class="fab fa-twitter fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://www.linkedin.com/shareArticle?url=http://zhyzhyzhy.github.io/2019/12/14/HotSpot原理指南-JIT触发条件/&title=HotSpot原理指南-JIT触发条件"><i class="fab fa-linkedin fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://pinterest.com/pin/create/bookmarklet/?url=http://zhyzhyzhy.github.io/2019/12/14/HotSpot原理指南-JIT触发条件/&is_video=false&description=HotSpot原理指南-JIT触发条件"><i class="fab fa-pinterest fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=HotSpot原理指南-JIT触发条件&body=Check out this article: http://zhyzhyzhy.github.io/2019/12/14/HotSpot原理指南-JIT触发条件/"><i class="fas fa-envelope fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://getpocket.com/save?url=http://zhyzhyzhy.github.io/2019/12/14/HotSpot原理指南-JIT触发条件/&title=HotSpot原理指南-JIT触发条件"><i class="fab fa-get-pocket fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://reddit.com/submit?url=http://zhyzhyzhy.github.io/2019/12/14/HotSpot原理指南-JIT触发条件/&title=HotSpot原理指南-JIT触发条件"><i class="fab fa-reddit fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://www.stumbleupon.com/submit?url=http://zhyzhyzhy.github.io/2019/12/14/HotSpot原理指南-JIT触发条件/&title=HotSpot原理指南-JIT触发条件"><i class="fab fa-stumbleupon fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://digg.com/submit?url=http://zhyzhyzhy.github.io/2019/12/14/HotSpot原理指南-JIT触发条件/&title=HotSpot原理指南-JIT触发条件"><i class="fab fa-digg fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://www.tumblr.com/share/link?url=http://zhyzhyzhy.github.io/2019/12/14/HotSpot原理指南-JIT触发条件/&name=HotSpot原理指南-JIT触发条件&description="><i class="fab fa-tumblr fa-lg" aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+
+    <div id="actions-footer">
+        <a id="menu" class="icon" href="#" onclick="$('#nav-footer').toggle();return false;"><i class="fas fa-bars fa-lg" aria-hidden="true"></i> Menu</a>
+        <a id="toc" class="icon" href="#" onclick="$('#toc-footer').toggle();return false;"><i class="fas fa-list fa-lg" aria-hidden="true"></i> TOC</a>
+        <a id="share" class="icon" href="#" onclick="$('#share-footer').toggle();return false;"><i class="fas fa-share-alt fa-lg" aria-hidden="true"></i> Share</a>
+        <a id="top" style="display:none" class="icon" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fas fa-chevron-up fa-lg" aria-hidden="true"></i> Top</a>
+    </div>
+
+  </div>
+</div>
+
+        
+        <footer id="footer">
+  <div class="footer-left">
+    Copyright &copy; 2019 zhy
+  </div>
+  <div class="footer-right">
+    <nav>
+      <ul>
+         
+          <li><a href="/">Home</a></li>
+         
+          <li><a href="/about/">About</a></li>
+         
+          <li><a href="/archives/">Writing</a></li>
+         
+          <li><a href="/tags/">Tags</a></li>
+         
+          <li><a href="/movies/index.html">Movie</a></li>
+         
+          <li><a href="/books/index.html">Books</a></li>
+        
+      </ul>
+    </nav>
+    <a href="http://beian.miit.gov.cn/" target="_blank">苏ICP备15058469号</a>
+  </div>
+</footer>
+
+    </div>
+</body>
+</html>
+<!-- styles -->
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+<link rel="stylesheet" href="/lib/justified-gallery/css/justifiedGallery.min.css">
+
+<!-- jquery -->
+<script src="/lib/jquery/jquery.min.js"></script>
+<script src="/lib/justified-gallery/js/jquery.justifiedGallery.min.js"></script>
+<script src="/js/main.js"></script>
+<!-- search -->
+
+<!-- Google Analytics -->
+
+    <script type="text/javascript">
+        (function(i,s,o,g,r,a,m) {i['GoogleAnalyticsObject']=r;i[r]=i[r]||function() {
+        (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+        m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+        })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+        ga('create', 'UA-125642214-1', 'auto');
+        ga('send', 'pageview');
+    </script>
+
+<!-- Baidu Analytics -->
+
+    <script type="text/javascript">
+        var _hmt = _hmt || [];
+        (function() {
+            var hm = document.createElement("script");
+            hm.src = "https://hm.baidu.com/hm.js?c1f963571cb3d8a4a5dc82346dc65842";
+            var s = document.getElementsByTagName("script")[0];
+            s.parentNode.insertBefore(hm, s);
+        })();
+    </script>
+
+<!-- Disqus Comments -->
+
+
