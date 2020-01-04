@@ -6,7 +6,7 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="HandheldFriendly" content="True">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-    <script data-ad-client="ca-pub-2778680082058669" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+<!--    <script data-ad-client="ca-pub-2778680082058669" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script> --> 
     <meta name="baidu_union_verify" content="4ccf99e264b86ed667b1d733b3bdff5d">
     <meta name="description" content="前言通过前面我们知道，对于每个方法，HotSpot都维护两个计数器  Invocation Counter：方法被调用次数，每被调用一次都会+1 BackEdge Counter：专业的说法就是字节码在执行时的回跳次数。通俗点说就是，在For或者While循环中，每执行一次，都会+1。  并且我们知道对于一个方法，JIT有两种不同的编译方式  完整的原方法编译，就是把原本的方法逻辑进行编译。入参和">
 <meta name="keywords" content="Java,HotSpot,JIT">
@@ -17,7 +17,7 @@
 <meta property="og:description" content="前言通过前面我们知道，对于每个方法，HotSpot都维护两个计数器  Invocation Counter：方法被调用次数，每被调用一次都会+1 BackEdge Counter：专业的说法就是字节码在执行时的回跳次数。通俗点说就是，在For或者While循环中，每执行一次，都会+1。  并且我们知道对于一个方法，JIT有两种不同的编译方式  完整的原方法编译，就是把原本的方法逻辑进行编译。入参和">
 <meta property="og:locale" content="zh-cn">
 <meta property="og:image" content="http://zhyzhyzhy.github.io/images/HotSpot原理指南-JIT触发条件/编译流程.png">
-<meta property="og:updated_time" content="2019-12-14T15:38:30.920Z">
+<meta property="og:updated_time" content="2019-12-14T15:46:07.526Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="HotSpot原理指南-JIT触发条件">
 <meta name="twitter:description" content="前言通过前面我们知道，对于每个方法，HotSpot都维护两个计数器  Invocation Counter：方法被调用次数，每被调用一次都会+1 BackEdge Counter：专业的说法就是字节码在执行时的回跳次数。通俗点说就是，在For或者While循环中，每执行一次，都会+1。  并且我们知道对于一个方法，JIT有两种不同的编译方式  完整的原方法编译，就是把原本的方法逻辑进行编译。入参和">
@@ -79,6 +79,8 @@
     <br>
     <span id="actions">
       <ul>
+        
+        <li><a class="icon" href="/2020/01/04/HotSpot原理指南-分层编译/"><i class="fas fa-chevron-left" aria-hidden="true" onmouseover="$('#i-prev').toggle();" onmouseout="$('#i-prev').toggle();"></i></a></li>
         
         
         <li><a class="icon" href="/2019/11/30/HotSpot原理指南-OSR是什么/"><i class="fas fa-chevron-right" aria-hidden="true" onmouseover="$('#i-next').toggle();" onmouseout="$('#i-next').toggle();"></i></a></li>
@@ -316,7 +318,7 @@
         
         <footer id="footer">
   <div class="footer-left">
-    Copyright &copy; 2019 zhy
+    Copyright &copy; 2020 zhy
   </div>
   <div class="footer-right">
     <nav>
