@@ -187,8 +187,6 @@
 <p>关于性能</p>
 <blockquote>
 <p>Performance has many characteristics and meanings. Reactive and non-blocking generally do not make applications run faster. They can, in some cases, (for example, if using the WebClient to execute remote calls in parallel). On the whole, it requires more work to do things the non-blocking way and that can increase slightly the required processing time.</p>
-</blockquote>
-<blockquote>
 <p>The key expected benefit of reactive and non-blocking is the ability to scale with a small, fixed number of threads and less memory. That makes applications more resilient under load, because they scale in a more predictable way. In order to observe those benefits, however, you need to have some latency (including a mix of slow and unpredictable network I/O). That is where the reactive stack begins to show its strengths, and the differences can be dramatic.  </p>
 </blockquote>
 <p>WebFlux并不保证应用能运行的更快，但是它主打的是scale和低内存消耗<br>它的性能需要在一些特定的场景才能展现，比如慢网络IO的情况</p>

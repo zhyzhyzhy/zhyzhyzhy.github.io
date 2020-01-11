@@ -228,13 +228,9 @@
 <ul>
 <li>1) memoryMap[id] = depth_of_id  =&gt; it is free / unallocated  </li>
 </ul>
-</blockquote>
-<blockquote>
 <ul>
 <li>2) memoryMap[id] &gt; depth_of_id  =&gt; at least one of its child nodes is allocated, so we cannot allocate it, but some of its children can still be allocated based on their availability  </li>
 </ul>
-</blockquote>
-<blockquote>
 <ul>
 <li>3) memoryMap[id] = maxOrder + 1 =&gt; the node is fully allocated &amp; thus none of its children can be allocated, it is thus marked as unusable</li>
 </ul>
@@ -298,7 +294,7 @@
 <p>leastUsedArena方法就是找到被最少线程持有的PoolArean  </p>
 <p>所以一个Cache和一个PoolArean是绑定的  </p>
 <p>在每个PoolThreadCache内部，有六个MemoryRegionCache<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">final</span> MemoryRegionCache&lt;<span class="keyword">byte</span>[]&gt;[] tinySubPageHeapCaches;</span><br><span class="line"><span class="keyword">private</span> <span class="keyword">final</span> MemoryRegionCache&lt;<span class="keyword">byte</span>[]&gt;[] smallSubPageHeapCaches;</span><br><span class="line"><span class="keyword">private</span> <span class="keyword">final</span> MemoryRegionCache&lt;ByteBuffer&gt;[] tinySubPageDirectCaches;</span><br><span class="line"><span class="keyword">private</span> <span class="keyword">final</span> MemoryRegionCache&lt;ByteBuffer&gt;[] smallSubPageDirectCaches;</span><br><span class="line"><span class="keyword">private</span> <span class="keyword">final</span> MemoryRegionCache&lt;<span class="keyword">byte</span>[]&gt;[] normalHeapCaches;</span><br><span class="line"><span class="keyword">private</span> <span class="keyword">final</span> MemoryRegionCache&lt;ByteBuffer&gt;[] normalDirectCaches;</span><br></pre></td></tr></table></figure></p>
-<p>每个MemoryRegionCache内部维护了一个Queue&lt;Entry<t>&gt; queue<br>当我们调用ByteBuf的release()方法的时候add方法把那一块ByteBuf的信息放进去   </t></p>
+<p>每个MemoryRegionCache内部维护了一个Queue<entry<t>&gt; queue<br>当我们调用ByteBuf的release()方法的时候add方法把那一块ByteBuf的信息放进去   </entry<t></p>
 <p>这里还要提一下在PooledByteBufAllocator里面的三个参数</p>
 <ul>
 <li>DEFAULT_TINY_CACHE_SIZE  默认是512</li>
