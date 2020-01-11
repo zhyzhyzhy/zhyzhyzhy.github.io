@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang=zh>
+<head><meta name="generator" content="Hexo 3.8.0">
+    <!-- so meta -->
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="HandheldFriendly" content="True">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<!--    <script data-ad-client="ca-pub-2778680082058669" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script> --> 
+    <meta name="baidu_union_verify" content="4ccf99e264b86ed667b1d733b3bdff5d">
+    <meta name="description" content="介绍延迟任务的实现，一般是利用有序队列，按照执行时间的顺序排列，然后有个线程不断的去取第一个元素，如果到了需要执行的时间，就去执行。 伪代码：123456789101112131415161718class Delay &amp;#123;    Queue&amp;lt;Comparable&amp;gt; taskQueue;        func add(Comparable task) &amp;#123;">
+<meta name="keywords" content="kafka,TimeWheel,时间轮">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Kafka时间轮实现">
+<meta property="og:url" content="http://zhyzhyzhy.github.io/2020/01/11/Kafka时间轮实现/index.html">
+<meta property="og:site_name" content="LoveZhy">
+<meta property="og:description" content="介绍延迟任务的实现，一般是利用有序队列，按照执行时间的顺序排列，然后有个线程不断的去取第一个元素，如果到了需要执行的时间，就去执行。 伪代码：123456789101112131415161718class Delay &amp;#123;    Queue&amp;lt;Comparable&amp;gt; taskQueue;        func add(Comparable task) &amp;#123;">
+<meta property="og:locale" content="zh-cn">
+<meta property="og:image" content="http://zhyzhyzhy.github.io/images/Kafka时间轮/TimerTaskList.png">
+<meta property="og:image" content="http://zhyzhyzhy.github.io/images/Kafka时间轮/TimerWheel.png">
+<meta property="og:image" content="http://zhyzhyzhy.github.io/images/Kafka时间轮/tick.png">
+<meta property="og:updated_time" content="2020-01-11T10:38:26.059Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Kafka时间轮实现">
+<meta name="twitter:description" content="介绍延迟任务的实现，一般是利用有序队列，按照执行时间的顺序排列，然后有个线程不断的去取第一个元素，如果到了需要执行的时间，就去执行。 伪代码：123456789101112131415161718class Delay &amp;#123;    Queue&amp;lt;Comparable&amp;gt; taskQueue;        func add(Comparable task) &amp;#123;">
+<meta name="twitter:image" content="http://zhyzhyzhy.github.io/images/Kafka时间轮/TimerTaskList.png">
+    
+    
+        
+          
+              <link rel="shortcut icon" href="/images/favicon.ico">
+          
+        
+        
+          
+            <link rel="icon" type="image/png" href="/images/favicon-192x192.png" sizes="192x192">
+          
+        
+        
+          
+            <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
+          
+        
+    
+    <!-- title -->
+    <title>Kafka时间轮实现</title>
+    <!-- styles -->
+    <link rel="stylesheet" href="/css/style.css">
+    <!-- persian styles -->
+    
+      <link rel="stylesheet" href="/css/rtl.css">
+    
+    <!-- rss -->
+    
+    
+</head>
+
+<body class="max-width mx-auto px3 ltr">    
+      <div id="header-post">
+  <a id="menu-icon" href="#"><i class="fas fa-bars fa-lg"></i></a>
+  <a id="menu-icon-tablet" href="#"><i class="fas fa-bars fa-lg"></i></a>
+  <a id="top-icon-tablet" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');" style="display:none;"><i class="fas fa-chevron-up fa-lg"></i></a>
+  <span id="menu">
+    <span id="nav">
+      <ul>
+         
+          <li><a href="/">Home</a></li>
+         
+          <li><a href="/about/">About</a></li>
+         
+          <li><a href="/archives/">Writing</a></li>
+         
+          <li><a href="/tags/">Tags</a></li>
+         
+          <li><a href="/movies/index.html">Movie</a></li>
+         
+          <li><a href="/books/index.html">Books</a></li>
+        
+      </ul>
+    </span>
+    <br>
+    <span id="actions">
+      <ul>
+        
+        
+        <li><a class="icon" href="/2020/01/04/HotSpot原理指南-分层编译/"><i class="fas fa-chevron-right" aria-hidden="true" onmouseover="$('#i-next').toggle();" onmouseout="$('#i-next').toggle();"></i></a></li>
+        
+        <li><a class="icon" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fas fa-chevron-up" aria-hidden="true" onmouseover="$('#i-top').toggle();" onmouseout="$('#i-top').toggle();"></i></a></li>
+        <li><a class="icon" href="#"><i class="fas fa-share-alt" aria-hidden="true" onmouseover="$('#i-share').toggle();" onmouseout="$('#i-share').toggle();" onclick="$('#share').toggle();return false;"></i></a></li>
+      </ul>
+      <span id="i-prev" class="info" style="display:none;">Previous post</span>
+      <span id="i-next" class="info" style="display:none;">Next post</span>
+      <span id="i-top" class="info" style="display:none;">Back to top</span>
+      <span id="i-share" class="info" style="display:none;">Share post</span>
+    </span>
+    <br>
+    <div id="share" style="display: none">
+      <ul>
+  <li><a class="icon" href="http://www.facebook.com/sharer.php?u=http://zhyzhyzhy.github.io/2020/01/11/Kafka时间轮实现/"><i class="fab fa-facebook " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://twitter.com/share?url=http://zhyzhyzhy.github.io/2020/01/11/Kafka时间轮实现/&text=Kafka时间轮实现"><i class="fab fa-twitter " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://www.linkedin.com/shareArticle?url=http://zhyzhyzhy.github.io/2020/01/11/Kafka时间轮实现/&title=Kafka时间轮实现"><i class="fab fa-linkedin " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://pinterest.com/pin/create/bookmarklet/?url=http://zhyzhyzhy.github.io/2020/01/11/Kafka时间轮实现/&is_video=false&description=Kafka时间轮实现"><i class="fab fa-pinterest " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=Kafka时间轮实现&body=Check out this article: http://zhyzhyzhy.github.io/2020/01/11/Kafka时间轮实现/"><i class="fas fa-envelope " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://getpocket.com/save?url=http://zhyzhyzhy.github.io/2020/01/11/Kafka时间轮实现/&title=Kafka时间轮实现"><i class="fab fa-get-pocket " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://reddit.com/submit?url=http://zhyzhyzhy.github.io/2020/01/11/Kafka时间轮实现/&title=Kafka时间轮实现"><i class="fab fa-reddit " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://www.stumbleupon.com/submit?url=http://zhyzhyzhy.github.io/2020/01/11/Kafka时间轮实现/&title=Kafka时间轮实现"><i class="fab fa-stumbleupon " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://digg.com/submit?url=http://zhyzhyzhy.github.io/2020/01/11/Kafka时间轮实现/&title=Kafka时间轮实现"><i class="fab fa-digg " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://www.tumblr.com/share/link?url=http://zhyzhyzhy.github.io/2020/01/11/Kafka时间轮实现/&name=Kafka时间轮实现&description="><i class="fab fa-tumblr " aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+    <div id="toc">
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#介绍"><span class="toc-number">1.</span> <span class="toc-text">介绍</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#数据结构"><span class="toc-number">2.</span> <span class="toc-text">数据结构</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#TimerTask"><span class="toc-number">2.1.</span> <span class="toc-text">TimerTask</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#TimerTaskList"><span class="toc-number">2.2.</span> <span class="toc-text">TimerTaskList</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#TimingWheel"><span class="toc-number">2.3.</span> <span class="toc-text">TimingWheel</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#运行"><span class="toc-number">3.</span> <span class="toc-text">运行</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#菜鸡的猜想方案"><span class="toc-number">3.1.</span> <span class="toc-text">菜鸡的猜想方案</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Kafka中的实现"><span class="toc-number">3.2.</span> <span class="toc-text">Kafka中的实现</span></a></li></ol></li></ol>
+    </div>
+  </span>
+</div>
+
+    
+    <div class="content index py4">
+        
+        <article class="post" itemscope="" itemtype="http://schema.org/BlogPosting">
+  <header>
+    
+    <h1 class="posttitle" itemprop="name headline">
+        Kafka时间轮实现
+    </h1>
+
+
+
+    <div class="meta">
+      <span class="author" itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+        <span itemprop="name">LoveZhy</span>
+      </span>
+      
+    <div class="postdate">
+      
+        <time datetime="2020-01-10T16:00:00.000Z" itemprop="datePublished">2020-01-11</time>
+        
+      
+    </div>
+
+
+      
+    <div class="article-category">
+        <i class="fas fa-archive"></i>
+        <a class="category-link" href="/categories/Kafka/">Kafka</a>
+    </div>
+
+
+      
+    <div class="article-tag">
+        <i class="fas fa-tag"></i>
+        <a class="tag-link" href="/tags/TimeWheel/">TimeWheel</a>, <a class="tag-link" href="/tags/kafka/">kafka</a>, <a class="tag-link" href="/tags/时间轮/">时间轮</a>
+    </div>
+
+
+    </div>
+  </header>
+  
+
+  <div class="content" itemprop="articleBody">
+    <h2 id="介绍"><a href="#介绍" class="headerlink" title="介绍"></a>介绍</h2><p>延迟任务的实现，一般是利用有序队列，按照执行时间的顺序排列，然后有个线程不断的去取第一个元素，如果到了需要执行的时间，就去执行。</p>
+<p>伪代码：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Delay</span> </span>&#123;</span><br><span class="line">    Queue&lt;Comparable&gt; taskQueue;</span><br><span class="line">    </span><br><span class="line">    <span class="function">func <span class="title">add</span><span class="params">(Comparable task)</span> </span>&#123;</span><br><span class="line">        taskQueue.add(task);</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="function">func <span class="title">pollAndRun</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">for</span> (;;) &#123;</span><br><span class="line">                var task = taskQueue.peek();</span><br><span class="line">                <span class="keyword">if</span> (task.expireTime &lt;= System.currentTime) &#123;</span><br><span class="line">                    run(taskQueue.poll());</span><br><span class="line">                &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                    Thread.sleep(task.expireTime - System.currentTime);</span><br><span class="line">                &#125;</span><br><span class="line">        &#125; </span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p><strong>注意：这里的伪代码不完善，在add方法中，一般来说在某种情况下要interrupt执行pollAndRun的线程。</strong></p>
+<p>目前聚焦的主要问题是Queue是怎么个实现法。<br>在Java中有优先权队列可以进行排序，底层是基于最小堆做的，插入和删除的时间复杂度是O(logn)</p>
+<p>当然正常情况下，这种实现可以了，Java中的标准实现也是这样。</p>
+<p>但是呢，Kafka中有大量的<strong>低延迟</strong>的任务，如果都用最小堆去做，难免性能不太好<br>所以Kafka中实现了时间轮的算法，将插入和删除的时间复杂度降低到了O(1)。</p>
+<p>下面细讲下实现：</p>
+<h2 id="数据结构"><a href="#数据结构" class="headerlink" title="数据结构"></a>数据结构</h2><p>源码路径在：<code>package kafka.utils.timer</code>下。</p>
+<h3 id="TimerTask"><a href="#TimerTask" class="headerlink" title="TimerTask"></a>TimerTask</h3><p>Task是队列中的执行元素</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">trait TimerTask extends Runnable &#123;</span><br><span class="line">    val delayMs: Long </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>实现了Runnable接口，delayMs是指的需要被执行的时间戳，不是相对时间</p>
+<h3 id="TimerTaskList"><a href="#TimerTaskList" class="headerlink" title="TimerTaskList"></a>TimerTaskList</h3><p>看名字就知道是存储Task的集合类</p>
+<p>但是其实它的定义并没有我开始想的那么简单</p>
+<p>TimerTask在TimerTaskList内部的存储形式是双向链表</p>
+<p>所以TimerTask其实被TimerTaskEntry的类包装了一层，增加了Prev和Next指针。</p>
+<p><img src="/images/Kafka时间轮/TimerTaskList.png"></p>
+<p>但是注意哦，这里虽然TimerTask实现了Comparable接口，但是TimerTaskList内部其实就是个简单的双向列表，并不会根据TimerTask的expireTime进行排序。</p>
+<p>恰恰相反，TimerTaskList也实现了Comparable接口。</p>
+<p>在TimerTaskList内部，有一个变量</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span>[<span class="keyword">this</span>] val expiration = <span class="keyword">new</span> AtomicLong(-<span class="number">1L</span>)</span><br></pre></td></tr></table></figure>
+<p>从名字中看出其实是存放的是到期时间，TimerTask有过期时间我们可以理解，那么为什么TimerTaskList也有个过期时间？</p>
+<p>这个过期时间是怎么定的，有什么用？</p>
+<h3 id="TimingWheel"><a href="#TimingWheel" class="headerlink" title="TimingWheel"></a>TimingWheel</h3><p>来了，时间轮最主要的数据结构来了。</p>
+<p><img src="/images/Kafka时间轮/TimerWheel.png"></p>
+<p>首先，看图中，模仿了一个钟表的运行图。<br>每tick一下，就把当前指针指向下一个格子。<br>其中每个格子对应着一个TimerTaskList</p>
+<p>格子在Kafka中叫bucket<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">val buckets = Array.tabulate[TimerTaskList](wheelSize) &#123; _ =&gt; <span class="keyword">new</span> TimerTaskList(taskCounter) &#125;</span><br></pre></td></tr></table></figure></p>
+<p>每一格代表的时间叫TickMs，整个表最长的跨度叫Interval。</p>
+<p>如果TickMs=5，Bucket=4，就表示这个时间轮有4个格子，总共能执行20ms内的延迟任务，同时TickMs也就是该时间轮保证的延迟任务的延迟执行的单位。</p>
+<p>什么意思呢？就是说如果一个任务是2ms后执行，一个是4ms后执行，但是整个时间轮的TickMs是5ms，那么这两个任务在时间轮看来其实是没区别，是同时执行。</p>
+<p>所以时间轮的TickMs最小，时间就越精确。</p>
+<p>如果延迟时间超过了该时间轮的Interval怎么办？</p>
+<p>比如执行50ms后才运行的任务，则需要建立跨度更大的时间轮。</p>
+<p>而Kafka中会自动建立跨度更大的时间轮，叫overflowWheel，<strong>更大的时间轮的TickMs是下一层的Interval</strong>。</p>
+<p>看到这里，其实可以解答TimerTaskList中的expiration有什么用了。</p>
+<p>这里的expiration其实就是整个TimerTaskList的过期时间，是TickMs的整数倍</p>
+<p>与在TimerTaskList中每个Task的具体延迟时间关系是</p>
+<p><code>TimerTaskList.expiration &lt;= Task.expiration &lt;= TimerTaskList.expiration + TickMs</code></p>
+<p>在Kafka中，默认的时间轮配置TickMs=1，Bucket=20，也就是20MS内的延迟任务。</p>
+<h2 id="运行"><a href="#运行" class="headerlink" title="运行"></a>运行</h2><p>讲完了数据结构，下面需要讲怎么运行了。<br>TimingWheel的运行，交给了Timer来操作。<br>Timer有两个方法<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//往时间轮中加入任务</span></span><br><span class="line"><span class="function">def <span class="title">add</span><span class="params">(timerTask: TimerTask)</span></span>&#123;&#125;</span><br><span class="line"><span class="comment">//驱动时间轮向前Tick</span></span><br><span class="line"><span class="function">def <span class="title">advanceClock</span><span class="params">(timeoutMs: Long)</span></span>&#123;&#125;</span><br></pre></td></tr></table></figure></p>
+<h3 id="菜鸡的猜想方案"><a href="#菜鸡的猜想方案" class="headerlink" title="菜鸡的猜想方案"></a>菜鸡的猜想方案</h3><p>让我们暂时脱离源码，猜猜时间轮怎么运行的。</p>
+<p><img src="/images/Kafka时间轮/tick.png" alt=""></p>
+<p>正常来说，我们把任务分到具体的Bucket中，每隔一个TickMs，将当前的指针向下运行一格。</p>
+<p>找到这一格中的TimerTaskList，将里面的任务全部拿出来run一遍。</p>
+<p>伪代码如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">List&lt;TimerTaskList&gt; buckets;</span><br><span class="line"><span class="keyword">int</span> nextBucket;</span><br><span class="line"><span class="function">func <span class="title">tick</span><span class="params">()</span> </span>&#123;</span><br><span class="line">  var timerTaskList = buckets.get(nextBucket % buckets.length)</span><br><span class="line">  <span class="keyword">if</span> (timerTaskList.expiration &lt;= System.currentTime) &#123;</span><br><span class="line">    timerTaskList.timerTaskEntrys.foreach(entry -&gt; entry.run()));</span><br><span class="line">    timerTaskList.timerTaskEntrys.foreach(TimerTaskList::remove);</span><br><span class="line">    nextBucket++;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>在add元素的时候，先需要判断当前的时间轮是否能承载延迟时间，如果不能，则建立overflowWheel，加到overflowWheel中。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">List&lt;TimerTaskList&gt; buckets;</span><br><span class="line"><span class="function">func <span class="title">add</span><span class="params">(taskEntry)</span> </span>&#123;</span><br><span class="line">  var targetBucketId = (taskEntry.expiration - System.time) / tickMs + nextBucket;</span><br><span class="line">  var timerTaskList = buckets.get(targetBucketId % buckets.length)</span><br><span class="line">  timerTaskList.add(taskEntry);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>看起来非常完美，但是问题来了，这个tick函数，怎么个运行策略呢？</p>
+<p>如果要要跑的非常精确的话，必须要有个线程去单独驱动是肯定的，线程里还得这么跑</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//1</span></span><br><span class="line"><span class="function">func <span class="title">run</span><span class="params">()</span> </span>&#123;</span><br><span class="line">  <span class="keyword">for</span> (;;) &#123;</span><br><span class="line">    timer.tick()</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">//2</span></span><br><span class="line"><span class="function">func <span class="title">run</span><span class="params">()</span> </span>&#123;</span><br><span class="line">  <span class="keyword">for</span> (;;) &#123;</span><br><span class="line">    timer.tick()</span><br><span class="line">    sleep(timer.tickms)</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>有方案1和方案2两种，第二种肯定是有问题的，如果出现了FullGC的情况，那么整个时间轮就不准了。</p>
+<p>只能选择第一种方案，那么第一种肯定是不行的，这样CPU就是100%了，即使时间轮中没有任何任务，很多时间都是无用功，太浪费CPU了。</p>
+<p>其实这里还有个很严重的问题，我们没有考虑overflowWheel。</p>
+<p>正常情况下，在overflowWheel中的任务，如果已经到了下一层TimingWheel的interval范围内，是需要手动放到下一层的。</p>
+<p>如果是这种实现的话，对于overflowWheel的处理会更加的复杂。</p>
+<h3 id="Kafka中的实现"><a href="#Kafka中的实现" class="headerlink" title="Kafka中的实现"></a>Kafka中的实现</h3><p>菜鸡的猜想方案是不行的，面试都是直接挂的节奏。</p>
+<p>所以这种思路是不成立的，那么我们能不能换个思路呢？</p>
+<p>我们沿用最基本的最小堆来实现延迟任务的思路，建立一个优先权队列</p>
+<p>但是队列中的元素不再是TimerTask了，而是TimerTaskList，相比较最原始的方案，队列中的元素少了一个数量级。</p>
+<p>这样，每次单独的线程进行Tick的时候，选出最早需要执行的TimerTaskList，如果还没到执行时间，就可以进行Sleep，而不是占满CPU。</p>
+<p>所以在TimingWheel中增加一个数据结构</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">var queue = <span class="keyword">new</span> PriorityQueue&lt;TimerTaskList&gt;()</span><br></pre></td></tr></table></figure>
+<p>每次进行add时，除了把TaskEntry添加到TimerTaskEntry中，还将TimerTaskList添加到queue中。</p>
+<p>这样线程的驱动函数就是这么写：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">func <span class="title">run</span><span class="params">()</span> </span>&#123;</span><br><span class="line">  <span class="keyword">for</span> (;;) &#123;</span><br><span class="line">    var timerTaskList = timer.queue.poll();</span><br><span class="line">    <span class="keyword">if</span> (timerTaskList.expiration &lt; System.time) &#123;</span><br><span class="line">      sleep(System.time - timerTaskList.expiration);</span><br><span class="line">    &#125;</span><br><span class="line">    ...</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>虽然也使用了插入是O(logn)的最小堆结构，但是堆中元素不再是全量的Task了，而是TaskList，所以时间复杂度其实类似于O(1)了。</p>
+<p>那么对于overflowWheel里面的Task怎么处理呢？</p>
+<p>很简单，和第一层的timingWheel一样，将overFlowWheel中的TimerTaskList也加到queue中</p>
+<p>但是从Queue取出的时候，就不是立即执行了，而是再走一遍add程序</p>
+<p>下面是源码：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line">//类似于源代码中nextBuckets的作用，这里是绝对时间，startMs是时间轮的开始的绝对时间，这里计算成tickMs的整数倍</span><br><span class="line">private[this] var currentTime = startMs - (startMs % tickMs)</span><br><span class="line"></span><br><span class="line">//向时间轮中加入任务</span><br><span class="line">def add(timerTaskEntry: TimerTaskEntry): Boolean = &#123;</span><br><span class="line">   val expiration = timerTaskEntry.expirationMs</span><br><span class="line">   if (timerTaskEntry.cancelled) &#123;</span><br><span class="line">     //如果任务已经取消，添加失败，可以直接实行</span><br><span class="line">     false</span><br><span class="line">   &#125; else if (expiration &lt; currentTime + tickMs) &#123;</span><br><span class="line">     //如果已经到执行时间，那么也是可以直接执行</span><br><span class="line">     false</span><br><span class="line">   &#125; else if (expiration &lt; currentTime + interval) &#123;</span><br><span class="line">           //这里其实还挺难理解的，如果我们按照钟表的概念，指针每隔一段时间去转动一下，就很难理解下面的代码</span><br><span class="line">           //这里其实就是每隔tickMs，指针不转，整个表顺时针转tickMs圈</span><br><span class="line">     val virtualId = expiration / tickMs</span><br><span class="line">     val bucket = buckets((virtualId % wheelSize.toLong).toInt)</span><br><span class="line">     bucket.add(timerTaskEntry)</span><br><span class="line"></span><br><span class="line">     if (bucket.setExpiration(virtualId * tickMs)) &#123;</span><br><span class="line">       //如果Bucket的失效时间设置成功，就把这个TimerTaskList加入到queue中</span><br><span class="line">       queue.offer(bucket)</span><br><span class="line">     &#125;</span><br><span class="line">     true</span><br><span class="line">   &#125; else &#123;</span><br><span class="line">     //放不下，建立overflowWheel，overflowWheel和当前timingWheel公用一个queue</span><br><span class="line">     if (overflowWheel == null) addOverflowWheel()</span><br><span class="line">     overflowWheel.add(timerTaskEntry)</span><br><span class="line">   &#125;</span><br><span class="line"> &#125;</span><br></pre></td></tr></table></figure>
+<p>timingWheel的advanceClock代码：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">def advanceClock(timeMs: Long): Unit = &#123;</span><br><span class="line">  if (timeMs &gt;= currentTime + tickMs) &#123;</span><br><span class="line">    currentTime = timeMs - (timeMs % tickMs)</span><br><span class="line">    if (overflowWheel != null) overflowWheel.advanceClock(currentTime)</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>主要就是调整下currentTime，其实currentTime在有了queue之后，就没有其他作用了，主要就是在add方法中拦住即将过期或者已经过期的任务</p>
+<p>下面是伪代码中的run方法：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">def advanceClock(timeoutMs: Long): Boolean = &#123;</span><br><span class="line">   var bucket = delayQueue.poll(timeoutMs, TimeUnit.MILLISECONDS)</span><br><span class="line">   if (bucket != null) &#123;</span><br><span class="line">     writeLock.lock()</span><br><span class="line">     try &#123;</span><br><span class="line">       while (bucket != null) &#123;</span><br><span class="line">         timingWheel.advanceClock(bucket.getExpiration())</span><br><span class="line">         //这里不能把bucket中的任务全部执行，因为可能是overFlowWheel中的TimerTaskList，还没到执行时间，直接再走一遍add程序</span><br><span class="line">         bucket.flush(reinsert)</span><br><span class="line">         bucket = delayQueue.poll()</span><br><span class="line">       &#125;</span><br><span class="line">     &#125; finally &#123;</span><br><span class="line">       writeLock.unlock()</span><br><span class="line">     &#125;</span><br><span class="line">     true</span><br><span class="line">   &#125; else &#123;</span><br><span class="line">     false</span><br><span class="line">   &#125;</span><br><span class="line"> &#125;</span><br></pre></td></tr></table></figure>
+<p>注意一下这里的delayQueue，其中poll方法返回的是过期的任务，并不是集合中第一个元素。</p>
+<p>也就是说，即使queue中元素，但是没有元素要过期，返回的也是null。</p>
+<p>当时作者在哪儿晕了半天。</p>
+
+  </div>
+  <div class="post-copyright">
+      <p class="copyright-item">
+          <span>许可协议: </span>
+          <a rel="license" href="http://creativecommons.org/licenses/by-nc/4.0/" target="_blank">知识共享署名-非商业性使用 4.0 国际许可协议</a>
+        </p>
+  </div>
+
+
+  <div class="post-public">
+      <input type="checkbox" name="public" id="public" hidden>
+      <label class="public-button" for="public">公众号</label>
+      <div class="public-code">
+          <label class="public-code-image" for="public">
+              <img class="image" src="/images/卢布的技术圈.jpg" title="公众号">
+          </label>
+        </div>
+  </div>
+  
+<!--
+  <div class="post-reward">
+    <input type="checkbox" name="reward" id="reward" hidden />
+    <label class="reward-button" for="reward">赞赏支持</label>
+    <div class="qr-code">
+      <label class="qr-code-image" for="reward">
+        <img class="image" src="http://loveforyou.lovezhy.cc/WechatIMG108.jpeg" title="wechat">
+      </label>
+      <label class="qr-code-image" for="reward">
+        <img class="image" src="http://loveforyou.lovezhy.cc/WechatIMG109.png" title="alipay">
+      </label>
+    </div>
+  </div>
+-->
+
+</article>
+
+
+
+
+
+        
+          <div id="footer-post-container">
+  <div id="footer-post">
+
+    <div id="nav-footer" style="display: none">
+      <ul>
+         
+          <li><a href="/">Home</a></li>
+         
+          <li><a href="/about/">About</a></li>
+         
+          <li><a href="/archives/">Writing</a></li>
+         
+          <li><a href="/tags/">Tags</a></li>
+         
+          <li><a href="/movies/index.html">Movie</a></li>
+         
+          <li><a href="/books/index.html">Books</a></li>
+        
+      </ul>
+    </div>
+
+    <div id="toc-footer" style="display: none">
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#介绍"><span class="toc-number">1.</span> <span class="toc-text">介绍</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#数据结构"><span class="toc-number">2.</span> <span class="toc-text">数据结构</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#TimerTask"><span class="toc-number">2.1.</span> <span class="toc-text">TimerTask</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#TimerTaskList"><span class="toc-number">2.2.</span> <span class="toc-text">TimerTaskList</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#TimingWheel"><span class="toc-number">2.3.</span> <span class="toc-text">TimingWheel</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#运行"><span class="toc-number">3.</span> <span class="toc-text">运行</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#菜鸡的猜想方案"><span class="toc-number">3.1.</span> <span class="toc-text">菜鸡的猜想方案</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Kafka中的实现"><span class="toc-number">3.2.</span> <span class="toc-text">Kafka中的实现</span></a></li></ol></li></ol>
+    </div>
+
+    <div id="share-footer" style="display: none">
+      <ul>
+  <li><a class="icon" href="http://www.facebook.com/sharer.php?u=http://zhyzhyzhy.github.io/2020/01/11/Kafka时间轮实现/"><i class="fab fa-facebook fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://twitter.com/share?url=http://zhyzhyzhy.github.io/2020/01/11/Kafka时间轮实现/&text=Kafka时间轮实现"><i class="fab fa-twitter fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://www.linkedin.com/shareArticle?url=http://zhyzhyzhy.github.io/2020/01/11/Kafka时间轮实现/&title=Kafka时间轮实现"><i class="fab fa-linkedin fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://pinterest.com/pin/create/bookmarklet/?url=http://zhyzhyzhy.github.io/2020/01/11/Kafka时间轮实现/&is_video=false&description=Kafka时间轮实现"><i class="fab fa-pinterest fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=Kafka时间轮实现&body=Check out this article: http://zhyzhyzhy.github.io/2020/01/11/Kafka时间轮实现/"><i class="fas fa-envelope fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://getpocket.com/save?url=http://zhyzhyzhy.github.io/2020/01/11/Kafka时间轮实现/&title=Kafka时间轮实现"><i class="fab fa-get-pocket fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://reddit.com/submit?url=http://zhyzhyzhy.github.io/2020/01/11/Kafka时间轮实现/&title=Kafka时间轮实现"><i class="fab fa-reddit fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://www.stumbleupon.com/submit?url=http://zhyzhyzhy.github.io/2020/01/11/Kafka时间轮实现/&title=Kafka时间轮实现"><i class="fab fa-stumbleupon fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://digg.com/submit?url=http://zhyzhyzhy.github.io/2020/01/11/Kafka时间轮实现/&title=Kafka时间轮实现"><i class="fab fa-digg fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://www.tumblr.com/share/link?url=http://zhyzhyzhy.github.io/2020/01/11/Kafka时间轮实现/&name=Kafka时间轮实现&description="><i class="fab fa-tumblr fa-lg" aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+
+    <div id="actions-footer">
+        <a id="menu" class="icon" href="#" onclick="$('#nav-footer').toggle();return false;"><i class="fas fa-bars fa-lg" aria-hidden="true"></i> Menu</a>
+        <a id="toc" class="icon" href="#" onclick="$('#toc-footer').toggle();return false;"><i class="fas fa-list fa-lg" aria-hidden="true"></i> TOC</a>
+        <a id="share" class="icon" href="#" onclick="$('#share-footer').toggle();return false;"><i class="fas fa-share-alt fa-lg" aria-hidden="true"></i> Share</a>
+        <a id="top" style="display:none" class="icon" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fas fa-chevron-up fa-lg" aria-hidden="true"></i> Top</a>
+    </div>
+
+  </div>
+</div>
+
+        
+        <footer id="footer">
+  <div class="footer-left">
+    Copyright &copy; 2020 zhy
+  </div>
+  <div class="footer-right">
+    <nav>
+      <ul>
+         
+          <li><a href="/">Home</a></li>
+         
+          <li><a href="/about/">About</a></li>
+         
+          <li><a href="/archives/">Writing</a></li>
+         
+          <li><a href="/tags/">Tags</a></li>
+         
+          <li><a href="/movies/index.html">Movie</a></li>
+         
+          <li><a href="/books/index.html">Books</a></li>
+        
+      </ul>
+    </nav>
+    <a href="http://beian.miit.gov.cn/" target="_blank">苏ICP备15058469号</a>
+  </div>
+</footer>
+
+    </div>
+</body>
+</html>
+<!-- styles -->
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+<link rel="stylesheet" href="/lib/justified-gallery/css/justifiedGallery.min.css">
+
+<!-- jquery -->
+<script src="/lib/jquery/jquery.min.js"></script>
+<script src="/lib/justified-gallery/js/jquery.justifiedGallery.min.js"></script>
+<script src="/js/main.js"></script>
+<!-- search -->
+
+<!-- Google Analytics -->
+
+    <script type="text/javascript">
+        (function(i,s,o,g,r,a,m) {i['GoogleAnalyticsObject']=r;i[r]=i[r]||function() {
+        (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+        m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+        })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+        ga('create', 'UA-125642214-1', 'auto');
+        ga('send', 'pageview');
+    </script>
+
+<!-- Baidu Analytics -->
+
+    <script type="text/javascript">
+        var _hmt = _hmt || [];
+        (function() {
+            var hm = document.createElement("script");
+            hm.src = "https://hm.baidu.com/hm.js?c1f963571cb3d8a4a5dc82346dc65842";
+            var s = document.getElementsByTagName("script")[0];
+            s.parentNode.insertBefore(hm, s);
+        })();
+    </script>
+
+<!-- Disqus Comments -->
+
+
