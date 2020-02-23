@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang=zh>
+<head><meta name="generator" content="Hexo 3.8.0">
+    <!-- so meta -->
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="HandheldFriendly" content="True">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<!--    <script data-ad-client="ca-pub-2778680082058669" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script> --> 
+    <meta name="baidu_union_verify" content="4ccf99e264b86ed667b1d733b3bdff5d">
+    <meta name="description" content="前言虽然网上教程很多，但是我依然要写系列！因为我踩到的坑有的是网上没有遇到过的。 详细步骤克隆源码git clone https://github.com/apache/kafka.git 这个时候切记不能先用idea直接打开项目！这个时候切记不能先用idea直接打开项目！这个时候切记不能先用idea直接打开项目！ 打包环境kafka自带了一些Gradle的Task，可以生成出导入Eclipse或">
+<meta name="keywords" content="Kafka">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Kafka源码导入Idea">
+<meta property="og:url" content="http://zhyzhyzhy.github.io/2020/02/23/Kafka源码导入Idea/index.html">
+<meta property="og:site_name" content="LoveZhy">
+<meta property="og:description" content="前言虽然网上教程很多，但是我依然要写系列！因为我踩到的坑有的是网上没有遇到过的。 详细步骤克隆源码git clone https://github.com/apache/kafka.git 这个时候切记不能先用idea直接打开项目！这个时候切记不能先用idea直接打开项目！这个时候切记不能先用idea直接打开项目！ 打包环境kafka自带了一些Gradle的Task，可以生成出导入Eclipse或">
+<meta property="og:locale" content="zh-cn">
+<meta property="og:image" content="http://zhyzhyzhy.github.io/images/Kafka源码导入Idea/log4j1.png">
+<meta property="og:image" content="http://zhyzhyzhy.github.io/images/Kafka源码导入Idea/Kafka.png">
+<meta property="og:image" content="http://zhyzhyzhy.github.io/images/Kafka源码导入Idea/consumer.png">
+<meta property="og:image" content="http://zhyzhyzhy.github.io/images/Kafka源码导入Idea/producer.png">
+<meta property="og:updated_time" content="2020-02-23T04:26:58.516Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Kafka源码导入Idea">
+<meta name="twitter:description" content="前言虽然网上教程很多，但是我依然要写系列！因为我踩到的坑有的是网上没有遇到过的。 详细步骤克隆源码git clone https://github.com/apache/kafka.git 这个时候切记不能先用idea直接打开项目！这个时候切记不能先用idea直接打开项目！这个时候切记不能先用idea直接打开项目！ 打包环境kafka自带了一些Gradle的Task，可以生成出导入Eclipse或">
+<meta name="twitter:image" content="http://zhyzhyzhy.github.io/images/Kafka源码导入Idea/log4j1.png">
+    
+    
+        
+          
+              <link rel="shortcut icon" href="/images/favicon.ico">
+          
+        
+        
+          
+            <link rel="icon" type="image/png" href="/images/favicon-192x192.png" sizes="192x192">
+          
+        
+        
+          
+            <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
+          
+        
+    
+    <!-- title -->
+    <title>Kafka源码导入Idea</title>
+    <!-- styles -->
+    <link rel="stylesheet" href="/css/style.css">
+    <!-- persian styles -->
+    
+      <link rel="stylesheet" href="/css/rtl.css">
+    
+    <!-- rss -->
+    
+    
+</head>
+
+<body class="max-width mx-auto px3 ltr">    
+      <div id="header-post">
+  <a id="menu-icon" href="#"><i class="fas fa-bars fa-lg"></i></a>
+  <a id="menu-icon-tablet" href="#"><i class="fas fa-bars fa-lg"></i></a>
+  <a id="top-icon-tablet" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');" style="display:none;"><i class="fas fa-chevron-up fa-lg"></i></a>
+  <span id="menu">
+    <span id="nav">
+      <ul>
+         
+          <li><a href="/">Home</a></li>
+         
+          <li><a href="/about/">About</a></li>
+         
+          <li><a href="/archives/">Writing</a></li>
+         
+          <li><a href="/tags/">Tags</a></li>
+         
+          <li><a href="/movies/index.html">Movie</a></li>
+         
+          <li><a href="/books/index.html">Books</a></li>
+        
+      </ul>
+    </span>
+    <br>
+    <span id="actions">
+      <ul>
+        
+        
+        <li><a class="icon" href="/2020/01/11/Kafka时间轮实现/"><i class="fas fa-chevron-right" aria-hidden="true" onmouseover="$('#i-next').toggle();" onmouseout="$('#i-next').toggle();"></i></a></li>
+        
+        <li><a class="icon" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fas fa-chevron-up" aria-hidden="true" onmouseover="$('#i-top').toggle();" onmouseout="$('#i-top').toggle();"></i></a></li>
+        <li><a class="icon" href="#"><i class="fas fa-share-alt" aria-hidden="true" onmouseover="$('#i-share').toggle();" onmouseout="$('#i-share').toggle();" onclick="$('#share').toggle();return false;"></i></a></li>
+      </ul>
+      <span id="i-prev" class="info" style="display:none;">Previous post</span>
+      <span id="i-next" class="info" style="display:none;">Next post</span>
+      <span id="i-top" class="info" style="display:none;">Back to top</span>
+      <span id="i-share" class="info" style="display:none;">Share post</span>
+    </span>
+    <br>
+    <div id="share" style="display: none">
+      <ul>
+  <li><a class="icon" href="http://www.facebook.com/sharer.php?u=http://zhyzhyzhy.github.io/2020/02/23/Kafka源码导入Idea/"><i class="fab fa-facebook " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://twitter.com/share?url=http://zhyzhyzhy.github.io/2020/02/23/Kafka源码导入Idea/&text=Kafka源码导入Idea"><i class="fab fa-twitter " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://www.linkedin.com/shareArticle?url=http://zhyzhyzhy.github.io/2020/02/23/Kafka源码导入Idea/&title=Kafka源码导入Idea"><i class="fab fa-linkedin " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://pinterest.com/pin/create/bookmarklet/?url=http://zhyzhyzhy.github.io/2020/02/23/Kafka源码导入Idea/&is_video=false&description=Kafka源码导入Idea"><i class="fab fa-pinterest " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=Kafka源码导入Idea&body=Check out this article: http://zhyzhyzhy.github.io/2020/02/23/Kafka源码导入Idea/"><i class="fas fa-envelope " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://getpocket.com/save?url=http://zhyzhyzhy.github.io/2020/02/23/Kafka源码导入Idea/&title=Kafka源码导入Idea"><i class="fab fa-get-pocket " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://reddit.com/submit?url=http://zhyzhyzhy.github.io/2020/02/23/Kafka源码导入Idea/&title=Kafka源码导入Idea"><i class="fab fa-reddit " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://www.stumbleupon.com/submit?url=http://zhyzhyzhy.github.io/2020/02/23/Kafka源码导入Idea/&title=Kafka源码导入Idea"><i class="fab fa-stumbleupon " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://digg.com/submit?url=http://zhyzhyzhy.github.io/2020/02/23/Kafka源码导入Idea/&title=Kafka源码导入Idea"><i class="fab fa-digg " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://www.tumblr.com/share/link?url=http://zhyzhyzhy.github.io/2020/02/23/Kafka源码导入Idea/&name=Kafka源码导入Idea&description="><i class="fab fa-tumblr " aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+    <div id="toc">
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#前言"><span class="toc-number">1.</span> <span class="toc-text">前言</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#详细步骤"><span class="toc-number">2.</span> <span class="toc-text">详细步骤</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#克隆源码"><span class="toc-number">2.1.</span> <span class="toc-text">克隆源码</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#打包环境"><span class="toc-number">2.2.</span> <span class="toc-text">打包环境</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#配置Gradle"><span class="toc-number">2.3.</span> <span class="toc-text">配置Gradle</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#修改配置"><span class="toc-number">2.4.</span> <span class="toc-text">修改配置</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#启动配置"><span class="toc-number">3.</span> <span class="toc-text">启动配置</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#Broker"><span class="toc-number">3.1.</span> <span class="toc-text">Broker</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Consumer"><span class="toc-number">3.2.</span> <span class="toc-text">Consumer</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#produer"><span class="toc-number">3.3.</span> <span class="toc-text">produer</span></a></li></ol></li></ol>
+    </div>
+  </span>
+</div>
+
+    
+    <div class="content index py4">
+        
+        <article class="post" itemscope="" itemtype="http://schema.org/BlogPosting">
+  <header>
+    
+    <h1 class="posttitle" itemprop="name headline">
+        Kafka源码导入Idea
+    </h1>
+
+
+
+    <div class="meta">
+      <span class="author" itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+        <span itemprop="name">LoveZhy</span>
+      </span>
+      
+    <div class="postdate">
+      
+        <time datetime="2020-02-22T16:00:00.000Z" itemprop="datePublished">2020-02-23</time>
+        
+      
+    </div>
+
+
+      
+    <div class="article-category">
+        <i class="fas fa-archive"></i>
+        <a class="category-link" href="/categories/Kafka/">Kafka</a>
+    </div>
+
+
+      
+    <div class="article-tag">
+        <i class="fas fa-tag"></i>
+        <a class="tag-link" href="/tags/Kafka/">Kafka</a>
+    </div>
+
+
+    </div>
+  </header>
+  
+
+  <div class="content" itemprop="articleBody">
+    <h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>虽然网上教程很多，但是我依然要写系列！<br>因为我踩到的坑有的是网上没有遇到过的。</p>
+<h2 id="详细步骤"><a href="#详细步骤" class="headerlink" title="详细步骤"></a>详细步骤</h2><h3 id="克隆源码"><a href="#克隆源码" class="headerlink" title="克隆源码"></a>克隆源码</h3><p><code>git clone https://github.com/apache/kafka.git</code></p>
+<p><strong>这个时候切记不能先用idea直接打开项目！</strong><br><strong>这个时候切记不能先用idea直接打开项目！</strong><br><strong>这个时候切记不能先用idea直接打开项目！</strong></p>
+<h3 id="打包环境"><a href="#打包环境" class="headerlink" title="打包环境"></a>打包环境</h3><p>kafka自带了一些Gradle的Task，可以生成出导入Eclipse或者Idea配置。<br>在Kafka目录下执行</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">./gradlew jar</span><br><span class="line">./gradlew idea</span><br></pre></td></tr></table></figure>
+<p>这个时候目录下会出现一个文件叫<code>kafka.ipr</code><br>在finder中双击这个文件，idea会自动打开并导入项目。<br><strong>注：也就是这个时候才会打开Idea</strong></p>
+<h3 id="配置Gradle"><a href="#配置Gradle" class="headerlink" title="配置Gradle"></a>配置Gradle</h3><p>一般Idea打开会，右下角会弹出一个框，大致意思是：</p>
+<blockquote>
+<p>我们检测出这个是Gradle项目，需要导入Gradle的配置吗？</p>
+</blockquote>
+<p>这个时候，点击确认就行。</p>
+<p>如果打开Idea啥也没发生，那么就需要我们自己打开文件<code>build.gradle</code><br>然后进行刷新之类的操作，具体我也忘了怎么操作的。</p>
+<h3 id="修改配置"><a href="#修改配置" class="headerlink" title="修改配置"></a>修改配置</h3><p>一些配置的修改是比较重要的</p>
+<ol>
+<li>文件build.gradle<br>第一处修改：<br>找到<code>tasks.withType(ScalaCompile) {</code>这一行<br>修改<code>scalaCompileOptions.additionalParameters</code>的配置<figure class="highlight gradle"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line">    scalaCompileOptions.additionalParameters = [</span><br><span class="line">      <span class="string">"-nowarn"</span>,  <span class="comment">//新增</span></span><br><span class="line">      <span class="string">"-deprecation"</span>,</span><br><span class="line">      <span class="string">"-unchecked"</span>,</span><br><span class="line">      <span class="string">"-encoding"</span>, <span class="string">"utf8"</span>,</span><br><span class="line">      <span class="string">"-Xlog-reflective-calls"</span>,</span><br><span class="line">      <span class="string">"-feature"</span>,</span><br><span class="line">      <span class="string">"-language:postfixOps"</span>,</span><br><span class="line">      <span class="string">"-language:implicitConversions"</span>,</span><br><span class="line">      <span class="string">"-language:existentials"</span>,</span><br><span class="line"><span class="comment">//      "-Xlint:constant",  //注释</span></span><br><span class="line"><span class="comment">//      "-Xlint:delayedinit-select",</span></span><br><span class="line"><span class="comment">//      "-Xlint:doc-detached",</span></span><br><span class="line"><span class="comment">//      "-Xlint:missing-interpolator",</span></span><br><span class="line"><span class="comment">//      "-Xlint:nullary-override",</span></span><br><span class="line"><span class="comment">//      "-Xlint:nullary-unit",</span></span><br><span class="line"><span class="comment">//      "-Xlint:option-implicit",</span></span><br><span class="line"><span class="comment">//      "-Xlint:package-object-classes",</span></span><br><span class="line"><span class="comment">//      "-Xlint:poly-implicit-overload",</span></span><br><span class="line"><span class="comment">//      "-Xlint:private-shadow",</span></span><br><span class="line"><span class="comment">//      "-Xlint:stars-align",</span></span><br><span class="line"><span class="comment">//      "-Xlint:type-parameter-shadow",</span></span><br><span class="line"><span class="comment">//      "-Xlint:unused"</span></span><br><span class="line">    ]</span><br></pre></td></tr></table></figure>
+</li>
+</ol>
+<p>第二处修改：<br>还有<code>tasks.withType(JavaCompile) {</code>这一行<br>修改为<br><figure class="highlight gradle"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">  tasks.withType(JavaCompile) &#123;</span><br><span class="line">    <span class="keyword">options</span>.encoding = <span class="string">'UTF-8'</span></span><br><span class="line"><span class="comment">//    options.compilerArgs &lt;&lt; "-Xlint:all"</span></span><br><span class="line">    <span class="comment">// temporary exclusions until all the warnings are fixed</span></span><br><span class="line"><span class="comment">//    options.compilerArgs &lt;&lt; "-Xlint:-rawtypes"</span></span><br><span class="line"><span class="comment">//    options.compilerArgs &lt;&lt; "-Xlint:-serial"</span></span><br><span class="line"><span class="comment">//    options.compilerArgs &lt;&lt; "-Xlint:-try"</span></span><br><span class="line"><span class="comment">//    options.compilerArgs &lt;&lt; "-Werror"</span></span><br><span class="line">    <span class="comment">// --release is the recommended way to select the target release, but it's only supported in Java 9 so we also</span></span><br><span class="line">    <span class="comment">// set --source and --target via `sourceCompatibility` and `targetCompatibility`. If/when Gradle supports `--release`</span></span><br><span class="line">    <span class="comment">// natively (https://github.com/gradle/gradle/issues/2510), we should switch to that.</span></span><br><span class="line">    <span class="keyword">if</span> (JavaVersion.current().isJava9Compatible())</span><br><span class="line">      <span class="keyword">options</span>.compilerArgs &lt;&lt; <span class="string">"--release"</span> &lt;&lt; minJavaVersion</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure></p>
+<p><strong>上面两个修改主要是为了Idea启动时编译，会把一堆warn当做Error报出来，Gradle不给启动</strong></p>
+<p>第三处修改：<br>找到<code>project(&#39;:core&#39;) {</code>这一行<br>下面会有一堆<br><figure class="highlight gradle"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">dependencies</span> &#123;</span><br><span class="line">  <span class="keyword">compile</span> <span class="keyword">project</span>(<span class="string">':clients'</span>)</span><br><span class="line">  <span class="keyword">compile</span> libs.jacksonDatabind</span><br><span class="line">  <span class="keyword">compile</span> libs.jacksonModuleScala</span><br><span class="line">~~~</span><br></pre></td></tr></table></figure></p>
+<p>这种配置<br>在<code>compileOnly libs.log4j</code>这一行的下面，加上<br><code>compile libs.slf4jlog4j</code></p>
+<p><strong>这个修改主要是终端启动Kafka的时候日志打印不出来的问题</strong></p>
+<blockquote>
+<p>很多的网上的答案都是让自己把两个依赖加进去，但是我发现其实Kafka配置了两个依赖，但是却没有Compile，所以不需要自己加进去，只要加上这行配置就行</p>
+</blockquote>
+<ol>
+<li>配置log4j文件<br>第一步：把config目录下的log4j.properties文件复制到core/src/main/resources目录下<br>需要创建rescources目录<br>如图所示：<br><img src="/images/Kafka源码导入Idea/log4j1.png" alt=""></li>
+</ol>
+<p><strong>并不是很多网上说的复制到/scala目录下</strong></p>
+<p>第二步：修改log4j.properties文件<br>主要是把很多的<code>${kafka.logs.dir}</code>这种变量去掉，换成自己电脑上的绝对路径</p>
+<h2 id="启动配置"><a href="#启动配置" class="headerlink" title="启动配置"></a>启动配置</h2><p>下面就是启动配置了，这个网上都有，我就直接复制一下</p>
+<p><strong>首先得自己启动一个Zookeeper进程</strong></p>
+<h3 id="Broker"><a href="#Broker" class="headerlink" title="Broker"></a>Broker</h3><p><img src="/images/Kafka源码导入Idea/Kafka.png" alt=""></p>
+<h3 id="Consumer"><a href="#Consumer" class="headerlink" title="Consumer"></a>Consumer</h3><p><strong>Program arguments可根据自己的情况修改</strong><br><img src="/images/Kafka源码导入Idea/consumer.png" alt=""></p>
+<h3 id="produer"><a href="#produer" class="headerlink" title="produer"></a>produer</h3><p><strong>Program arguments可根据自己的情况修改</strong><br><img src="/images/Kafka源码导入Idea/producer.png" alt=""></p>
+
+  </div>
+  <div class="post-copyright">
+      <p class="copyright-item">
+          <span>许可协议: </span>
+          <a rel="license" href="http://creativecommons.org/licenses/by-nc/4.0/" target="_blank">知识共享署名-非商业性使用 4.0 国际许可协议</a>
+        </p>
+  </div>
+
+
+  <div class="post-public">
+      <input type="checkbox" name="public" id="public" hidden>
+      <label class="public-button" for="public">公众号</label>
+      <div class="public-code">
+          <label class="public-code-image" for="public">
+              <img class="image" src="/images/卢布的技术圈.jpg" title="公众号">
+          </label>
+        </div>
+  </div>
+  
+<!--
+  <div class="post-reward">
+    <input type="checkbox" name="reward" id="reward" hidden />
+    <label class="reward-button" for="reward">赞赏支持</label>
+    <div class="qr-code">
+      <label class="qr-code-image" for="reward">
+        <img class="image" src="http://loveforyou.lovezhy.cc/WechatIMG108.jpeg" title="wechat">
+      </label>
+      <label class="qr-code-image" for="reward">
+        <img class="image" src="http://loveforyou.lovezhy.cc/WechatIMG109.png" title="alipay">
+      </label>
+    </div>
+  </div>
+-->
+
+</article>
+
+
+
+
+
+        
+          <div id="footer-post-container">
+  <div id="footer-post">
+
+    <div id="nav-footer" style="display: none">
+      <ul>
+         
+          <li><a href="/">Home</a></li>
+         
+          <li><a href="/about/">About</a></li>
+         
+          <li><a href="/archives/">Writing</a></li>
+         
+          <li><a href="/tags/">Tags</a></li>
+         
+          <li><a href="/movies/index.html">Movie</a></li>
+         
+          <li><a href="/books/index.html">Books</a></li>
+        
+      </ul>
+    </div>
+
+    <div id="toc-footer" style="display: none">
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#前言"><span class="toc-number">1.</span> <span class="toc-text">前言</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#详细步骤"><span class="toc-number">2.</span> <span class="toc-text">详细步骤</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#克隆源码"><span class="toc-number">2.1.</span> <span class="toc-text">克隆源码</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#打包环境"><span class="toc-number">2.2.</span> <span class="toc-text">打包环境</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#配置Gradle"><span class="toc-number">2.3.</span> <span class="toc-text">配置Gradle</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#修改配置"><span class="toc-number">2.4.</span> <span class="toc-text">修改配置</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#启动配置"><span class="toc-number">3.</span> <span class="toc-text">启动配置</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#Broker"><span class="toc-number">3.1.</span> <span class="toc-text">Broker</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Consumer"><span class="toc-number">3.2.</span> <span class="toc-text">Consumer</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#produer"><span class="toc-number">3.3.</span> <span class="toc-text">produer</span></a></li></ol></li></ol>
+    </div>
+
+    <div id="share-footer" style="display: none">
+      <ul>
+  <li><a class="icon" href="http://www.facebook.com/sharer.php?u=http://zhyzhyzhy.github.io/2020/02/23/Kafka源码导入Idea/"><i class="fab fa-facebook fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://twitter.com/share?url=http://zhyzhyzhy.github.io/2020/02/23/Kafka源码导入Idea/&text=Kafka源码导入Idea"><i class="fab fa-twitter fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://www.linkedin.com/shareArticle?url=http://zhyzhyzhy.github.io/2020/02/23/Kafka源码导入Idea/&title=Kafka源码导入Idea"><i class="fab fa-linkedin fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://pinterest.com/pin/create/bookmarklet/?url=http://zhyzhyzhy.github.io/2020/02/23/Kafka源码导入Idea/&is_video=false&description=Kafka源码导入Idea"><i class="fab fa-pinterest fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=Kafka源码导入Idea&body=Check out this article: http://zhyzhyzhy.github.io/2020/02/23/Kafka源码导入Idea/"><i class="fas fa-envelope fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://getpocket.com/save?url=http://zhyzhyzhy.github.io/2020/02/23/Kafka源码导入Idea/&title=Kafka源码导入Idea"><i class="fab fa-get-pocket fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://reddit.com/submit?url=http://zhyzhyzhy.github.io/2020/02/23/Kafka源码导入Idea/&title=Kafka源码导入Idea"><i class="fab fa-reddit fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://www.stumbleupon.com/submit?url=http://zhyzhyzhy.github.io/2020/02/23/Kafka源码导入Idea/&title=Kafka源码导入Idea"><i class="fab fa-stumbleupon fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://digg.com/submit?url=http://zhyzhyzhy.github.io/2020/02/23/Kafka源码导入Idea/&title=Kafka源码导入Idea"><i class="fab fa-digg fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://www.tumblr.com/share/link?url=http://zhyzhyzhy.github.io/2020/02/23/Kafka源码导入Idea/&name=Kafka源码导入Idea&description="><i class="fab fa-tumblr fa-lg" aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+
+    <div id="actions-footer">
+        <a id="menu" class="icon" href="#" onclick="$('#nav-footer').toggle();return false;"><i class="fas fa-bars fa-lg" aria-hidden="true"></i> Menu</a>
+        <a id="toc" class="icon" href="#" onclick="$('#toc-footer').toggle();return false;"><i class="fas fa-list fa-lg" aria-hidden="true"></i> TOC</a>
+        <a id="share" class="icon" href="#" onclick="$('#share-footer').toggle();return false;"><i class="fas fa-share-alt fa-lg" aria-hidden="true"></i> Share</a>
+        <a id="top" style="display:none" class="icon" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fas fa-chevron-up fa-lg" aria-hidden="true"></i> Top</a>
+    </div>
+
+  </div>
+</div>
+
+        
+        <footer id="footer">
+  <div class="footer-left">
+    Copyright &copy; 2020 zhy
+  </div>
+  <div class="footer-right">
+    <nav>
+      <ul>
+         
+          <li><a href="/">Home</a></li>
+         
+          <li><a href="/about/">About</a></li>
+         
+          <li><a href="/archives/">Writing</a></li>
+         
+          <li><a href="/tags/">Tags</a></li>
+         
+          <li><a href="/movies/index.html">Movie</a></li>
+         
+          <li><a href="/books/index.html">Books</a></li>
+        
+      </ul>
+    </nav>
+    <a href="http://beian.miit.gov.cn/" target="_blank">苏ICP备15058469号</a>
+  </div>
+</footer>
+
+    </div>
+</body>
+</html>
+<!-- styles -->
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+<link rel="stylesheet" href="/lib/justified-gallery/css/justifiedGallery.min.css">
+
+<!-- jquery -->
+<script src="/lib/jquery/jquery.min.js"></script>
+<script src="/lib/justified-gallery/js/jquery.justifiedGallery.min.js"></script>
+<script src="/js/main.js"></script>
+<!-- search -->
+
+<!-- Google Analytics -->
+
+    <script type="text/javascript">
+        (function(i,s,o,g,r,a,m) {i['GoogleAnalyticsObject']=r;i[r]=i[r]||function() {
+        (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+        m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+        })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+        ga('create', 'UA-125642214-1', 'auto');
+        ga('send', 'pageview');
+    </script>
+
+<!-- Baidu Analytics -->
+
+    <script type="text/javascript">
+        var _hmt = _hmt || [];
+        (function() {
+            var hm = document.createElement("script");
+            hm.src = "https://hm.baidu.com/hm.js?c1f963571cb3d8a4a5dc82346dc65842";
+            var s = document.getElementsByTagName("script")[0];
+            s.parentNode.insertBefore(hm, s);
+        })();
+    </script>
+
+<!-- Disqus Comments -->
+
+
