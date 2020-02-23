@@ -1,124 +1,223 @@
 <!DOCTYPE html>
-<html lang=zh>
-<head><meta name="generator" content="Hexo 3.8.0">
-    <!-- so meta -->
-    <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="HandheldFriendly" content="True">
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-<!--    <script data-ad-client="ca-pub-2778680082058669" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script> --> 
-    <meta name="baidu_union_verify" content="4ccf99e264b86ed667b1d733b3bdff5d">
-    <meta name="description" content=".hexo-douban-tabs {     margin-bottom: 15px;     margin-top: 15px; }  .hexo-douban-tab {     padding: 5px; }  .hexo-douban-active {     background: #657b83;     color: #">
+<html lang="zh-cn">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 3.8.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="//fonts.googleapis.com/css?family=Operator Mono:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    hostname: new URL('http://zhyzhyzhy.github.io').hostname,
+    root: '/',
+    scheme: 'Gemini',
+    version: '7.7.1',
+    exturl: false,
+    sidebar: {"position":"right","display":"always","padding":18,"offset":12,"onmobile":false},
+    copycode: {"enable":true,"show_result":true,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    comments: {"style":"tabs","active":"disqus","storage":true,"lazyload":false,"nav":null,"activeClass":"disqus"},
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: 'search.json',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}
+  };
+</script>
+
+  <meta name="description" content=".hexo-douban-tabs {     margin-bottom: 15px;     margin-top: 15px; }  .hexo-douban-tab {     padding: 5px; }  .hexo-douban-active {     background: #657b83;     color: #">
 <meta property="og:type" content="website">
 <meta property="og:title" content="阅读">
 <meta property="og:url" content="http://zhyzhyzhy.github.io/books/index.html">
 <meta property="og:site_name" content="LoveZhy">
 <meta property="og:description" content=".hexo-douban-tabs {     margin-bottom: 15px;     margin-top: 15px; }  .hexo-douban-tab {     padding: 5px; }  .hexo-douban-active {     background: #657b83;     color: #">
 <meta property="og:locale" content="zh-cn">
-<meta property="og:image" content="http://zhyzhyzhy.github.io/assets/douban-loading.gif">
-<meta property="og:image" content="http://zhyzhyzhy.github.io/assets/douban-loading.gif">
-<meta property="og:image" content="http://zhyzhyzhy.github.io/assets/douban-loading.gif">
-<meta property="og:image" content="http://zhyzhyzhy.github.io/assets/douban-loading.gif">
-<meta property="og:image" content="http://zhyzhyzhy.github.io/assets/douban-loading.gif">
-<meta property="og:image" content="http://zhyzhyzhy.github.io/assets/douban-loading.gif">
-<meta property="og:image" content="http://zhyzhyzhy.github.io/assets/douban-loading.gif">
-<meta property="og:image" content="http://zhyzhyzhy.github.io/assets/douban-loading.gif">
-<meta property="og:image" content="http://zhyzhyzhy.github.io/assets/douban-loading.gif">
-<meta property="og:image" content="http://zhyzhyzhy.github.io/assets/douban-loading.gif">
-<meta property="og:image" content="http://zhyzhyzhy.github.io/assets/douban-loading.gif">
-<meta property="og:image" content="http://zhyzhyzhy.github.io/assets/douban-loading.gif">
-<meta property="og:image" content="http://zhyzhyzhy.github.io/assets/douban-loading.gif">
-<meta property="og:image" content="http://zhyzhyzhy.github.io/assets/douban-loading.gif">
-<meta property="og:image" content="http://zhyzhyzhy.github.io/assets/douban-loading.gif">
-<meta property="og:image" content="http://zhyzhyzhy.github.io/assets/douban-loading.gif">
-<meta property="og:image" content="http://zhyzhyzhy.github.io/assets/douban-loading.gif">
-<meta property="og:image" content="http://zhyzhyzhy.github.io/assets/douban-loading.gif">
-<meta property="og:image" content="http://zhyzhyzhy.github.io/assets/douban-loading.gif">
-<meta property="og:image" content="http://zhyzhyzhy.github.io/assets/douban-loading.gif">
-<meta property="og:image" content="http://zhyzhyzhy.github.io/assets/douban-loading.gif">
-<meta property="og:image" content="http://zhyzhyzhy.github.io/assets/douban-loading.gif">
-<meta property="og:image" content="http://zhyzhyzhy.github.io/assets/douban-loading.gif">
-<meta property="og:image" content="http://zhyzhyzhy.github.io/assets/douban-loading.gif">
-<meta property="og:image" content="http://zhyzhyzhy.github.io/assets/douban-loading.gif">
-<meta property="og:image" content="http://zhyzhyzhy.github.io/assets/douban-loading.gif">
-<meta property="og:image" content="http://zhyzhyzhy.github.io/assets/douban-loading.gif">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="阅读">
 <meta name="twitter:description" content=".hexo-douban-tabs {     margin-bottom: 15px;     margin-top: 15px; }  .hexo-douban-tab {     padding: 5px; }  .hexo-douban-active {     background: #657b83;     color: #">
-<meta name="twitter:image" content="http://zhyzhyzhy.github.io/assets/douban-loading.gif">
-    
-    
-        
-          
-              <link rel="shortcut icon" href="/images/favicon.ico">
-          
-        
-        
-          
-            <link rel="icon" type="image/png" href="/images/favicon-192x192.png" sizes="192x192">
-          
-        
-        
-          
-            <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
-          
-        
-    
-    <!-- title -->
-    <title>阅读</title>
-    <!-- styles -->
-    <link rel="stylesheet" href="/css/style.css">
-    <!-- persian styles -->
-    
-      <link rel="stylesheet" href="/css/rtl.css">
-    
-    <!-- rss -->
-    
-    
+
+<link rel="canonical" href="http://zhyzhyzhy.github.io/books/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: false
+  };
+</script>
+
+  <title>阅读 | LoveZhy
+  </title>
+  
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-125642214-1"></script>
+    <script>
+      if (CONFIG.hostname === location.hostname) {
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'UA-125642214-1');
+      }
+    </script>
+
+
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?c1f963571cb3d8a4a5dc82346dc65842";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
 </head>
 
-<body class="max-width mx-auto px3 ltr">    
-    <div class="content index py4">
-        
-          <header id="header">
-  <a href="/">
-  
-    
-      <div id="logo" style="background-image: url(/images/logo.png);"></div>
-    
-  
-    <div id="title">
-      <h1>LoveZhy</h1>
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">LoveZhy</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
     </div>
-  </a>
-  <div id="nav">
-    <ul>
-      <li class="icon">
-        <a href="#"><i class="fas fa-bars fa-2x"></i></a>
-      </li>
-       
-        <li><a href="/">Home</a></li>
-       
-        <li><a href="/about/">About</a></li>
-       
-        <li><a href="/archives/">Writing</a></li>
-       
-        <li><a href="/tags/">Tags</a></li>
-       
-        <li><a href="/movies/index.html">Movie</a></li>
-       
-        <li><a href="/books/index.html">Books</a></li>
-      
-    </ul>
   </div>
+
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-fw fa-user"></i>About</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>Archives</a>
+
+  </li>
+        <li class="menu-item menu-item-movie">
+
+    <a href="/movies/index.html" rel="section"><i class="fa fa-fw fa-film"></i>movie</a>
+
+  </li>
+        <li class="menu-item menu-item-books">
+
+    <a href="/books/index.html" rel="section"><i class="fa fa-fw fa-book"></i>books</a>
+
+  </li>
+  </ul>
+
+</nav>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+    
+    
+    
+    <div class="post-block" lang="zh-cn">
+      <header class="post-header">
+
+<h1 class="post-title" itemprop="name headline">阅读
+</h1>
+
+<div class="post-meta">
+  
+
+</div>
+
 </header>
 
-        
-        <article class="post" itemscope="" itemtype="http://schema.org/BlogPosting">
-  
-
-  <div class="content" itemprop="articleBody">
       
+      
+      
+      <div class="post-body">
           <blockquote>
     <p></p>
 </blockquote>
@@ -201,54 +300,21 @@
 </style>
 
 <div class="hexo-douban-tabs">
-    <a class="hexo-douban-tab" id="hexo-douban-tab1" href="javascript:;" rel="external">
+    <a class="hexo-douban-tab" id="hexo-douban-tab1" href="javascript:;"
+       rel="external">
         bookReading
-        (2)</a>
-    <a class="hexo-douban-tab" id="hexo-douban-tab2" href="javascript:;" rel="external">
+        (0)</a>
+    <a class="hexo-douban-tab" id="hexo-douban-tab2" href="javascript:;"
+       rel="external">
         bookWish
-        (7)</a>
-    <a class="hexo-douban-tab" id="hexo-douban-tab3" href="javascript:;" rel="external">
+        (0)</a>
+    <a class="hexo-douban-tab" id="hexo-douban-tab3" href="javascript:;"
+       rel="external">
         bookRead
-        (18)</a>
+        (0)</a>
 </div>
 <div>
     <div id="hexo-douban-item1">
-        
-        <div class="hexo-douban-item">
-    <div class="hexo-douban-picture"><img src="/assets/douban-loading.gif" data-src="https://img1.doubanio.com/view/subject/s/public/s29444479.jpg" referrerpolicy="no-referrer"></div>
-    <div class="hexo-douban-info">
-        <div class="hexo-douban-title"><a target="_blank" href="https://book.douban.com/subject/27038473/"> Apache Kafka源码剖析</a></div>
-        <div class="hexo-douban-meta">
-        
-  
-  徐郡明 / 电子工业出版社 / 2017-5 / 89
-
-        </div>
-        <div class="hexo-douban-meta">2020-01-11
-      在读 / </div>
-        <div class="hexo-douban-comments">
-  </div>
-    </div>
-</div>
-
-        
-        <div class="hexo-douban-item">
-    <div class="hexo-douban-picture"><img src="/assets/douban-loading.gif" data-src="https://img9.doubanio.com/view/subject/s/public/s28022376.jpg" referrerpolicy="no-referrer"></div>
-    <div class="hexo-douban-info">
-        <div class="hexo-douban-title"><a target="_blank" href="https://book.douban.com/subject/26340413/"> MariaDB原理与实现</a></div>
-        <div class="hexo-douban-meta">
-        
-  
-  张金鹏、张成远、季锡强 / 人民邮电出版社 / 2015-3 / 59.00元
-
-        </div>
-        <div class="hexo-douban-meta">2020-01-11
-      在读 / </div>
-        <div class="hexo-douban-comments">
-  </div>
-    </div>
-</div>
-
         
         <div class="hexo-douban-pagination">
     <a class="hexo-douban-button hexo-douban-firstpage" href="javascript:;"> top</a>
@@ -260,143 +326,6 @@
     </div>
     <div id="hexo-douban-item2">
         
-        <div class="hexo-douban-item">
-    <div class="hexo-douban-picture"><img src="/assets/douban-loading.gif" data-src="https://img1.doubanio.com/view/subject/s/public/s27208309.jpg" referrerpolicy="no-referrer"></div>
-    <div class="hexo-douban-info">
-        <div class="hexo-douban-title"><a target="_blank" href="https://book.douban.com/subject/24533312/"> Java虚拟机并发编程</a></div>
-        <div class="hexo-douban-meta">
-        
-  
-  Venkat Subramaniam / 薛笛 / 机械工业出版社 / 2013-5 / 59.00元
-
-      
-        </div>
-        <div class="hexo-douban-meta">2019-03-19
-      想读 /  JVM</div>
-        <div class="hexo-douban-comments">
-  </div>
-    </div>
-</div>
-
-        
-        <div class="hexo-douban-item">
-    <div class="hexo-douban-picture"><img src="/assets/douban-loading.gif" data-src="https://img1.doubanio.com/view/subject/s/public/s8955528.jpg" referrerpolicy="no-referrer"></div>
-    <div class="hexo-douban-info">
-        <div class="hexo-douban-title"><a target="_blank" href="https://book.douban.com/subject/1231236/"> Linux内核完全注释</a></div>
-        <div class="hexo-douban-meta">
-        
-  
-  赵炯 / 机械工业出版社 / 2005-8 / 42.00元
-
-      
-        </div>
-        <div class="hexo-douban-meta">2019-02-18
-      想读 /  基本功 kernel Programming</div>
-        <div class="hexo-douban-comments">
-  </div>
-    </div>
-</div>
-
-        
-        <div class="hexo-douban-item">
-    <div class="hexo-douban-picture"><img src="/assets/douban-loading.gif" data-src="https://img1.doubanio.com/view/subject/s/public/s24505667.jpg" referrerpolicy="no-referrer"></div>
-    <div class="hexo-douban-info">
-        <div class="hexo-douban-title"><a target="_blank" href="https://book.douban.com/subject/1767120/"> 深入理解LINUX内核</a></div>
-        <div class="hexo-douban-meta">
-        
-  
-  Daniel P.Bovet、Marco Cesati / 东南大学出版社 / 2006-4-1 / 98.00元
-
-      
-        </div>
-        <div class="hexo-douban-meta">2019-02-18
-      想读 /  基本功 kernel Programming</div>
-        <div class="hexo-douban-comments">
-  </div>
-    </div>
-</div>
-
-        
-        <div class="hexo-douban-item">
-    <div class="hexo-douban-picture"><img src="/assets/douban-loading.gif" data-src="https://img1.doubanio.com/view/subject/s/public/s29195878.jpg" referrerpolicy="no-referrer"></div>
-    <div class="hexo-douban-info">
-        <div class="hexo-douban-title"><a target="_blank" href="https://book.douban.com/subject/26912767/"> 深入理解计算机系统（原书第3版）</a></div>
-        <div class="hexo-douban-meta">
-        
-  
-  Randal E.Bryant、David O&#39;Hallaron / 龚奕利、贺莲 / 机械工业出版社 / 2016-11 / 139.00元
-
-      
-        </div>
-        <div class="hexo-douban-meta">2019-02-18
-      想读 /  基本功 Programming</div>
-        <div class="hexo-douban-comments">
-      大四看，还是有点艰涩啊
-      
-  
-
-  </div>
-    </div>
-</div>
-
-        
-        <div class="hexo-douban-item">
-    <div class="hexo-douban-picture"><img src="/assets/douban-loading.gif" data-src="https://img1.doubanio.com/view/subject/s/public/s29700009.jpg" referrerpolicy="no-referrer"></div>
-    <div class="hexo-douban-info">
-        <div class="hexo-douban-title"><a target="_blank" href="https://book.douban.com/subject/30152777/"> Stream Processing with Apache Flink: Fundamentals, Implementation, and Operation of Streaming Applications</a></div>
-        <div class="hexo-douban-meta">
-        
-  
-  Fabian Hueske、Vasiliki Kalavri / O&#39;Reilly Media / 2018-7-25 / USD 42.11
-
-      
-        </div>
-        <div class="hexo-douban-meta">2019-01-09
-      想读 / </div>
-        <div class="hexo-douban-comments">
-  </div>
-    </div>
-</div>
-
-        
-        <div class="hexo-douban-item">
-    <div class="hexo-douban-picture"><img src="/assets/douban-loading.gif" data-src="https://img9.doubanio.com/view/subject/s/public/s27043456.jpg" referrerpolicy="no-referrer"></div>
-    <div class="hexo-douban-info">
-        <div class="hexo-douban-title"><a target="_blank" href="https://book.douban.com/subject/25723658/"> 大规模分布式存储系统</a></div>
-        <div class="hexo-douban-meta">
-        
-  
-  杨传辉 / 机械工业出版社 / 2013-9-1 / 59
-
-      
-        </div>
-        <div class="hexo-douban-meta">2018-12-19
-      想读 /  数据库</div>
-        <div class="hexo-douban-comments">
-  </div>
-    </div>
-</div>
-
-        
-        <div class="hexo-douban-item">
-    <div class="hexo-douban-picture"><img src="/assets/douban-loading.gif" data-src="https://img1.doubanio.com/view/subject/s/public/s25136218.jpg" referrerpolicy="no-referrer"></div>
-    <div class="hexo-douban-info">
-        <div class="hexo-douban-title"><a target="_blank" href="https://book.douban.com/subject/3652388/"> 程序员的自我修养</a></div>
-        <div class="hexo-douban-meta">
-        
-  
-  俞甲子、石凡、潘爱民 / 电子工业出版社 / 2009-4 / 65.00
-
-      
-        </div>
-        <div class="hexo-douban-meta">2018-09-26
-      想读 /  基本功 Programming</div>
-        <div class="hexo-douban-comments">
-  </div>
-    </div>
-</div>
-
-        
         <div class="hexo-douban-pagination">
     <a class="hexo-douban-button hexo-douban-firstpage" href="javascript:;"> top</a>
     <a class="hexo-douban-button hexo-douban-previouspage" href="javascript:;">prev</a>
@@ -407,362 +336,6 @@
 
     </div>
     <div id="hexo-douban-item3">
-        
-        <div class="hexo-douban-item">
-    <div class="hexo-douban-picture"><img src="/assets/douban-loading.gif" data-src="https://img1.doubanio.com/view/subject/s/public/s6063257.jpg" referrerpolicy="no-referrer"></div>
-    <div class="hexo-douban-info">
-        <div class="hexo-douban-title"><a target="_blank" href="https://book.douban.com/subject/1926103/"> 鬼吹灯之云南虫谷</a></div>
-        <div class="hexo-douban-meta">
-        
-  
-  天下霸唱 / 安徽文艺出版社 / 2006-11 / 26.80元
-
-      </div>
-        <div class="hexo-douban-meta">2020-01-11
-      读过 /  盗墓 / ★★★★☆ 推荐</div>
-        <div class="hexo-douban-comments">
-  </div>
-    </div>
-</div>
-
-        
-        <div class="hexo-douban-item">
-    <div class="hexo-douban-picture"><img src="/assets/douban-loading.gif" data-src="https://img3.doubanio.com/view/subject/s/public/s29939533.jpg" referrerpolicy="no-referrer"></div>
-    <div class="hexo-douban-info">
-        <div class="hexo-douban-title"><a target="_blank" href="https://book.douban.com/subject/30394745/"> JRockit权威指南：深入理解JVM</a></div>
-        <div class="hexo-douban-meta">
-        
-  
-  [瑞士] 马库斯·希尔特、[瑞典]马库斯·拉杰格伦 / 曹旭东 / 人民邮电出版社 / 2019-1 / 99.00元
-
-      </div>
-        <div class="hexo-douban-meta">2020-01-11
-      读过 /  JVM / ★★★☆☆ 还行</div>
-        <div class="hexo-douban-comments">
-  </div>
-    </div>
-</div>
-
-        
-        <div class="hexo-douban-item">
-    <div class="hexo-douban-picture"><img src="/assets/douban-loading.gif" data-src="https://img1.doubanio.com/view/subject/s/public/s27458238.jpg" referrerpolicy="no-referrer"></div>
-    <div class="hexo-douban-info">
-        <div class="hexo-douban-title"><a target="_blank" href="https://book.douban.com/subject/25847620/"> HotSpot实战</a></div>
-        <div class="hexo-douban-meta">
-        
-  
-  陈涛 / 人民邮电出版社 / 2014-3 / 69
-
-      </div>
-        <div class="hexo-douban-meta">2020-01-11
-      读过 /  JVM / ★★★★☆ 推荐</div>
-        <div class="hexo-douban-comments">
-  </div>
-    </div>
-</div>
-
-        
-        <div class="hexo-douban-item">
-    <div class="hexo-douban-picture"><img src="/assets/douban-loading.gif" data-src="https://img3.doubanio.com/view/subject/s/public/s29492772.jpg" referrerpolicy="no-referrer"></div>
-    <div class="hexo-douban-info">
-        <div class="hexo-douban-title"><a target="_blank" href="https://book.douban.com/subject/27086821/"> 揭秘Java虚拟机</a></div>
-        <div class="hexo-douban-meta">
-        
-  
-  封亚飞 / 电子工业出版社 / 2017-7-7 / 129
-
-      </div>
-        <div class="hexo-douban-meta">2020-01-11
-      读过 /  JVM / ★★★★☆ 推荐</div>
-        <div class="hexo-douban-comments">
-  </div>
-    </div>
-</div>
-
-        
-        <div class="hexo-douban-item">
-    <div class="hexo-douban-picture"><img src="/assets/douban-loading.gif" data-src="https://img9.doubanio.com/view/subject/s/public/s6384944.jpg" referrerpolicy="no-referrer"></div>
-    <div class="hexo-douban-info">
-        <div class="hexo-douban-title"><a target="_blank" href="https://book.douban.com/subject/6082808/"> 百年孤独</a></div>
-        <div class="hexo-douban-meta">
-        
-  
-  [哥伦比亚] 加西亚·马尔克斯 / 范晔 / 南海出版公司 / 2011-6 / 39.50元
-
-      </div>
-        <div class="hexo-douban-meta">2019-05-27
-      读过 /  魔幻现实主义 / ★★★★★ 力荐</div>
-        <div class="hexo-douban-comments">
-      高中看的
-      
-  
-
-  </div>
-    </div>
-</div>
-
-        
-        <div class="hexo-douban-item">
-    <div class="hexo-douban-picture"><img src="/assets/douban-loading.gif" data-src="https://img9.doubanio.com/view/subject/s/public/s3254244.jpg" referrerpolicy="no-referrer"></div>
-    <div class="hexo-douban-info">
-        <div class="hexo-douban-title"><a target="_blank" href="https://book.douban.com/subject/3211779/"> 嫌疑人X的献身</a></div>
-        <div class="hexo-douban-meta">
-        
-  
-  [日] 东野圭吾 / 刘子倩 / 南海出版公司 / 2008-9 / 28.00
-
-      </div>
-        <div class="hexo-douban-meta">2019-05-27
-      读过 /  东野圭吾 / ★★★★★ 力荐</div>
-        <div class="hexo-douban-comments">
-  </div>
-    </div>
-</div>
-
-        
-        <div class="hexo-douban-item">
-    <div class="hexo-douban-picture"><img src="/assets/douban-loading.gif" data-src="https://img3.doubanio.com/view/subject/s/public/s4610502.jpg" referrerpolicy="no-referrer"></div>
-    <div class="hexo-douban-info">
-        <div class="hexo-douban-title"><a target="_blank" href="https://book.douban.com/subject/3259440/"> 白夜行</a></div>
-        <div class="hexo-douban-meta">
-        
-  
-  [日] 东野圭吾 / 刘姿君 / 南海出版公司 / 2008-9 / 29.80元
-
-      </div>
-        <div class="hexo-douban-meta">2019-05-27
-      读过 /  东野圭吾 / ★★★★★ 力荐</div>
-        <div class="hexo-douban-comments">
-  </div>
-    </div>
-</div>
-
-        
-        <div class="hexo-douban-item">
-    <div class="hexo-douban-picture"><img src="/assets/douban-loading.gif" data-src="https://img3.doubanio.com/view/subject/s/public/s1727290.jpg" referrerpolicy="no-referrer"></div>
-    <div class="hexo-douban-info">
-        <div class="hexo-douban-title"><a target="_blank" href="https://book.douban.com/subject/1770782/"> 追风筝的人</a></div>
-        <div class="hexo-douban-meta">
-        
-  
-  [美] 卡勒德·胡赛尼 / 李继宏 / 上海人民出版社 / 2006-5 / 29.00元
-
-      </div>
-        <div class="hexo-douban-meta">2019-05-27
-      读过 /  外国小说 / ★★★★☆ 推荐</div>
-        <div class="hexo-douban-comments">
-      大一看的，其实没有多大的感觉
-      
-  
-
-  </div>
-    </div>
-</div>
-
-        
-        <div class="hexo-douban-item">
-    <div class="hexo-douban-picture"><img src="/assets/douban-loading.gif" data-src="https://img3.doubanio.com/view/subject/s/public/s27264181.jpg" referrerpolicy="no-referrer"></div>
-    <div class="hexo-douban-info">
-        <div class="hexo-douban-title"><a target="_blank" href="https://book.douban.com/subject/25862578/"> 解忧杂货店</a></div>
-        <div class="hexo-douban-meta">
-        
-  
-  [日] 东野圭吾 / 李盈春 / 南海出版公司 / 2014-5 / 39.50元
-
-      </div>
-        <div class="hexo-douban-meta">2019-04-25
-      读过 /  东野圭吾 / ★★★★☆ 推荐</div>
-        <div class="hexo-douban-comments">
-  </div>
-    </div>
-</div>
-
-        
-        <div class="hexo-douban-item">
-    <div class="hexo-douban-picture"><img src="/assets/douban-loading.gif" data-src="https://img1.doubanio.com/view/subject/s/public/s24514468.jpg" referrerpolicy="no-referrer"></div>
-    <div class="hexo-douban-info">
-        <div class="hexo-douban-title"><a target="_blank" href="https://book.douban.com/subject/10554308/"> 白夜行</a></div>
-        <div class="hexo-douban-meta">
-        
-  
-  东野圭吾 / 刘姿君 / 南海出版公司 / 2013-1-1 / 39.50元
-
-      </div>
-        <div class="hexo-douban-meta">2019-04-25
-      读过 /  东野圭吾 / ★★★★★ 力荐</div>
-        <div class="hexo-douban-comments">
-  </div>
-    </div>
-</div>
-
-        
-        <div class="hexo-douban-item">
-    <div class="hexo-douban-picture"><img src="/assets/douban-loading.gif" data-src="https://img1.doubanio.com/view/subject/s/public/s28381539.jpg" referrerpolicy="no-referrer"></div>
-    <div class="hexo-douban-info">
-        <div class="hexo-douban-title"><a target="_blank" href="https://book.douban.com/subject/26706730/"> 肠子的小心思</a></div>
-        <div class="hexo-douban-meta">
-        
-  
-  【德】朱莉娅·恩德斯 / 钱为 / 江苏凤凰科学技术出版社 / 2016-1 / 38.00元
-
-      </div>
-        <div class="hexo-douban-meta">2019-04-25
-      读过 /  健康 / ★★★★★ 力荐</div>
-        <div class="hexo-douban-comments">
-      便秘，幽门螺杆菌，益生菌，寄生虫
-      
-  
-
-  </div>
-    </div>
-</div>
-
-        
-        <div class="hexo-douban-item">
-    <div class="hexo-douban-picture"><img src="/assets/douban-loading.gif" data-src="https://img1.doubanio.com/view/subject/s/public/s29466768.jpg" referrerpolicy="no-referrer"></div>
-    <div class="hexo-douban-info">
-        <div class="hexo-douban-title"><a target="_blank" href="https://book.douban.com/subject/26962859/"> 美国众神</a></div>
-        <div class="hexo-douban-meta">
-        
-  
-  [英] 尼尔·盖曼 / 戚林 / 北京联合出版公司 / 2017-4 / 69.90元
-
-      </div>
-        <div class="hexo-douban-meta">2019-04-22
-      读过 /  奇幻小说 / ★★★★★ 力荐</div>
-        <div class="hexo-douban-comments">
-  </div>
-    </div>
-</div>
-
-        
-        <div class="hexo-douban-item">
-    <div class="hexo-douban-picture"><img src="/assets/douban-loading.gif" data-src="https://img3.doubanio.com/view/subject/s/public/s27986841.jpg" referrerpolicy="no-referrer"></div>
-    <div class="hexo-douban-info">
-        <div class="hexo-douban-title"><a target="_blank" href="https://book.douban.com/subject/26304949/"> Lucene搜索引擎开发进阶实战</a></div>
-        <div class="hexo-douban-meta">
-        
-  
-  成龙 / 机械工业出版社 / 2015-1 / 59.00
-
-      </div>
-        <div class="hexo-douban-meta">2019-03-29
-      读过 /  lucene / ★☆☆☆☆ 很差</div>
-        <div class="hexo-douban-comments">
-      妈蛋
-      
-  
-
-  </div>
-    </div>
-</div>
-
-        
-        <div class="hexo-douban-item">
-    <div class="hexo-douban-picture"><img src="/assets/douban-loading.gif" data-src="https://img9.doubanio.com/view/subject/s/public/s28926306.jpg" referrerpolicy="no-referrer"></div>
-    <div class="hexo-douban-info">
-        <div class="hexo-douban-title"><a target="_blank" href="https://book.douban.com/subject/26802084/"> 自己动手写Java虚拟机</a></div>
-        <div class="hexo-douban-meta">
-        
-  
-  张秀宏 / 机械工业出版社 / 2016-6-1 / 69.00元
-
-      </div>
-        <div class="hexo-douban-meta">2019-03-19
-      读过 /  JVM / ★★★★☆ 推荐</div>
-        <div class="hexo-douban-comments">
-      一些细节了解了一下，但是其实收货不是那么大。。帮助理解了一些概念，比如栈帧和字节码的执行。。。
-      
-  
-
-  </div>
-    </div>
-</div>
-
-        
-        <div class="hexo-douban-item">
-    <div class="hexo-douban-picture"><img src="/assets/douban-loading.gif" data-src="https://img9.doubanio.com/view/subject/s/public/s1890264.jpg" referrerpolicy="no-referrer"></div>
-    <div class="hexo-douban-info">
-        <div class="hexo-douban-title"><a target="_blank" href="https://book.douban.com/subject/1916726/"> 鬼吹灯之龙岭迷窟</a></div>
-        <div class="hexo-douban-meta">
-        
-  
-  天下霸唱 / 安徽文艺出版社 / 2006-11 / 25.00元
-
-      </div>
-        <div class="hexo-douban-meta">2019-02-18
-      读过 /  盗墓 / ★★★☆☆ 还行</div>
-        <div class="hexo-douban-comments">
-      稍微逊色点
-      
-  
-
-  </div>
-    </div>
-</div>
-
-        
-        <div class="hexo-douban-item">
-    <div class="hexo-douban-picture"><img src="/assets/douban-loading.gif" data-src="https://img9.doubanio.com/view/subject/s/public/s2001786.jpg" referrerpolicy="no-referrer"></div>
-    <div class="hexo-douban-info">
-        <div class="hexo-douban-title"><a target="_blank" href="https://book.douban.com/subject/1882933/"> 鬼吹灯之精绝古城</a></div>
-        <div class="hexo-douban-meta">
-        
-  
-  天下霸唱 / 安徽文艺出版社 / 2006 / 25.00元
-
-      </div>
-        <div class="hexo-douban-meta">2019-02-13
-      读过 /  盗墓 / ★★★★☆ 推荐</div>
-        <div class="hexo-douban-comments">
-      虽不是那么精彩，但还是值得一看
-      
-  
-
-  </div>
-    </div>
-</div>
-
-        
-        <div class="hexo-douban-item">
-    <div class="hexo-douban-picture"><img src="/assets/douban-loading.gif" data-src="https://img3.doubanio.com/view/subject/s/public/s28194390.jpg" referrerpolicy="no-referrer"></div>
-    <div class="hexo-douban-info">
-        <div class="hexo-douban-title"><a target="_blank" href="https://book.douban.com/subject/25901394/"> 我们居然回去了</a></div>
-        <div class="hexo-douban-meta">
-        
-  
-  王若虚 / 吉林文史出版社 / 2014-10-1 / 25.00元
-
-      </div>
-        <div class="hexo-douban-meta">2018-12-16
-      读过 /  王若虚 青春 / ★★★★★ 力荐</div>
-        <div class="hexo-douban-comments">
-  </div>
-    </div>
-</div>
-
-        
-        <div class="hexo-douban-item">
-    <div class="hexo-douban-picture"><img src="/assets/douban-loading.gif" data-src="https://img9.doubanio.com/view/subject/s/public/s29466436.jpg" referrerpolicy="no-referrer"></div>
-    <div class="hexo-douban-info">
-        <div class="hexo-douban-title"><a target="_blank" href="https://book.douban.com/subject/27028847/"> 沉睡的人鱼之家</a></div>
-        <div class="hexo-douban-meta">
-        
-  
-  [日] 东野圭吾 / 王蕴洁 / 北京联合出版公司 / 2017-6 / 39.80元
-
-      </div>
-        <div class="hexo-douban-meta">2018-09-22
-      读过 /  东野圭吾 / ★★★☆☆ 还行</div>
-        <div class="hexo-douban-comments">
-      书名起的贼好，内容一般般。。。
-      
-  
-
-  </div>
-    </div>
-</div>
-
         
         <div class="hexo-douban-pagination">
     <a class="hexo-douban-button hexo-douban-firstpage" href="javascript:;"> top</a>
@@ -890,73 +463,191 @@ for (var i = 0; i < firstpages.length; i++) {
 </script>
 
 
-        
-  </div>
-</article>
+      </div>
+      
+      
+      
+    </div>
+    
 
-        
-        <footer id="footer">
-  <div class="footer-left">
-    Copyright &copy; 2020 zhy
+    
+    
+    
   </div>
-  <div class="footer-right">
-    <nav>
-      <ul>
-         
-          <li><a href="/">Home</a></li>
-         
-          <li><a href="/about/">About</a></li>
-         
-          <li><a href="/archives/">Writing</a></li>
-         
-          <li><a href="/tags/">Tags</a></li>
-         
-          <li><a href="/movies/index.html">Movie</a></li>
-         
-          <li><a href="/books/index.html">Books</a></li>
-        
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let activeClass = CONFIG.comments.activeClass;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
       </ul>
-    </nav>
-    <a href="http://beian.miit.gov.cn/" target="_blank">苏ICP备15058469号</a>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">zhy</p>
+  <div class="site-description" itemprop="description">敌视现实</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">69</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+        <span class="site-state-item-count">24</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+        <span class="site-state-item-count">38</span>
+        <span class="site-state-item-name">tags</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/zhyzhyzhy" title="GitHub → https://github.com/zhyzhyzhy" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:zhuyichen1017@outlook.com" title="E-Mail → mailto:zhuyichen1017@outlook.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+      </span>
   </div>
-</footer>
+
+
+
+      </div>
 
     </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+  <div class="beian"><a href="http://www.beian.miit.gov.cn" rel="noopener" target="_blank">苏ICP备15058469号 </a>
+  </div>
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">zhy</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> v3.8.0
+  </div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">Theme – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> v7.7.1
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+<script src="/js/utils.js"></script><script src="/js/motion.js"></script>
+<script src="/js/schemes/pisces.js"></script>
+<script src="/js/next-boot.js"></script>
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+<script>
+  function loadCount() {
+    var d = document, s = d.createElement('script');
+    s.src = 'https://blog-lovezhy-cc-1.disqus.com/count.js';
+    s.id = 'dsq-count-scr';
+    (d.head || d.body).appendChild(s);
+  }
+  // defer loading until the whole page loading is completed
+  window.addEventListener('load', loadCount, false);
+</script>
+
 </body>
 </html>
-<!-- styles -->
-<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
-<link rel="stylesheet" href="/lib/justified-gallery/css/justifiedGallery.min.css">
-
-<!-- jquery -->
-<script src="/lib/jquery/jquery.min.js"></script>
-<script src="/lib/justified-gallery/js/jquery.justifiedGallery.min.js"></script>
-<script src="/js/main.js"></script>
-<!-- search -->
-
-<!-- Google Analytics -->
-
-    <script type="text/javascript">
-        (function(i,s,o,g,r,a,m) {i['GoogleAnalyticsObject']=r;i[r]=i[r]||function() {
-        (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
-        m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
-        })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
-        ga('create', 'UA-125642214-1', 'auto');
-        ga('send', 'pageview');
-    </script>
-
-<!-- Baidu Analytics -->
-
-    <script type="text/javascript">
-        var _hmt = _hmt || [];
-        (function() {
-            var hm = document.createElement("script");
-            hm.src = "https://hm.baidu.com/hm.js?c1f963571cb3d8a4a5dc82346dc65842";
-            var s = document.getElementsByTagName("script")[0];
-            s.parentNode.insertBefore(hm, s);
-        })();
-    </script>
-
-<!-- Disqus Comments -->
-
-

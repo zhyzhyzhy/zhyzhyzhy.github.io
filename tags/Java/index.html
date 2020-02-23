@@ -1,604 +1,808 @@
 <!DOCTYPE html>
-<html lang=zh>
-<head><meta name="generator" content="Hexo 3.8.0">
-    <!-- so meta -->
-    <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="HandheldFriendly" content="True">
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-<!--    <script data-ad-client="ca-pub-2778680082058669" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script> --> 
-    <meta name="baidu_union_verify" content="4ccf99e264b86ed667b1d733b3bdff5d">
-    <meta property="og:type" content="website">
+<html lang="zh-cn">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 3.8.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="//fonts.googleapis.com/css?family=Operator Mono:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    hostname: new URL('http://zhyzhyzhy.github.io').hostname,
+    root: '/',
+    scheme: 'Gemini',
+    version: '7.7.1',
+    exturl: false,
+    sidebar: {"position":"right","display":"always","padding":18,"offset":12,"onmobile":false},
+    copycode: {"enable":true,"show_result":true,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    comments: {"style":"tabs","active":"disqus","storage":true,"lazyload":false,"nav":null,"activeClass":"disqus"},
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: 'search.json',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}
+  };
+</script>
+
+  <meta name="description" content="敌视现实">
+<meta property="og:type" content="website">
 <meta property="og:title" content="LoveZhy">
-<meta property="og:url" content="http://zhyzhyzhy.github.io/tags/java/index.html">
+<meta property="og:url" content="http://zhyzhyzhy.github.io/tags/Java/index.html">
 <meta property="og:site_name" content="LoveZhy">
+<meta property="og:description" content="敌视现实">
 <meta property="og:locale" content="zh-cn">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="LoveZhy">
-    
-    
-        
-          
-              <link rel="shortcut icon" href="/images/favicon.ico">
-          
-        
-        
-          
-            <link rel="icon" type="image/png" href="/images/favicon-192x192.png" sizes="192x192">
-          
-        
-        
-          
-            <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
-          
-        
-    
-    <!-- title -->
-    <title>Tag: java</title>
-    <!-- styles -->
-    <link rel="stylesheet" href="/css/style.css">
-    <!-- persian styles -->
-    
-      <link rel="stylesheet" href="/css/rtl.css">
-    
-    <!-- rss -->
-    
-    
+<meta name="twitter:description" content="敌视现实">
+
+<link rel="canonical" href="http://zhyzhyzhy.github.io/tags/Java/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: false
+  };
+</script>
+
+  <title>Tag: Java | LoveZhy</title>
+  
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-125642214-1"></script>
+    <script>
+      if (CONFIG.hostname === location.hostname) {
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'UA-125642214-1');
+      }
+    </script>
+
+
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?c1f963571cb3d8a4a5dc82346dc65842";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
 </head>
 
-<body class="max-width mx-auto px3 ltr">    
-    <div class="content index py4">
-        
-          <header id="header">
-  <a href="/">
-  
-    
-      <div id="logo" style="background-image: url(/images/logo.png);"></div>
-    
-  
-    <div id="title">
-      <h1>LoveZhy</h1>
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">LoveZhy</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
     </div>
-  </a>
-  <div id="nav">
-    <ul>
-      <li class="icon">
-        <a href="#"><i class="fas fa-bars fa-2x"></i></a>
-      </li>
-       
-        <li><a href="/">Home</a></li>
-       
-        <li><a href="/about/">About</a></li>
-       
-        <li><a href="/archives/">Writing</a></li>
-       
-        <li><a href="/tags/">Tags</a></li>
-       
-        <li><a href="/movies/index.html">Movie</a></li>
-       
-        <li><a href="/books/index.html">Books</a></li>
-      
-    </ul>
   </div>
-</header>
 
-        
-        <div id="archive">
-  <ul class="post-list">
-    
-    
-    
-    
-      
-      
-      
-      
-        <h2>2018</h2>
-      
-      <li class="post-item">
-        
-    <div class="meta">
-      
-        
-          <time datetime="2018-02-09T16:00:00.000Z" itemprop="datePublished">2018-02-10</time>
-        
-      
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
     </div>
-
-
-        <span>
-    
-        <a class="" href="/2018/02/10/fat-jar/">fat-jar配置</a>
-    
-
-
-</span>
-      </li>
-    
-  </ul>
-  
-
+  </div>
 </div>
 
-        
-        <footer id="footer">
-  <div class="footer-left">
-    Copyright &copy; 2020 zhy
-  </div>
-  <div class="footer-right">
-    <nav>
-      <ul>
-         
-          <li><a href="/">Home</a></li>
-         
-          <li><a href="/about/">About</a></li>
-         
-          <li><a href="/archives/">Writing</a></li>
-         
-          <li><a href="/tags/">Tags</a></li>
-         
-          <li><a href="/movies/index.html">Movie</a></li>
-         
-          <li><a href="/books/index.html">Books</a></li>
-        
-      </ul>
-    </nav>
-    <a href="http://beian.miit.gov.cn/" target="_blank">苏ICP备15058469号</a>
-  </div>
-</footer>
 
-    </div>
-</body>
-</html>
-<!-- styles -->
-<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
-<link rel="stylesheet" href="/lib/justified-gallery/css/justifiedGallery.min.css">
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
 
-<!-- jquery -->
-<script src="/lib/jquery/jquery.min.js"></script>
-<script src="/lib/justified-gallery/js/jquery.justifiedGallery.min.js"></script>
-<script src="/js/main.js"></script>
-<!-- search -->
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>Home</a>
 
-<!-- Google Analytics -->
+  </li>
+        <li class="menu-item menu-item-about">
 
-    <script type="text/javascript">
-        (function(i,s,o,g,r,a,m) {i['GoogleAnalyticsObject']=r;i[r]=i[r]||function() {
-        (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
-        m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
-        })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
-        ga('create', 'UA-125642214-1', 'auto');
-        ga('send', 'pageview');
-    </script>
+    <a href="/about/" rel="section"><i class="fa fa-fw fa-user"></i>About</a>
 
-<!-- Baidu Analytics -->
+  </li>
+        <li class="menu-item menu-item-archives">
 
-    <script type="text/javascript">
-        var _hmt = _hmt || [];
-        (function() {
-            var hm = document.createElement("script");
-            hm.src = "https://hm.baidu.com/hm.js?c1f963571cb3d8a4a5dc82346dc65842";
-            var s = document.getElementsByTagName("script")[0];
-            s.parentNode.insertBefore(hm, s);
-        })();
-    </script>
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>Archives</a>
 
-<!-- Disqus Comments -->
+  </li>
+        <li class="menu-item menu-item-movie">
 
+    <a href="/movies/index.html" rel="section"><i class="fa fa-fw fa-film"></i>movie</a>
 
-�对象池实现</a>
-    
+  </li>
+        <li class="menu-item menu-item-books">
 
+    <a href="/books/index.html" rel="section"><i class="fa fa-fw fa-book"></i>books</a>
 
-</span>
-      </li>
-    
-      
-      
-      
-      
-      <li class="post-item">
-        
-    <div class="meta">
-      
-        
-          <time datetime="2018-03-02T16:00:00.000Z" itemprop="datePublished">2018-03-03</time>
-        
-      
-    </div>
-
-
-        <span>
-    
-        <a class="" href="/2018/03/03/spi和破坏双亲委派/">spi和破坏双亲委派</a>
-    
-
-
-</span>
-      </li>
-    
-      
-      
-      
-      
-      <li class="post-item">
-        
-    <div class="meta">
-      
-        
-          <time datetime="2018-02-23T16:00:00.000Z" itemprop="datePublished">2018-02-24</time>
-        
-      
-    </div>
-
-
-        <span>
-    
-        <a class="" href="/2018/02/24/AQS和ReentrantLock/">AQS和ReentrantLock</a>
-    
-
-
-</span>
-      </li>
-    
-      
-      
-      
-      
-      <li class="post-item">
-        
-    <div class="meta">
-      
-        
-          <time datetime="2018-02-22T16:00:00.000Z" itemprop="datePublished">2018-02-23</time>
-        
-      
-    </div>
-
-
-        <span>
-    
-        <a class="" href="/2018/02/23/LongAdder解析/">LongAdder解析</a>
-    
-
-
-</span>
-      </li>
-    
-      
-      
-      
-      
-      <li class="post-item">
-        
-    <div class="meta">
-      
-        
-          <time datetime="2018-02-06T16:00:00.000Z" itemprop="datePublished">2018-02-07</time>
-        
-      
-    </div>
-
-
-        <span>
-    
-        <a class="" href="/2018/02/07/log4j和slf4j配置/">log4j和slf4j配置</a>
-    
-
-
-</span>
-      </li>
-    
-      
-      
-      
-      
-        <h2>2017</h2>
-      
-      <li class="post-item">
-        
-    <div class="meta">
-      
-        
-          <time datetime="2017-12-20T16:00:00.000Z" itemprop="datePublished">2017-12-21</time>
-        
-      
-    </div>
-
-
-        <span>
-    
-        <a class="" href="/2017/12/21/ThreadLocal源码分析/">ThreadLocal源码分析</a>
-    
-
-
-</span>
-      </li>
-    
-      
-      
-      
-      
-      <li class="post-item">
-        
-    <div class="meta">
-      
-        
-          <time datetime="2017-12-17T16:00:00.000Z" itemprop="datePublished">2017-12-18</time>
-        
-      
-    </div>
-
-
-        <span>
-    
-        <a class="" href="/2017/12/18/ConcurrentHashMap源码分析/">ConcurrentHashMap源码分析</a>
-    
-
-
-</span>
-      </li>
-    
-      
-      
-      
-      
-      <li class="post-item">
-        
-    <div class="meta">
-      
-        
-          <time datetime="2017-12-09T16:00:00.000Z" itemprop="datePublished">2017-12-10</time>
-        
-      
-    </div>
-
-
-        <span>
-    
-        <a class="" href="/2017/12/10/LinkedList源码分析/">LinkedList源码分析</a>
-    
-
-
-</span>
-      </li>
-    
-      
-      
-      
-      
-      <li class="post-item">
-        
-    <div class="meta">
-      
-        
-          <time datetime="2017-12-08T16:00:00.000Z" itemprop="datePublished">2017-12-09</time>
-        
-      
-    </div>
-
-
-        <span>
-    
-        <a class="" href="/2017/12/09/HashSet源码分析/">HashSet源码解析</a>
-    
-
-
-</span>
-      </li>
-    
-      
-      
-      
-      
-      <li class="post-item">
-        
-    <div class="meta">
-      
-        
-          <time datetime="2017-12-07T15:00:41.000Z" itemprop="datePublished">2017-12-07</time>
-        
-      
-    </div>
-
-
-        <span>
-    
-        <a class="" href="/2017/12/07/ArrayList源码分析/">ArrayList源码分析</a>
-    
-
-
-</span>
-      </li>
-    
-      
-      
-      
-      
-      <li class="post-item">
-        
-    <div class="meta">
-      
-        
-          <time datetime="2017-10-23T16:00:00.000Z" itemprop="datePublished">2017-10-24</time>
-        
-      
-    </div>
-
-
-        <span>
-    
-        <a class="" href="/2017/10/24/哪些可以作为GCRoots/">哪些可以作为GC Roots</a>
-    
-
-
-</span>
-      </li>
-    
-      
-      
-      
-      
-      <li class="post-item">
-        
-    <div class="meta">
-      
-        
-          <time datetime="2017-09-09T16:00:00.000Z" itemprop="datePublished">2017-09-10</time>
-        
-      
-    </div>
-
-
-        <span>
-    
-        <a class="" href="/2017/09/10/动态代理的缓存实现/">动态代理的缓存实现</a>
-    
-
-
-</span>
-      </li>
-    
-      
-      
-      
-      
-      <li class="post-item">
-        
-    <div class="meta">
-      
-        
-          <time datetime="2017-08-08T16:00:00.000Z" itemprop="datePublished">2017-08-09</time>
-        
-      
-    </div>
-
-
-        <span>
-    
-        <a class="" href="/2017/08/09/Java泛型数组/">Java泛型</a>
-    
-
-
-</span>
-      </li>
-    
-      
-      
-      
-      
-      <li class="post-item">
-        
-    <div class="meta">
-      
-        
-          <time datetime="2017-08-04T16:00:00.000Z" itemprop="datePublished">2017-08-05</time>
-        
-      
-    </div>
-
-
-        <span>
-    
-        <a class="" href="/2017/08/05/Java内部类/">Java内部类</a>
-    
-
-
-</span>
-      </li>
-    
-      
-      
-      
-      
-      <li class="post-item">
-        
-    <div class="meta">
-      
-        
-          <time datetime="2017-07-20T16:00:00.000Z" itemprop="datePublished">2017-07-21</time>
-        
-      
-    </div>
-
-
-        <span>
-    
-        <a class="" href="/2017/07/21/HashMap源码解析/">HashMap源码解析</a>
-    
-
-
-</span>
-      </li>
-    
+  </li>
   </ul>
+
+</nav>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  
+  
+  
+  <div class="post-block">
+    <div class="posts-collapse">
+      <div class="collection-title">
+        <h1 class="collection-header">Java
+          <small>Tag</small>
+        </h1>
+      </div>
+
+      
+    <div class="collection-year">
+      <h1 class="collection-header">2020</h1>
+    </div>
+
+  <article itemscope itemtype="http://schema.org/Article">
+    <header class="post-header">
+
+      <div class="post-meta">
+        <time itemprop="dateCreated"
+              datetime="2020-01-04T00:00:00+08:00"
+              content="2020-01-04">
+          01-04
+        </time>
+      </div>
+
+      <h2 class="post-title">
+          <a class="post-title-link" href="/2020/01/04/HotSpot原理指南-分层编译/" itemprop="url">
+            <span itemprop="name">HotSpot原理指南-分层编译</span>
+          </a>
+      </h2>
+
+    </header>
+  </article>
+    <div class="collection-year">
+      <h1 class="collection-header">2019</h1>
+    </div>
+
+  <article itemscope itemtype="http://schema.org/Article">
+    <header class="post-header">
+
+      <div class="post-meta">
+        <time itemprop="dateCreated"
+              datetime="2019-12-14T00:00:00+08:00"
+              content="2019-12-14">
+          12-14
+        </time>
+      </div>
+
+      <h2 class="post-title">
+          <a class="post-title-link" href="/2019/12/14/HotSpot原理指南-JIT触发条件/" itemprop="url">
+            <span itemprop="name">HotSpot原理指南-JIT触发条件</span>
+          </a>
+      </h2>
+
+    </header>
+  </article>
+
+  <article itemscope itemtype="http://schema.org/Article">
+    <header class="post-header">
+
+      <div class="post-meta">
+        <time itemprop="dateCreated"
+              datetime="2019-11-30T00:00:00+08:00"
+              content="2019-11-30">
+          11-30
+        </time>
+      </div>
+
+      <h2 class="post-title">
+          <a class="post-title-link" href="/2019/11/30/HotSpot原理指南-OSR是什么/" itemprop="url">
+            <span itemprop="name">HotSpot原理指南-OSR是什么</span>
+          </a>
+      </h2>
+
+    </header>
+  </article>
+
+  <article itemscope itemtype="http://schema.org/Article">
+    <header class="post-header">
+
+      <div class="post-meta">
+        <time itemprop="dateCreated"
+              datetime="2019-11-27T00:00:00+08:00"
+              content="2019-11-27">
+          11-27
+        </time>
+      </div>
+
+      <h2 class="post-title">
+          <a class="post-title-link" href="/2019/11/27/HotSpot原理指南-C1和C2编译流程/" itemprop="url">
+            <span itemprop="name">HotSpot原理指南-C1和C2编译流程</span>
+          </a>
+      </h2>
+
+    </header>
+  </article>
+    <div class="collection-year">
+      <h1 class="collection-header">2018</h1>
+    </div>
+
+  <article itemscope itemtype="http://schema.org/Article">
+    <header class="post-header">
+
+      <div class="post-meta">
+        <time itemprop="dateCreated"
+              datetime="2018-12-11T00:00:00+08:00"
+              content="2018-12-11">
+          12-11
+        </time>
+      </div>
+
+      <h2 class="post-title">
+          <a class="post-title-link" href="/2018/12/11/double精度踩坑/" itemprop="url">
+            <span itemprop="name">double精度踩坑</span>
+          </a>
+      </h2>
+
+    </header>
+  </article>
+
+  <article itemscope itemtype="http://schema.org/Article">
+    <header class="post-header">
+
+      <div class="post-meta">
+        <time itemprop="dateCreated"
+              datetime="2018-11-02T00:00:00+08:00"
+              content="2018-11-02">
+          11-02
+        </time>
+      </div>
+
+      <h2 class="post-title">
+          <a class="post-title-link" href="/2018/11/02/从Netty看对象池实现/" itemprop="url">
+            <span itemprop="name">从Netty看对象池实现</span>
+          </a>
+      </h2>
+
+    </header>
+  </article>
+
+  <article itemscope itemtype="http://schema.org/Article">
+    <header class="post-header">
+
+      <div class="post-meta">
+        <time itemprop="dateCreated"
+              datetime="2018-03-03T00:00:00+08:00"
+              content="2018-03-03">
+          03-03
+        </time>
+      </div>
+
+      <h2 class="post-title">
+          <a class="post-title-link" href="/2018/03/03/spi和破坏双亲委派/" itemprop="url">
+            <span itemprop="name">spi和破坏双亲委派</span>
+          </a>
+      </h2>
+
+    </header>
+  </article>
+
+  <article itemscope itemtype="http://schema.org/Article">
+    <header class="post-header">
+
+      <div class="post-meta">
+        <time itemprop="dateCreated"
+              datetime="2018-02-24T00:00:00+08:00"
+              content="2018-02-24">
+          02-24
+        </time>
+      </div>
+
+      <h2 class="post-title">
+          <a class="post-title-link" href="/2018/02/24/AQS和ReentrantLock/" itemprop="url">
+            <span itemprop="name">AQS和ReentrantLock</span>
+          </a>
+      </h2>
+
+    </header>
+  </article>
+
+  <article itemscope itemtype="http://schema.org/Article">
+    <header class="post-header">
+
+      <div class="post-meta">
+        <time itemprop="dateCreated"
+              datetime="2018-02-23T00:00:00+08:00"
+              content="2018-02-23">
+          02-23
+        </time>
+      </div>
+
+      <h2 class="post-title">
+          <a class="post-title-link" href="/2018/02/23/LongAdder解析/" itemprop="url">
+            <span itemprop="name">LongAdder解析</span>
+          </a>
+      </h2>
+
+    </header>
+  </article>
+
+  <article itemscope itemtype="http://schema.org/Article">
+    <header class="post-header">
+
+      <div class="post-meta">
+        <time itemprop="dateCreated"
+              datetime="2018-02-07T00:00:00+08:00"
+              content="2018-02-07">
+          02-07
+        </time>
+      </div>
+
+      <h2 class="post-title">
+          <a class="post-title-link" href="/2018/02/07/log4j和slf4j配置/" itemprop="url">
+            <span itemprop="name">log4j和slf4j配置</span>
+          </a>
+      </h2>
+
+    </header>
+  </article>
+    <div class="collection-year">
+      <h1 class="collection-header">2017</h1>
+    </div>
+
+  <article itemscope itemtype="http://schema.org/Article">
+    <header class="post-header">
+
+      <div class="post-meta">
+        <time itemprop="dateCreated"
+              datetime="2017-12-21T00:00:00+08:00"
+              content="2017-12-21">
+          12-21
+        </time>
+      </div>
+
+      <h2 class="post-title">
+          <a class="post-title-link" href="/2017/12/21/ThreadLocal源码分析/" itemprop="url">
+            <span itemprop="name">ThreadLocal源码分析</span>
+          </a>
+      </h2>
+
+    </header>
+  </article>
+
+  <article itemscope itemtype="http://schema.org/Article">
+    <header class="post-header">
+
+      <div class="post-meta">
+        <time itemprop="dateCreated"
+              datetime="2017-12-18T00:00:00+08:00"
+              content="2017-12-18">
+          12-18
+        </time>
+      </div>
+
+      <h2 class="post-title">
+          <a class="post-title-link" href="/2017/12/18/ConcurrentHashMap源码分析/" itemprop="url">
+            <span itemprop="name">ConcurrentHashMap源码分析</span>
+          </a>
+      </h2>
+
+    </header>
+  </article>
+
+  <article itemscope itemtype="http://schema.org/Article">
+    <header class="post-header">
+
+      <div class="post-meta">
+        <time itemprop="dateCreated"
+              datetime="2017-12-10T00:00:00+08:00"
+              content="2017-12-10">
+          12-10
+        </time>
+      </div>
+
+      <h2 class="post-title">
+          <a class="post-title-link" href="/2017/12/10/LinkedList源码分析/" itemprop="url">
+            <span itemprop="name">LinkedList源码分析</span>
+          </a>
+      </h2>
+
+    </header>
+  </article>
+
+  <article itemscope itemtype="http://schema.org/Article">
+    <header class="post-header">
+
+      <div class="post-meta">
+        <time itemprop="dateCreated"
+              datetime="2017-12-09T00:00:00+08:00"
+              content="2017-12-09">
+          12-09
+        </time>
+      </div>
+
+      <h2 class="post-title">
+          <a class="post-title-link" href="/2017/12/09/HashSet源码分析/" itemprop="url">
+            <span itemprop="name">HashSet源码解析</span>
+          </a>
+      </h2>
+
+    </header>
+  </article>
+
+  <article itemscope itemtype="http://schema.org/Article">
+    <header class="post-header">
+
+      <div class="post-meta">
+        <time itemprop="dateCreated"
+              datetime="2017-12-07T23:00:41+08:00"
+              content="2017-12-07">
+          12-07
+        </time>
+      </div>
+
+      <h2 class="post-title">
+          <a class="post-title-link" href="/2017/12/07/ArrayList源码分析/" itemprop="url">
+            <span itemprop="name">ArrayList源码分析</span>
+          </a>
+      </h2>
+
+    </header>
+  </article>
+
+  <article itemscope itemtype="http://schema.org/Article">
+    <header class="post-header">
+
+      <div class="post-meta">
+        <time itemprop="dateCreated"
+              datetime="2017-10-24T00:00:00+08:00"
+              content="2017-10-24">
+          10-24
+        </time>
+      </div>
+
+      <h2 class="post-title">
+          <a class="post-title-link" href="/2017/10/24/哪些可以作为GCRoots/" itemprop="url">
+            <span itemprop="name">哪些可以作为GC Roots</span>
+          </a>
+      </h2>
+
+    </header>
+  </article>
+
+  <article itemscope itemtype="http://schema.org/Article">
+    <header class="post-header">
+
+      <div class="post-meta">
+        <time itemprop="dateCreated"
+              datetime="2017-09-10T00:00:00+08:00"
+              content="2017-09-10">
+          09-10
+        </time>
+      </div>
+
+      <h2 class="post-title">
+          <a class="post-title-link" href="/2017/09/10/动态代理的缓存实现/" itemprop="url">
+            <span itemprop="name">动态代理的缓存实现</span>
+          </a>
+      </h2>
+
+    </header>
+  </article>
+
+  <article itemscope itemtype="http://schema.org/Article">
+    <header class="post-header">
+
+      <div class="post-meta">
+        <time itemprop="dateCreated"
+              datetime="2017-08-09T00:00:00+08:00"
+              content="2017-08-09">
+          08-09
+        </time>
+      </div>
+
+      <h2 class="post-title">
+          <a class="post-title-link" href="/2017/08/09/Java泛型数组/" itemprop="url">
+            <span itemprop="name">Java泛型</span>
+          </a>
+      </h2>
+
+    </header>
+  </article>
+
+  <article itemscope itemtype="http://schema.org/Article">
+    <header class="post-header">
+
+      <div class="post-meta">
+        <time itemprop="dateCreated"
+              datetime="2017-08-05T00:00:00+08:00"
+              content="2017-08-05">
+          08-05
+        </time>
+      </div>
+
+      <h2 class="post-title">
+          <a class="post-title-link" href="/2017/08/05/Java内部类/" itemprop="url">
+            <span itemprop="name">Java内部类</span>
+          </a>
+      </h2>
+
+    </header>
+  </article>
+
+  <article itemscope itemtype="http://schema.org/Article">
+    <header class="post-header">
+
+      <div class="post-meta">
+        <time itemprop="dateCreated"
+              datetime="2017-07-21T00:00:00+08:00"
+              content="2017-07-21">
+          07-21
+        </time>
+      </div>
+
+      <h2 class="post-title">
+          <a class="post-title-link" href="/2017/07/21/HashMap源码解析/" itemprop="url">
+            <span itemprop="name">HashMap源码解析</span>
+          </a>
+      </h2>
+
+    </header>
+  </article>
+
+    </div>
+  </div>
+  
+  
   
 
-</div>
+  
 
-        
-        <footer id="footer">
-  <div class="footer-left">
-    Copyright &copy; 2020 zhy
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let activeClass = CONFIG.comments.activeClass;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
   </div>
-  <div class="footer-right">
-    <nav>
-      <ul>
-         
-          <li><a href="/">Home</a></li>
-         
-          <li><a href="/about/">About</a></li>
-         
-          <li><a href="/archives/">Writing</a></li>
-         
-          <li><a href="/tags/">Tags</a></li>
-         
-          <li><a href="/movies/index.html">Movie</a></li>
-         
-          <li><a href="/books/index.html">Books</a></li>
-        
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
       </ul>
-    </nav>
-    <a href="http://beian.miit.gov.cn/" target="_blank">苏ICP备15058469号</a>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">zhy</p>
+  <div class="site-description" itemprop="description">敌视现实</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">69</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+        <span class="site-state-item-count">24</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+        <span class="site-state-item-count">38</span>
+        <span class="site-state-item-name">tags</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/zhyzhyzhy" title="GitHub → https://github.com/zhyzhyzhy" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:zhuyichen1017@outlook.com" title="E-Mail → mailto:zhuyichen1017@outlook.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+      </span>
   </div>
-</footer>
+
+
+
+      </div>
 
     </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+  <div class="beian"><a href="http://www.beian.miit.gov.cn" rel="noopener" target="_blank">苏ICP备15058469号 </a>
+  </div>
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">zhy</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> v3.8.0
+  </div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">Theme – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> v7.7.1
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+<script src="/js/utils.js"></script><script src="/js/motion.js"></script>
+<script src="/js/schemes/pisces.js"></script>
+<script src="/js/next-boot.js"></script>
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+<script>
+  function loadCount() {
+    var d = document, s = d.createElement('script');
+    s.src = 'https://blog-lovezhy-cc-1.disqus.com/count.js';
+    s.id = 'dsq-count-scr';
+    (d.head || d.body).appendChild(s);
+  }
+  // defer loading until the whole page loading is completed
+  window.addEventListener('load', loadCount, false);
+</script>
+
 </body>
 </html>
-<!-- styles -->
-<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
-<link rel="stylesheet" href="/lib/justified-gallery/css/justifiedGallery.min.css">
-
-<!-- jquery -->
-<script src="/lib/jquery/jquery.min.js"></script>
-<script src="/lib/justified-gallery/js/jquery.justifiedGallery.min.js"></script>
-<script src="/js/main.js"></script>
-<!-- search -->
-
-<!-- Google Analytics -->
-
-    <script type="text/javascript">
-        (function(i,s,o,g,r,a,m) {i['GoogleAnalyticsObject']=r;i[r]=i[r]||function() {
-        (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
-        m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
-        })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
-        ga('create', 'UA-125642214-1', 'auto');
-        ga('send', 'pageview');
-    </script>
-
-<!-- Baidu Analytics -->
-
-    <script type="text/javascript">
-        var _hmt = _hmt || [];
-        (function() {
-            var hm = document.createElement("script");
-            hm.src = "https://hm.baidu.com/hm.js?c1f963571cb3d8a4a5dc82346dc65842";
-            var s = document.getElementsByTagName("script")[0];
-            s.parentNode.insertBefore(hm, s);
-        })();
-    </script>
-
-<!-- Disqus Comments -->
-
-
