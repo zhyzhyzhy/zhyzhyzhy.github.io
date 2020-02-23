@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 3.8.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+  <meta name="google-site-verification" content="wE7ISC42t3QOT-S-gdbdy_XsP3NB23Xi3alKNWXd0dA">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="//fonts.googleapis.com/css?family=Operator Mono:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    hostname: new URL('http://zhyzhyzhy.github.io').hostname,
+    root: '/',
+    scheme: 'Gemini',
+    version: '7.7.1',
+    exturl: false,
+    sidebar: {"position":"right","display":"always","padding":18,"offset":12,"onmobile":false},
+    copycode: {"enable":true,"show_result":true,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    comments: {"style":"tabs","active":"disqus","storage":true,"lazyload":false,"nav":null,"activeClass":"disqus"},
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: 'search.xml',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}
+  };
+</script>
+
+  <meta name="description" content="前言前文讲述了C1和C2的功能定位，以及引出了Client和Server模式的区别。 这回抛开功能和定位的角度，简单看看从设计与实现角度的区别。">
+<meta name="keywords" content="Java">
+<meta property="og:type" content="article">
+<meta property="og:title" content="HotSpot原理指南-C1和C2编译流程">
+<meta property="og:url" content="http://zhyzhyzhy.github.io/2019/11/27/HotSpot原理指南-C1和C2编译流程/index.html">
+<meta property="og:site_name" content="LoveZhy">
+<meta property="og:description" content="前言前文讲述了C1和C2的功能定位，以及引出了Client和Server模式的区别。 这回抛开功能和定位的角度，简单看看从设计与实现角度的区别。">
+<meta property="og:locale" content="zh-cn">
+<meta property="og:image" content="http://zhyzhyzhy.github.io/images/HotSpot原理指南-C1和C2流程/C1流程.png">
+<meta property="og:image" content="http://zhyzhyzhy.github.io/images/HotSpot原理指南-C1和C2流程/C2优化.png">
+<meta property="og:updated_time" content="2020-02-23T10:29:38.017Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="HotSpot原理指南-C1和C2编译流程">
+<meta name="twitter:description" content="前言前文讲述了C1和C2的功能定位，以及引出了Client和Server模式的区别。 这回抛开功能和定位的角度，简单看看从设计与实现角度的区别。">
+<meta name="twitter:image" content="http://zhyzhyzhy.github.io/images/HotSpot原理指南-C1和C2流程/C1流程.png">
+
+<link rel="canonical" href="http://zhyzhyzhy.github.io/2019/11/27/HotSpot原理指南-C1和C2编译流程/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true
+  };
+</script>
+
+  <title>HotSpot原理指南-C1和C2编译流程 | LoveZhy</title>
+  
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-125642214-1"></script>
+    <script>
+      if (CONFIG.hostname === location.hostname) {
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'UA-125642214-1');
+      }
+    </script>
+
+
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?c1f963571cb3d8a4a5dc82346dc65842";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+<link rel="alternate" href="/atom.xml" title="LoveZhy" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">LoveZhy</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+  </div>
+
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-fw fa-user"></i>About</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>Tags</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>Categories</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>Archives</a>
+
+  </li>
+        <li class="menu-item menu-item-sitemap">
+
+    <a href="/sitemap.xml" rel="section"><i class="fa fa-fw fa-sitemap"></i>Sitemap</a>
+
+  </li>
+        <li class="menu-item menu-item-movie">
+
+    <a href="/movies/index.html" rel="section"><i class="fa fa-fw fa-film"></i>movie</a>
+
+  </li>
+        <li class="menu-item menu-item-books">
+
+    <a href="/books/index.html" rel="section"><i class="fa fa-fw fa-book"></i>books</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+
+</nav>
+  <div class="site-search">
+    <div class="popup search-popup">
+    <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocorrect="off" autocapitalize="none" placeholder="Searching..." spellcheck="false" type="text" id="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result"></div>
+
+</div>
+<div class="search-pop-overlay"></div>
+
+  </div>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope="" itemtype="http://schema.org/Article" class="post-block " lang="zh-cn">
+    <link itemprop="mainEntityOfPage" href="http://zhyzhyzhy.github.io/2019/11/27/HotSpot原理指南-C1和C2编译流程/">
+
+    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="zhy">
+      <meta itemprop="description" content="敌视现实">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="LoveZhy">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          HotSpot原理指南-C1和C2编译流程
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2019-11-27 00:00:00" itemprop="dateCreated datePublished" datetime="2019-11-27T00:00:00+08:00">2019-11-27</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">Edited on</span>
+                <time title="Modified: 2020-02-23 18:29:38" itemprop="dateModified" datetime="2020-02-23T18:29:38+08:00">2020-02-23</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/" itemprop="url" rel="index">
+                    <span itemprop="name">Java</span>
+                  </a>
+                </span>
+            </span>
+
+          
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="fa fa-comment-o"></i>
+      </span>
+      <span class="post-meta-item-text">Disqus: </span>
+    
+    <a title="disqus" href="/2019/11/27/HotSpot原理指南-C1和C2编译流程/#disqus_thread" itemprop="discussionUrl">
+      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2019/11/27/HotSpot原理指南-C1和C2编译流程/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>前文讲述了C1和C2的功能定位，以及引出了Client和Server模式的区别。</p>
+<p>这回抛开功能和定位的角度，简单看看从设计与实现角度的区别。</p>
+<a id="more"></a>
+<h2 id="前导知识"><a href="#前导知识" class="headerlink" title="前导知识"></a>前导知识</h2><p>要讲解设计与实现角度的区别，需要了解很多的编译原理知识。</p>
+<p>😄编译原理是科班必学的一门课，当时作者上的迷迷糊糊的，觉得没什么用，也没怎么听。</p>
+<p>现在看到C1和C2的东西，真的是一筹莫展。</p>
+<p>相信很多科班和非科班的人也是。</p>
+<p>不过大家不用担心，作者水平有限，更是不会瞎写自己根本不会的东西，所以涉及到编译原理的东西讲的都很简单。</p>
+<h3 id="IR"><a href="#IR" class="headerlink" title="IR"></a>IR</h3><p>IR，中文中间表示，全称是intermediate representation。</p>
+<p>其实它和中间语言的定义类似，但是中间语言的定义更加狭义，只规定必须是某种语言，而中间表示则扩宽了范围，可以是树类型或者是图类型的表示。</p>
+<p>在维基百科上，中间语言的定义是</p>
+<blockquote>
+<p><strong>中间语言</strong>（英语：Intermediate language），在计算机科学中，是指一种应用于抽象机器（abstract machine）的编程语言，它设计的目的，是用来帮助我们分析计算机程序。这个术语源自于编译器，在编译器将源代码编译为目的码的过程中，会先将源代码转换为一个或多个的中间表述，以方便编译器进行最佳化，并产生出目的机器的机器语言</p>
+</blockquote>
+<p>其实更简单的定义，我觉得就是源代码的另一种表达形式。</p>
+<p>比如Java代码，会被编译成字节码，字节码也是一种IR，是Java代码的中间表示。</p>
+<p>IR在编译原理中的作用个人理解其实起到两种：</p>
+<ul>
+<li>统一后端语言。比如JRuby，Scala，Kotlin等，他们的解释器其实都是JVM。但是他们的源代码都是不一样的。倘若对于每种语言的处理都是不一样的，那其实JVM的实现就没什么意义了，所以将所有语言的源代码都编译成同一种IR，然后JVM不用关心源语言是什么，只要符合该IR定义的都可以执行。</li>
+<li>方便优化。很多的优化技术，其实人眼可以简单看出的，很难归一化到程序去理解。但是通过一些IR的表示，使用特定的规则，就可以进行优化。就行我们在拼魔方时的公式一样。那为什么有这么多种IR呢，很大一个程度的区别就是他们在解决一些特定优化时各有优势。比如SSA在进行复制传播时就很方便。</li>
+</ul>
+<h3 id="寄存器分配"><a href="#寄存器分配" class="headerlink" title="寄存器分配"></a>寄存器分配</h3><p>一个解释器执行的程序和以机器码执行的程序的一个很大的区别就是对于系统寄存器的使用。</p>
+<p>比如对于下面的函数</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">int</span> <span class="title">add</span><span class="params">(<span class="keyword">int</span> i, <span class="keyword">int</span> j)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">int</span> k = i + j;</span><br><span class="line">    k += <span class="number">2</span>;</span><br><span class="line">    k *= <span class="number">2</span>;</span><br><span class="line">    <span class="keyword">return</span> i + j;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>如果是以解释的形式而言，则需要把k存在内存的变量中，然后再进行运算，每一步的运算都要把k的值写回到内存中。</p>
+<p>但是如果是C++的话，完全可以给k分配一个寄存器，把k放到寄存器中，然后直接对寄存器中的值进行运算就行。</p>
+<p>所以，如果能够很好的利用系统现有的寄存器，那么程序执行的性能将提升一个档次。</p>
+<p>对于寄存器的分配算法，有很多论文可以参考，作者水平有限，还没能学会一种。</p>
+<p>读者有兴趣可以自己去搜索相关论文进行了解。</p>
+<h2 id="C1流程"><a href="#C1流程" class="headerlink" title="C1流程"></a>C1流程</h2><p><img src="/images/HotSpot原理指南-C1和C2流程/C1流程.png" alt=""></p>
+<p>C1的流程较为简单，如上图所示。</p>
+<p>首先，字节码会经过转换，变成HIR，也就是High Level的IR，高级中间表示。</p>
+<p>在HIR中，会进行一些优化，比如</p>
+<ul>
+<li>GVN优化</li>
+<li>基本块优化</li>
+<li>null检查消除</li>
+<li>…</li>
+</ul>
+<p>经过HIR优化之后，转换成LIR，也就是Low-Level的IR，低级中间表示。</p>
+<p>这个阶段的IR其实已经很接近机器码了</p>
+<p>在LIR时，进行</p>
+<ul>
+<li>寄存器分配。这里的寄存器分配算法是线性扫描，时间消耗短，但是分配效果有限</li>
+<li>窥孔优化</li>
+</ul>
+<p>在LIR的优化过后，就是机器码的生成。</p>
+<p>对于C1的更详细的流程，笔者也从网上找到了当时作者的一个PPT，有兴趣的可以自行下载</p>
+<p><a href="http://compilers.cs.uni-saarland.de/ssasem/talks/Christian.Wimmer.pdf" target="_blank" rel="noopener">http://compilers.cs.uni-saarland.de/ssasem/talks/Christian.Wimmer.pdf</a></p>
+<p>同时，如果有人对线性扫描寄存器分配算法有兴趣，也可以参照论文</p>
+<p><a href="http://web.cs.ucla.edu/~palsberg/course/cs132/linearscan.pdf" target="_blank" rel="noopener">http://web.cs.ucla.edu/~palsberg/course/cs132/linearscan.pdf</a></p>
+<h2 id="C2流程"><a href="#C2流程" class="headerlink" title="C2流程"></a>C2流程</h2><p>通过前面我们已经知道C2相对于C1编译过程，更加的耗时，这个耗时可以体现在两方面</p>
+<ul>
+<li>比C1有更多的优化</li>
+<li>同一种优化使用的算法不同，C2的结果更好</li>
+</ul>
+<p>对于C2而言，它的IR只有一种，叫<code>Sea Of Nodes</code></p>
+<p>就笔者了解到的知识来看，这个IR非常的牛逼，在V8引擎中，也是使用的这种IR。</p>
+<p>不过这种IR的资料似乎非常少，笔者也仅仅是搜到了论文，没什么更深层次的讲解。</p>
+<p>如果有人想要了解Sea Of Nodes的原理，那么大家可以从网上搜集资料来看。</p>
+<p><strong>比C1拥有更多的优化</strong></p>
+<p>相比较于C1，C2几乎会做所有的经典优化。如下图所示</p>
+<p><img src="/images/HotSpot原理指南-C1和C2流程/C2优化.png" alt=""></p>
+<p><strong>同一种优化使用不同的算法</strong></p>
+<p>这个体现在寄存器分配算法上，我们知道对于C1而言，使用的较为简单的线性扫描的分配算法，执行较快。</p>
+<p>而C2使用了叫图染色的算法，消耗的时间更久，但是产生的解法比线性扫描更优。</p>
+<p>对于图染色算法，在经典的编译原理书中都有解答。</p>
+<p>笔者这里就不赘述了（其实是笔者也没看懂）</p>
+
+    </div>
+
+    
+    
+    
+        
+
+<div>
+<ul class="post-copyright">
+  <li class="post-copyright-author">
+    <strong>Post author:  </strong>zhy
+  </li>
+  <li class="post-copyright-link">
+    <strong>Post link: </strong>
+    <a href="http://zhyzhyzhy.github.io/2019/11/27/HotSpot原理指南-C1和C2编译流程/" title="HotSpot原理指南-C1和C2编译流程">http://zhyzhyzhy.github.io/2019/11/27/HotSpot原理指南-C1和C2编译流程/</a>
+  </li>
+  <li class="post-copyright-license">
+    <strong>Copyright Notice:  </strong>All articles in this blog are licensed under <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" rel="noopener" target="_blank"><i class="fa fa-fw fa-creative-commons"></i>BY-NC-SA</a> unless stating additionally.
+  </li>
+</ul>
+</div>
+
+        
+
+  <div class="followme">
+    <p>Welcome to my other publishing channels</p>
+
+    <div class="social-list">
+
+            <div class="social-item">
+              <a target="_blank" class="social-link" href="/atom.xml">
+                <span class="icon">
+                  <i class="fa fa-rss"></i>
+                </span>
+
+                <span class="label">RSS</span>
+              </a>
+            </div>
+    </div>
+  </div>
+
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/Java/" rel="tag"># Java</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2019/11/24/HotSpot原理指南-C1和C2介绍/" rel="prev" title="HotSpot原理指南-C1和C2介绍">
+      <i class="fa fa-chevron-left"></i> HotSpot原理指南-C1和C2介绍
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2019/11/28/HotSpot原理指南-内联/" rel="next" title="HotSpot原理指南-内联">
+      HotSpot原理指南-内联 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+    
+  <div class="comments">
+    <div id="disqus_thread">
+      <noscript>Please enable JavaScript to view the comments powered by Disqus.</noscript>
+    </div>
+  </div>
+  
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let activeClass = CONFIG.comments.activeClass;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#前言"><span class="nav-number">1.</span> <span class="nav-text">前言</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#前导知识"><span class="nav-number">2.</span> <span class="nav-text">前导知识</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#IR"><span class="nav-number">2.1.</span> <span class="nav-text">IR</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#寄存器分配"><span class="nav-number">2.2.</span> <span class="nav-text">寄存器分配</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#C1流程"><span class="nav-number">3.</span> <span class="nav-text">C1流程</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#C2流程"><span class="nav-number">4.</span> <span class="nav-text">C2流程</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">zhy</p>
+  <div class="site-description" itemprop="description">敌视现实</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">69</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">24</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">38</span>
+        <span class="site-state-item-name">tags</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/zhyzhyzhy" title="GitHub → https://github.com/zhyzhyzhy" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:zhuyichen1017@outlook.com" title="E-Mail → mailto:zhuyichen1017@outlook.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+  <div class="beian"><a href="http://www.beian.miit.gov.cn" rel="noopener" target="_blank">苏ICP备15058469号 </a>
+  </div>
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">zhy</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> v3.8.0
+  </div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">Theme – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> v7.7.1
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+<script src="/js/utils.js"></script><script src="/js/motion.js"></script>
+<script src="/js/schemes/pisces.js"></script>
+<script src="/js/next-boot.js"></script>
+
+
+
+  
+
+
+
+
+  <script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+<script>
+  function loadCount() {
+    var d = document, s = d.createElement('script');
+    s.src = 'https://blog-lovezhy-cc-1.disqus.com/count.js';
+    s.id = 'dsq-count-scr';
+    (d.head || d.body).appendChild(s);
+  }
+  // defer loading until the whole page loading is completed
+  window.addEventListener('load', loadCount, false);
+</script>
+<script>
+  var disqus_config = function() {
+    this.page.url = "http://zhyzhyzhy.github.io/2019/11/27/HotSpot原理指南-C1和C2编译流程/";
+    this.page.identifier = "2019/11/27/HotSpot原理指南-C1和C2编译流程/";
+    this.page.title = "HotSpot原理指南-C1和C2编译流程";
+    };
+  NexT.utils.loadComments(document.querySelector('#disqus_thread'), () => {
+    if (window.DISQUS) {
+      DISQUS.reset({
+        reload: true,
+        config: disqus_config
+      });
+    } else {
+      var d = document, s = d.createElement('script');
+      s.src = 'https://blog-lovezhy-cc-1.disqus.com/embed.js';
+      s.setAttribute('data-timestamp', '' + +new Date());
+      (d.head || d.body).appendChild(s);
+    }
+  });
+</script>
+
+</body>
+</html>

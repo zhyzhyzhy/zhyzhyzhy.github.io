@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap:https://blog.lovezhy.cc/sitemap.xml

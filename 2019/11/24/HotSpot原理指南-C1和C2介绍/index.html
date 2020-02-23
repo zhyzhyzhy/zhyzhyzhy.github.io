@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 3.8.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+  <meta name="google-site-verification" content="wE7ISC42t3QOT-S-gdbdy_XsP3NB23Xi3alKNWXd0dA">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="//fonts.googleapis.com/css?family=Operator Mono:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    hostname: new URL('http://zhyzhyzhy.github.io').hostname,
+    root: '/',
+    scheme: 'Gemini',
+    version: '7.7.1',
+    exturl: false,
+    sidebar: {"position":"right","display":"always","padding":18,"offset":12,"onmobile":false},
+    copycode: {"enable":true,"show_result":true,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    comments: {"style":"tabs","active":"disqus","storage":true,"lazyload":false,"nav":null,"activeClass":"disqus"},
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: 'search.xml',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}
+  };
+</script>
+
+  <meta name="description" content="前言HotSpot是一款Java虚拟机的实现，除了基本的解释功能以外，该虚拟机还拥有将字节码编译成机器码的并执行的能力，我们知道，直接执行机器码肯定比解释更快。 HotSpot最初会通过解释的方式执行程序，当它发现某个方法运行得特别频繁时，就会将这些热点（Hot Spot）代码进行编译，编译成平台相关的机器码。这个过程也叫做JIT（Just In Time），与之相对的是AOT（Ahead Of">
+<meta name="keywords" content="HotSpot">
+<meta property="og:type" content="article">
+<meta property="og:title" content="HotSpot原理指南-C1和C2介绍">
+<meta property="og:url" content="http://zhyzhyzhy.github.io/2019/11/24/HotSpot原理指南-C1和C2介绍/index.html">
+<meta property="og:site_name" content="LoveZhy">
+<meta property="og:description" content="前言HotSpot是一款Java虚拟机的实现，除了基本的解释功能以外，该虚拟机还拥有将字节码编译成机器码的并执行的能力，我们知道，直接执行机器码肯定比解释更快。 HotSpot最初会通过解释的方式执行程序，当它发现某个方法运行得特别频繁时，就会将这些热点（Hot Spot）代码进行编译，编译成平台相关的机器码。这个过程也叫做JIT（Just In Time），与之相对的是AOT（Ahead Of">
+<meta property="og:locale" content="zh-cn">
+<meta property="og:image" content="http://zhyzhyzhy.github.io/images/HotSpot原理指南-C1和C2/add.png">
+<meta property="og:updated_time" content="2020-02-23T10:29:40.512Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="HotSpot原理指南-C1和C2介绍">
+<meta name="twitter:description" content="前言HotSpot是一款Java虚拟机的实现，除了基本的解释功能以外，该虚拟机还拥有将字节码编译成机器码的并执行的能力，我们知道，直接执行机器码肯定比解释更快。 HotSpot最初会通过解释的方式执行程序，当它发现某个方法运行得特别频繁时，就会将这些热点（Hot Spot）代码进行编译，编译成平台相关的机器码。这个过程也叫做JIT（Just In Time），与之相对的是AOT（Ahead Of">
+<meta name="twitter:image" content="http://zhyzhyzhy.github.io/images/HotSpot原理指南-C1和C2/add.png">
+
+<link rel="canonical" href="http://zhyzhyzhy.github.io/2019/11/24/HotSpot原理指南-C1和C2介绍/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true
+  };
+</script>
+
+  <title>HotSpot原理指南-C1和C2介绍 | LoveZhy</title>
+  
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-125642214-1"></script>
+    <script>
+      if (CONFIG.hostname === location.hostname) {
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'UA-125642214-1');
+      }
+    </script>
+
+
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?c1f963571cb3d8a4a5dc82346dc65842";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+<link rel="alternate" href="/atom.xml" title="LoveZhy" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">LoveZhy</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+  </div>
+
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-fw fa-user"></i>About</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>Tags</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>Categories</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>Archives</a>
+
+  </li>
+        <li class="menu-item menu-item-sitemap">
+
+    <a href="/sitemap.xml" rel="section"><i class="fa fa-fw fa-sitemap"></i>Sitemap</a>
+
+  </li>
+        <li class="menu-item menu-item-movie">
+
+    <a href="/movies/index.html" rel="section"><i class="fa fa-fw fa-film"></i>movie</a>
+
+  </li>
+        <li class="menu-item menu-item-books">
+
+    <a href="/books/index.html" rel="section"><i class="fa fa-fw fa-book"></i>books</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+
+</nav>
+  <div class="site-search">
+    <div class="popup search-popup">
+    <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocorrect="off" autocapitalize="none" placeholder="Searching..." spellcheck="false" type="text" id="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result"></div>
+
+</div>
+<div class="search-pop-overlay"></div>
+
+  </div>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope="" itemtype="http://schema.org/Article" class="post-block " lang="zh-cn">
+    <link itemprop="mainEntityOfPage" href="http://zhyzhyzhy.github.io/2019/11/24/HotSpot原理指南-C1和C2介绍/">
+
+    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="zhy">
+      <meta itemprop="description" content="敌视现实">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="LoveZhy">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          HotSpot原理指南-C1和C2介绍
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2019-11-24 00:00:00" itemprop="dateCreated datePublished" datetime="2019-11-24T00:00:00+08:00">2019-11-24</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">Edited on</span>
+                <time title="Modified: 2020-02-23 18:29:40" itemprop="dateModified" datetime="2020-02-23T18:29:40+08:00">2020-02-23</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
+                  <a href="/categories/HotSpot/" itemprop="url" rel="index">
+                    <span itemprop="name">HotSpot</span>
+                  </a>
+                </span>
+            </span>
+
+          
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="fa fa-comment-o"></i>
+      </span>
+      <span class="post-meta-item-text">Disqus: </span>
+    
+    <a title="disqus" href="/2019/11/24/HotSpot原理指南-C1和C2介绍/#disqus_thread" itemprop="discussionUrl">
+      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2019/11/24/HotSpot原理指南-C1和C2介绍/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>HotSpot是一款Java虚拟机的实现，除了基本的解释功能以外，该虚拟机还拥有将字节码编译成机器码的并执行的能力，我们知道，直接执行机器码肯定比解释更快。</p>
+<p>HotSpot最初会通过解释的方式执行程序，当它发现某个方法运行得特别频繁时，就会将这些热点（Hot Spot）代码进行编译，编译成平台相关的机器码。这个过程也叫做JIT（Just In Time），与之相对的是AOT（Ahead Of Time），比较典型的是C和C++语言。</p>
+<p>HotSpot进行JIT编译的编译器有两个，分别叫做<strong>C1</strong>和<strong>C2</strong>，或者也可以叫做<strong>Client Compiler</strong>和<strong>Server Compiler</strong>。这两种编译器编译策略不同，运用在不同的场景，下面会详细的说明。</p>
+<a id="more"></a>
+<h2 id="JIT编译"><a href="#JIT编译" class="headerlink" title="JIT编译"></a>JIT编译</h2><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Add</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; <span class="number">200</span>; i++) &#123;</span><br><span class="line">            <span class="keyword">long</span> start = System.nanoTime();</span><br><span class="line">            add();</span><br><span class="line">            <span class="keyword">long</span> end = System.nanoTime();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">int</span> <span class="title">add</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">int</span> sum = <span class="number">0</span>;</span><br><span class="line">        <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; <span class="number">1000</span>; i++) &#123;</span><br><span class="line">            sum += i;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> sum;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>上面这段代码，我们有一个<code>add</code>方法，如果我们对改方法进行时间统计，我们会得到下面的曲线。</p>
+<p>X轴是次数，Y轴是时间的log2。</p>
+<p><img src="/images/HotSpot原理指南-C1和C2/add.png" alt=""></p>
+<p>从这个曲线我们可以看出，在第大概100次的时间，时间消耗会下滑，也就是性能提升了一个档次。</p>
+<p>由此我们可以猜到，前100次的add方法是由解释执行的，在100次后，执行的是由JIT编译器编译过的机器码。所以性能会有较大的提升。</p>
+<h2 id="Profile"><a href="#Profile" class="headerlink" title="Profile"></a>Profile</h2><p>在详细讲述C1和C2之前，我们还有一个内容需要科普，就是方法的Profile信息。</p>
+<p>除了最基本的用于判定某个方法是否是HotSpot的方法调用次数（Invocation Counter）信息外，对于某个方法，还有一些信息是会在运行时进行收集的。</p>
+<p>比如我们看下面这段代码</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">record</span><span class="params">(List&lt;String&gt; list)</span> </span>&#123;</span><br><span class="line">	<span class="keyword">if</span> (list != <span class="keyword">null</span>) &#123;</span><br><span class="line">		list.add(<span class="string">"大骚包卢布"</span>);</span><br><span class="line">  &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">    log.warn(<span class="string">"我不是大骚包"</span>);</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><code>record</code>函数的功能很简单，入参是一个List，如果List不为空，那么就把<code>大骚包卢布</code>这个字符串传递进去。不然的话就打出一个warn级别的日志<code>我不是大骚包</code>。</p>
+<p>那么在调用这个方法的时候，HotSpot还会记录哪些信息呢</p>
+<ul>
+<li>List的真实类。因为List在Java中是一个接口，具体的传入可能是ArrayList或者LinkedList或者其他的。HotSpot需要记录具体的类为了以后的优化。</li>
+<li>Log的真实类，理由和List一样。</li>
+<li>进入if的次数，以及进入else的次数，更通俗的说是条件选择的实际情况。</li>
+</ul>
+<p>有人可能会问统计这些Profile有什么用。</p>
+<p>举个最简单的例子，如果我们需要对<code>list.add</code>做内联，那么我们到底内联那个实现呢，这个就需要我们收集list的真实实现是什么。</p>
+<h2 id="C1和C2"><a href="#C1和C2" class="headerlink" title="C1和C2"></a>C1和C2</h2><table>
+<thead>
+<tr>
+<th></th>
+<th>C1</th>
+<th>C2</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>编译时间</td>
+<td>快</td>
+<td>慢（x4）</td>
+</tr>
+<tr>
+<td>执行时间</td>
+<td>慢</td>
+<td>快（30%）</td>
+</tr>
+<tr>
+<td>输出代码</td>
+<td>多</td>
+<td>少</td>
+</tr>
+</tbody>
+</table>
+<p>上表是C1和C2在编译时间，执行时间，输出代码的区别</p>
+<ul>
+<li>编译时间：同样一段代码，C1需要时间比C2短，也就是需求的CPU资源较少</li>
+<li>执行时间：C1编译时间短，通常意味着优化不如C2，所以C2编译出的机器码执行效率较高</li>
+<li>输出代码：C1编译时间短，最终也就导致输出的机器码占用的内存要比C2多的</li>
+</ul>
+<p>总结：同一段代码，C1消耗的CPU资源较少，但是输出的代码质量不如C2。但是毋庸置疑的事，无论是C1还是C2输出的机器码，执行效率肯定都比解释快的。</p>
+<p>C1又称<strong>Client Compiler</strong>，C2又称<strong>Server Compiler</strong>，不是没有历史渊源的。</p>
+<p>或许我们都听过java在启动的时候可以执行是<code>client</code>模式还是<code>server</code>模式。</p>
+<p>当我们使用client模式时，一般运行的是应用程序，比如java swing，awt之类的图形软件，对于这些桌面软件，作为使用者而言，并不希望哪个桌面应用占用大量的CPU，所以非常适合C1的场景</p>
+<ul>
+<li>编译速度快</li>
+<li>占用CPU资源少</li>
+</ul>
+<p>而对于Server模式而言，一般是公司的服务器上跑的稳定的服务应用，服务器的资源一般较为丰富，同时一个应用并不会像桌面应用一样频繁的开关，一般都要跑几周或者几个月甚至几年。这种应用，当然速度越快越好。所以非常适合C2的场景</p>
+<ul>
+<li>编译消耗更多的CPU资源</li>
+<li>代码质量更高，也就是性能更好</li>
+</ul>
+<h2 id="C1和C2和Profile"><a href="#C1和C2和Profile" class="headerlink" title="C1和C2和Profile"></a>C1和C2和Profile</h2><p>前面提到过的Profile信息，你可能会疑惑这个和C1和C2有什么联系。</p>
+<p>其实我们需要先明白一个概念，就是收集那些Profile不仅仅会占用程序以外的更多的内容，而且会占用很多的CPU消耗。同样一段代码，插入了收集Profile逻辑和没有插入收集Profile逻辑，执行性能是不同的。</p>
+<p>结合我们提到的C1和C2的使用场景的区别，可以得出这样的结论，这个收集Profile的消耗，对于桌面应用而言，是非常<strong>不合适</strong>的。</p>
+<p>但是C2则需要这些Profile去做更好的性能优化。</p>
+<p>所以对于Client模式的应用而言，解释器不会去收集程序的Profile信息，而Server模式在解释器阶段，则会进行Profile的收集，这也就导致了Client模式的起步性能是比Server模式的起步性能要好很多。</p>
+<h2 id="启动模式"><a href="#启动模式" class="headerlink" title="启动模式"></a>启动模式</h2><p>在JDK1.6之前，指定是<code>client</code>还是<code>server</code>模式，我们在java程序启动时直接加参数就行了</p>
+<p><code>java -client Hello</code></p>
+<p><strong>但是</strong></p>
+<p>注意我这个但是</p>
+<p>其实自从JDK6的某个版本开始，你已经控制不了这个参数了</p>
+<p><a href="https://docs.oracle.com/javase/7/docs/technotes/guides/vm/server-class.html" target="_blank" rel="noopener">https://docs.oracle.com/javase/7/docs/technotes/guides/vm/server-class.html</a></p>
+<p>从这个网站可以看到，默认如果你是64位的机器并且至少有2G内存和2核心的CPU，默认都是Server模式了。</p>
+<p><code>-client</code>这个参数会被忽略</p>
+<p>但是也并不是没有办法指定client模式</p>
+<p>不仅仅要在启动参数中加上<code>-client</code></p>
+<p>还需要去修改文件<code>jre/lib/jvm.cfg</code></p>
+<p>比如我的文件中默认是这个状态</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">-server KNOWN</span><br><span class="line">-client IGNORE</span><br><span class="line">-hotspot ERROR</span><br><span class="line">-classic WARN</span><br><span class="line">-native ERROR</span><br><span class="line">-green ERROR</span><br></pre></td></tr></table></figure>
+<p>注意到我的<code>-client</code>后面跟的是<code>IGNORE</code>，所以我指定<code>-client</code>模式其实是不生效的</p>
+<p>我需要改成<code>-client KNOWN</code>才行。</p>
+<p>当然Oracle选择忽略<code>-client</code>模式也不是没有道理的</p>
+<ul>
+<li>Java的桌面应用已经很少了，Swing基本已经死了</li>
+<li>现在大家的笔记本的CPU和内容资源都很充足</li>
+</ul>
+<p>所以全部使用<code>server</code>模式也没问题。</p>
+<h2 id="后续"><a href="#后续" class="headerlink" title="后续"></a>后续</h2><p>当然C1和C2的故事并没有这么简单</p>
+<p>同时JIT编译的策略也不是非C1就是C2，在JDK7中引入了分层编译，结合了C1和C2的优点。</p>
+<p>这些会在后面的文章讲述。</p>
+
+    </div>
+
+    
+    
+    
+        
+
+<div>
+<ul class="post-copyright">
+  <li class="post-copyright-author">
+    <strong>Post author:  </strong>zhy
+  </li>
+  <li class="post-copyright-link">
+    <strong>Post link: </strong>
+    <a href="http://zhyzhyzhy.github.io/2019/11/24/HotSpot原理指南-C1和C2介绍/" title="HotSpot原理指南-C1和C2介绍">http://zhyzhyzhy.github.io/2019/11/24/HotSpot原理指南-C1和C2介绍/</a>
+  </li>
+  <li class="post-copyright-license">
+    <strong>Copyright Notice:  </strong>All articles in this blog are licensed under <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" rel="noopener" target="_blank"><i class="fa fa-fw fa-creative-commons"></i>BY-NC-SA</a> unless stating additionally.
+  </li>
+</ul>
+</div>
+
+        
+
+  <div class="followme">
+    <p>Welcome to my other publishing channels</p>
+
+    <div class="social-list">
+
+            <div class="social-item">
+              <a target="_blank" class="social-link" href="/atom.xml">
+                <span class="icon">
+                  <i class="fa fa-rss"></i>
+                </span>
+
+                <span class="label">RSS</span>
+              </a>
+            </div>
+    </div>
+  </div>
+
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/HotSpot/" rel="tag"># HotSpot</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2019/11/08/给RedisTemplate插入Cat打点/" rel="prev" title="给RedisTemplate插入Cat打点">
+      <i class="fa fa-chevron-left"></i> 给RedisTemplate插入Cat打点
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2019/11/27/HotSpot原理指南-C1和C2编译流程/" rel="next" title="HotSpot原理指南-C1和C2编译流程">
+      HotSpot原理指南-C1和C2编译流程 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+    
+  <div class="comments">
+    <div id="disqus_thread">
+      <noscript>Please enable JavaScript to view the comments powered by Disqus.</noscript>
+    </div>
+  </div>
+  
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let activeClass = CONFIG.comments.activeClass;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#前言"><span class="nav-number">1.</span> <span class="nav-text">前言</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#JIT编译"><span class="nav-number">2.</span> <span class="nav-text">JIT编译</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Profile"><span class="nav-number">3.</span> <span class="nav-text">Profile</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#C1和C2"><span class="nav-number">4.</span> <span class="nav-text">C1和C2</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#C1和C2和Profile"><span class="nav-number">5.</span> <span class="nav-text">C1和C2和Profile</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#启动模式"><span class="nav-number">6.</span> <span class="nav-text">启动模式</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#后续"><span class="nav-number">7.</span> <span class="nav-text">后续</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">zhy</p>
+  <div class="site-description" itemprop="description">敌视现实</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">69</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">24</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">38</span>
+        <span class="site-state-item-name">tags</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/zhyzhyzhy" title="GitHub → https://github.com/zhyzhyzhy" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:zhuyichen1017@outlook.com" title="E-Mail → mailto:zhuyichen1017@outlook.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+  <div class="beian"><a href="http://www.beian.miit.gov.cn" rel="noopener" target="_blank">苏ICP备15058469号 </a>
+  </div>
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">zhy</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> v3.8.0
+  </div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">Theme – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> v7.7.1
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+<script src="/js/utils.js"></script><script src="/js/motion.js"></script>
+<script src="/js/schemes/pisces.js"></script>
+<script src="/js/next-boot.js"></script>
+
+
+
+  
+
+
+
+
+  <script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+<script>
+  function loadCount() {
+    var d = document, s = d.createElement('script');
+    s.src = 'https://blog-lovezhy-cc-1.disqus.com/count.js';
+    s.id = 'dsq-count-scr';
+    (d.head || d.body).appendChild(s);
+  }
+  // defer loading until the whole page loading is completed
+  window.addEventListener('load', loadCount, false);
+</script>
+<script>
+  var disqus_config = function() {
+    this.page.url = "http://zhyzhyzhy.github.io/2019/11/24/HotSpot原理指南-C1和C2介绍/";
+    this.page.identifier = "2019/11/24/HotSpot原理指南-C1和C2介绍/";
+    this.page.title = "HotSpot原理指南-C1和C2介绍";
+    };
+  NexT.utils.loadComments(document.querySelector('#disqus_thread'), () => {
+    if (window.DISQUS) {
+      DISQUS.reset({
+        reload: true,
+        config: disqus_config
+      });
+    } else {
+      var d = document, s = d.createElement('script');
+      s.src = 'https://blog-lovezhy-cc-1.disqus.com/embed.js';
+      s.setAttribute('data-timestamp', '' + +new Date());
+      (d.head || d.body).appendChild(s);
+    }
+  });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 3.8.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+  <meta name="google-site-verification" content="wE7ISC42t3QOT-S-gdbdy_XsP3NB23Xi3alKNWXd0dA">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="//fonts.googleapis.com/css?family=Operator Mono:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    hostname: new URL('http://zhyzhyzhy.github.io').hostname,
+    root: '/',
+    scheme: 'Gemini',
+    version: '7.7.1',
+    exturl: false,
+    sidebar: {"position":"right","display":"always","padding":18,"offset":12,"onmobile":false},
+    copycode: {"enable":true,"show_result":true,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    comments: {"style":"tabs","active":"disqus","storage":true,"lazyload":false,"nav":null,"activeClass":"disqus"},
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: 'search.xml',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}
+  };
+</script>
+
+  <meta name="description" content="前言看任何JVM的书，oop-klass总是绕不去的坎我一直想理解这些，但是就是理解不了，但是也说不出哪里不明白。 这篇文章不会对这个模型做系统的阐述，假设读者已经看过oop-klass模型，但是还是有点一知半解的状态。 oop-klass为什么要这么设计？其实很多书也提到，既然HotSpot完全基于C++去编写，要实现多态完全可以进行C++层面的转换就行。但是C++的多态其实每一个对象都维护了一">
+<meta name="keywords" content="JVM">
+<meta property="og:type" content="article">
+<meta property="og:title" content="oop-klass模型">
+<meta property="og:url" content="http://zhyzhyzhy.github.io/2019/02/16/oop-klass模型/index.html">
+<meta property="og:site_name" content="LoveZhy">
+<meta property="og:description" content="前言看任何JVM的书，oop-klass总是绕不去的坎我一直想理解这些，但是就是理解不了，但是也说不出哪里不明白。 这篇文章不会对这个模型做系统的阐述，假设读者已经看过oop-klass模型，但是还是有点一知半解的状态。 oop-klass为什么要这么设计？其实很多书也提到，既然HotSpot完全基于C++去编写，要实现多态完全可以进行C++层面的转换就行。但是C++的多态其实每一个对象都维护了一">
+<meta property="og:locale" content="zh-cn">
+<meta property="og:image" content="http://zhyzhyzhy.github.io/images/oop-klass/oop1.png">
+<meta property="og:updated_time" content="2019-02-17T05:50:21.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="oop-klass模型">
+<meta name="twitter:description" content="前言看任何JVM的书，oop-klass总是绕不去的坎我一直想理解这些，但是就是理解不了，但是也说不出哪里不明白。 这篇文章不会对这个模型做系统的阐述，假设读者已经看过oop-klass模型，但是还是有点一知半解的状态。 oop-klass为什么要这么设计？其实很多书也提到，既然HotSpot完全基于C++去编写，要实现多态完全可以进行C++层面的转换就行。但是C++的多态其实每一个对象都维护了一">
+<meta name="twitter:image" content="http://zhyzhyzhy.github.io/images/oop-klass/oop1.png">
+
+<link rel="canonical" href="http://zhyzhyzhy.github.io/2019/02/16/oop-klass模型/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true
+  };
+</script>
+
+  <title>oop-klass模型 | LoveZhy</title>
+  
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-125642214-1"></script>
+    <script>
+      if (CONFIG.hostname === location.hostname) {
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'UA-125642214-1');
+      }
+    </script>
+
+
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?c1f963571cb3d8a4a5dc82346dc65842";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+<link rel="alternate" href="/atom.xml" title="LoveZhy" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">LoveZhy</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+  </div>
+
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-fw fa-user"></i>About</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>Tags</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>Categories</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>Archives</a>
+
+  </li>
+        <li class="menu-item menu-item-sitemap">
+
+    <a href="/sitemap.xml" rel="section"><i class="fa fa-fw fa-sitemap"></i>Sitemap</a>
+
+  </li>
+        <li class="menu-item menu-item-movie">
+
+    <a href="/movies/index.html" rel="section"><i class="fa fa-fw fa-film"></i>movie</a>
+
+  </li>
+        <li class="menu-item menu-item-books">
+
+    <a href="/books/index.html" rel="section"><i class="fa fa-fw fa-book"></i>books</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+
+</nav>
+  <div class="site-search">
+    <div class="popup search-popup">
+    <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocorrect="off" autocapitalize="none" placeholder="Searching..." spellcheck="false" type="text" id="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result"></div>
+
+</div>
+<div class="search-pop-overlay"></div>
+
+  </div>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope="" itemtype="http://schema.org/Article" class="post-block " lang="zh-cn">
+    <link itemprop="mainEntityOfPage" href="http://zhyzhyzhy.github.io/2019/02/16/oop-klass模型/">
+
+    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="zhy">
+      <meta itemprop="description" content="敌视现实">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="LoveZhy">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          oop-klass模型
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2019-02-16 00:00:00" itemprop="dateCreated datePublished" datetime="2019-02-16T00:00:00+08:00">2019-02-16</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">Edited on</span>
+                <time title="Modified: 2019-02-17 13:50:21" itemprop="dateModified" datetime="2019-02-17T13:50:21+08:00">2019-02-17</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
+                  <a href="/categories/JVM/" itemprop="url" rel="index">
+                    <span itemprop="name">JVM</span>
+                  </a>
+                </span>
+            </span>
+
+          
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="fa fa-comment-o"></i>
+      </span>
+      <span class="post-meta-item-text">Disqus: </span>
+    
+    <a title="disqus" href="/2019/02/16/oop-klass模型/#disqus_thread" itemprop="discussionUrl">
+      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2019/02/16/oop-klass模型/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>看任何JVM的书，oop-klass总是绕不去的坎<br>我一直想理解这些，但是就是理解不了，但是也说不出哪里不明白。</p>
+<p>这篇文章不会对这个模型做系统的阐述，假设读者已经看过oop-klass模型，但是还是有点一知半解的状态。</p>
+<h2 id="oop-klass"><a href="#oop-klass" class="headerlink" title="oop-klass"></a>oop-klass</h2><p><strong>为什么要这么设计？</strong><br>其实很多书也提到，既然HotSpot完全基于C++去编写，要实现多态完全可以进行C++层面的转换就行。<br>但是C++的多态其实每一个对象都维护了一个VTable，就是虚函数表，函数表可以理解为一个函数指针的数组，这个数组在内存上和一个对象是一起的。<br>但是很多书中提到，为了避免每个对象都有一个VTable，JVM定义了oop-klass模型，其中oop就是保存数据结构的，而klass则担当了一部分VTable的功能，这样的话，<strong>VTable就是每个类只存在一个</strong>。<br>也就是说，对oop而言，它对应的klass是单例的，而Java层面每New一个对象，都会在JVM生成一个oop。</p>
+<p>所以在Java中，类和对象的关系更像是这样:<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Main</span> </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;</span><br><span class="line">        Student student1 = <span class="keyword">new</span> Student(<span class="string">"zhang"</span>, <span class="number">19</span>);</span><br><span class="line">        Student student2 = <span class="keyword">new</span> Student(<span class="string">"wang"</span>, <span class="number">20</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Student</span> </span>&#123;</span><br><span class="line">    <span class="keyword">private</span> String name;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">int</span> age;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">Student</span><span class="params">(String name, <span class="keyword">int</span> age)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">this</span>.name = name;</span><br><span class="line">        <span class="keyword">this</span>.age = age;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p><img src="/images/oop-klass/oop1.png" alt="">  </p>
+<h2 id="动态绑定与VTable"><a href="#动态绑定与VTable" class="headerlink" title="动态绑定与VTable"></a>动态绑定与VTable</h2><p>这里再提一个我对动态绑定的理解。<br>其实动态绑定这个概念，大家都知道大概是个什么意思，但是再详细的说，就理不清很多细节。 </p>
+<p>现在我们都知道动态绑定是和虚表有关，在Java字节码中，需要动态绑定的指令是<code>invokevirtual</code>。<br><a href="https://cs.au.dk/~mis/dOvs/jvmspec/ref--35.html" target="_blank" rel="noopener">https://cs.au.dk/~mis/dOvs/jvmspec/ref–35.html</a><br>这个ref中讲的是，动态绑定需要一个寻找函数的过程</p>
+<blockquote>
+<p>invokevirtual retrieves the Java class for objectref, and searches the list of methods defined by that class and then its superclasses, looking for a method called methodname, whose descriptor is descriptor.</p>
+</blockquote>
+<p>这当然我感觉是一种很扯淡的说法，要是这么来，运行时时间都花在匹配函数上去了。<br>而寻找函数的过程，我理解<strong>完全可以放在编译期去完成</strong>。<br>我更认同是这种方式，就是不需要进行运行时的函数匹配，动态绑定的意思是需要在运行时改变代码段的函数指针，类似于下面文章中提到的<br><a href="https://www.jianshu.com/p/fa50296b301c" target="_blank" rel="noopener">https://www.jianshu.com/p/fa50296b301c</a></p>
+<blockquote>
+<p>编译器内部会发生转换，产生类似下面的代码：<br>( <em>( p-&gt;vptr )[0] ) (p);  //</em>( p-&gt;vptr )[0]是函数入口地址</p>
+</blockquote>
+<p>这段代码的生成，对于C++而言是编译时，对于Java则是ClassLoader的时候，并不是运行时。</p>
+<p>关于动态绑定，还有一些其他模棱两可的说法<br>比如这个文章中<br><a href="https://zhuanlan.zhihu.com/p/24317613" target="_blank" rel="noopener">https://zhuanlan.zhihu.com/p/24317613</a></p>
+<p>它提到在<code>invokevirtual</code>的调用过程，需要去查父类的方法表</p>
+<blockquote>
+<p>(2) 在Father类型的方法表中查找方法f1，如果找到，则将方法f1在方法表中的索引项11(如上图)记录到AutoCall类的常量池中第15个常量表中(常量池解析 )。这里有一点要注意：如果Father类型方法表中没有方法f1，那么即使Son类型中方法表有，编译的时候也通过不了。因为调用方法f1的类的对象father的声明为Father类型。</p>
+</blockquote>
+<p>这我也是觉得是脱裤子放屁的说法，为啥要去查父类的方法表，要知道父类的方法表，是在另外一个Klass对象里，要是继承链比较长，那么需要很多次指针寻址才能找到。</p>
+<p>其实这个和另外一个比较经典的动态绑定的解释很像：</p>
+<blockquote>
+<p>如果子类Son中定义了 method() 的方法，则直接调用子类中的相应方法；如果子类Son中没有定义相应的方法，则到其父类中寻找method()方法。</p>
+</blockquote>
+<p>很多人把这个过程理解为动态绑定，这个的问题也是一样的，它的假设是子类的Klass对象中没有父类的方法指针，所以需要去父类的Klass的VTable中去找。</p>
+<p>但是通过一些文章我们可以看出，其实子类的VTable完全的Copy了一份父类的VTable。<br><a href="https://stackoverflow.com/questions/18082651/how-does-dynamic-binding-happens-in-jvm" target="_blank" rel="noopener">https://stackoverflow.com/questions/18082651/how-does-dynamic-binding-happens-in-jvm</a><br><a href="https://cloud.tencent.com/developer/article/1180981" target="_blank" rel="noopener">https://cloud.tencent.com/developer/article/1180981</a>  </p>
+<p>所以至此，整个动态绑定的过程我们就已经理解，所谓动态绑定，就是比静态绑定多了一个指针寻址，去Klass中找VTable的过程。</p>
+<h2 id="1-7到1-8"><a href="#1-7到1-8" class="headerlink" title="1.7到1.8"></a>1.7到1.8</h2><p>很多书中都提到，oop-klass模型在1.8中改变较大。<br>原因是1.8中去掉了永久代（Perm），而改为了元空间(MetaSpace)。</p>
+<p>我们先看看1.7中的oop-klass的继承链<br><a href="https://github.com/openjdk-mirror/jdk7u-hotspot/blob/master/src/share/vm/oops/oopsHierarchy.hpp" target="_blank" rel="noopener">https://github.com/openjdk-mirror/jdk7u-hotspot/blob/master/src/share/vm/oops/oopsHierarchy.hpp</a>   </p>
+<p>oop继承链<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">typedef <span class="class"><span class="keyword">class</span> <span class="title">oopDesc</span>*                            <span class="title">oop</span></span>;</span><br><span class="line">typedef <span class="class"><span class="keyword">class</span>   <span class="title">instanceOopDesc</span>*            <span class="title">instanceOop</span></span>;</span><br><span class="line">typedef <span class="class"><span class="keyword">class</span>   <span class="title">methodOopDesc</span>*                    <span class="title">methodOop</span></span>;</span><br><span class="line">typedef <span class="class"><span class="keyword">class</span>   <span class="title">constMethodOopDesc</span>*            <span class="title">constMethodOop</span></span>;</span><br><span class="line">typedef <span class="class"><span class="keyword">class</span>   <span class="title">methodDataOopDesc</span>*            <span class="title">methodDataOop</span></span>;</span><br><span class="line">typedef <span class="class"><span class="keyword">class</span>   <span class="title">arrayOopDesc</span>*                    <span class="title">arrayOop</span></span>;</span><br><span class="line">typedef <span class="class"><span class="keyword">class</span>     <span class="title">objArrayOopDesc</span>*            <span class="title">objArrayOop</span></span>;</span><br><span class="line">typedef <span class="class"><span class="keyword">class</span>     <span class="title">typeArrayOopDesc</span>*            <span class="title">typeArrayOop</span></span>;</span><br><span class="line">typedef <span class="class"><span class="keyword">class</span>   <span class="title">constantPoolOopDesc</span>*            <span class="title">constantPoolOop</span></span>;</span><br><span class="line">typedef <span class="class"><span class="keyword">class</span>   <span class="title">constantPoolCacheOopDesc</span>*   <span class="title">constantPoolCacheOop</span></span>;</span><br><span class="line">typedef <span class="class"><span class="keyword">class</span>   <span class="title">klassOopDesc</span>*                    <span class="title">klassOop</span></span>;</span><br><span class="line">typedef <span class="class"><span class="keyword">class</span>   <span class="title">markOopDesc</span>*                    <span class="title">markOop</span></span>;</span><br><span class="line">typedef <span class="class"><span class="keyword">class</span>   <span class="title">compiledICHolderOopDesc</span>*    <span class="title">compiledICHolderOop</span></span>;</span><br></pre></td></tr></table></figure></p>
+<p>klass继承链<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Klass</span></span>;</span><br><span class="line"><span class="class"><span class="keyword">class</span>   <span class="title">instanceKlass</span></span>;</span><br><span class="line"><span class="class"><span class="keyword">class</span>     <span class="title">instanceMirrorKlass</span></span>;</span><br><span class="line"><span class="class"><span class="keyword">class</span>     <span class="title">instanceRefKlass</span></span>;</span><br><span class="line"><span class="class"><span class="keyword">class</span>   <span class="title">methodKlass</span></span>;</span><br><span class="line"><span class="class"><span class="keyword">class</span>   <span class="title">constMethodKlass</span></span>;</span><br><span class="line"><span class="class"><span class="keyword">class</span>   <span class="title">methodDataKlass</span></span>;</span><br><span class="line"><span class="class"><span class="keyword">class</span>   <span class="title">klassKlass</span></span>;</span><br><span class="line"><span class="class"><span class="keyword">class</span>     <span class="title">instanceKlassKlass</span></span>;</span><br><span class="line"><span class="class"><span class="keyword">class</span>     <span class="title">arrayKlassKlass</span></span>;</span><br><span class="line"><span class="class"><span class="keyword">class</span>       <span class="title">objArrayKlassKlass</span></span>;</span><br><span class="line"><span class="class"><span class="keyword">class</span>       <span class="title">typeArrayKlassKlass</span></span>;</span><br><span class="line"><span class="class"><span class="keyword">class</span>   <span class="title">arrayKlass</span></span>;</span><br><span class="line"><span class="class"><span class="keyword">class</span>     <span class="title">objArrayKlass</span></span>;</span><br><span class="line"><span class="class"><span class="keyword">class</span>     <span class="title">typeArrayKlass</span></span>;</span><br><span class="line"><span class="class"><span class="keyword">class</span>   <span class="title">constantPoolKlass</span></span>;</span><br><span class="line"><span class="class"><span class="keyword">class</span>   <span class="title">constantPoolCacheKlass</span></span>;</span><br><span class="line"><span class="class"><span class="keyword">class</span>   <span class="title">compiledICHolderKlass</span></span>;</span><br></pre></td></tr></table></figure></p>
+<p>可以说是非常多</p>
+<p>但是到了1.8中，就变的很少<br>oop继承链<br><figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">class</span> <span class="title">oopDesc</span>*                            <span class="title">oop</span>;</span></span><br><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">class</span>   <span class="title">instanceOopDesc</span>*            <span class="title">instanceOop</span>;</span></span><br><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">class</span>   <span class="title">arrayOopDesc</span>*                    <span class="title">arrayOop</span>;</span></span><br><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">class</span>     <span class="title">objArrayOopDesc</span>*            <span class="title">objArrayOop</span>;</span></span><br><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">class</span>     <span class="title">typeArrayOopDesc</span>*            <span class="title">typeArrayOop</span>;</span></span><br></pre></td></tr></table></figure></p>
+<p>klass继承链<br><figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Klass</span>;</span></span><br><span class="line"><span class="class"><span class="keyword">class</span>   <span class="title">InstanceKlass</span>;</span></span><br><span class="line"><span class="class"><span class="keyword">class</span>     <span class="title">InstanceMirrorKlass</span>;</span></span><br><span class="line"><span class="class"><span class="keyword">class</span>     <span class="title">InstanceClassLoaderKlass</span>;</span></span><br><span class="line"><span class="class"><span class="keyword">class</span>     <span class="title">InstanceRefKlass</span>;</span></span><br><span class="line"><span class="class"><span class="keyword">class</span>   <span class="title">ArrayKlass</span>;</span></span><br><span class="line"><span class="class"><span class="keyword">class</span>     <span class="title">ObjArrayKlass</span>;</span></span><br><span class="line"><span class="class"><span class="keyword">class</span>     <span class="title">TypeArrayKlass</span>;</span></span><br></pre></td></tr></table></figure></p>
+<p>而少掉的那部分，其实只是换了个名字，叫做Metadata<br><figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//      class MetaspaceObj</span></span><br><span class="line"><span class="class"><span class="keyword">class</span>   <span class="title">ConstMethod</span>;</span></span><br><span class="line"><span class="class"><span class="keyword">class</span>   <span class="title">ConstantPoolCache</span>;</span></span><br><span class="line"><span class="class"><span class="keyword">class</span>   <span class="title">MethodData</span>;</span></span><br><span class="line"><span class="comment">//      class Metadata</span></span><br><span class="line"><span class="class"><span class="keyword">class</span>   <span class="title">Method</span>;</span></span><br><span class="line"><span class="class"><span class="keyword">class</span>   <span class="title">ConstantPool</span>;</span></span><br><span class="line"><span class="comment">//      class CHeapObj</span></span><br><span class="line"><span class="class"><span class="keyword">class</span>   <span class="title">CompiledICHolder</span>;</span></span><br></pre></td></tr></table></figure></p>
+<p>可能你已经猜到了，Metadata的这部分，已经全部转移到了元空间。</p>
+<p>以下是 JDK 1.7 中的类在 JDK 1.8 中的存在形式：</p>
+<ul>
+<li>klassOop -&gt; Klass*</li>
+<li>klassKlass 不再需要</li>
+<li>methodOop -&gt; Method*</li>
+<li>methodDataOop -&gt; MethodData*</li>
+<li>constMethodOop -&gt; ConstMethod*</li>
+<li>constantPoolOop -&gt; ConstantPool*</li>
+<li>constantPoolCacheOop -&gt; ConstantPoolCache*</li>
+</ul>
+<p>Klass少掉的部分，还可以理解，但是为啥oop会少了这么多。</p>
+<p>这里就牵扯到永久代和元空间的区别了。</p>
+<p>首先的问题是，为什么撤销永久代而换成元空间<br>我找到了当初的JEP<br><a href="http://openjdk.java.net/jeps/122?spm=a2c4e.11153940.blogcont20279.13.13fd33dbw7ltIv" target="_blank" rel="noopener">http://openjdk.java.net/jeps/122?spm=a2c4e.11153940.blogcont20279.13.13fd33dbw7ltIv</a></p>
+<blockquote>
+<p>永久代的调优非常难，永久代的大小很难确定，其中涉及到太多因素，如类的总数、常量池大小和方法数量等，而且永久代的数据可能会随着每一次Full GC而发生移动。</p>
+</blockquote>
+<p>这里就要提到元空间的特点</p>
+<blockquote>
+<p>Symbols were moved to the native heap<br>Interned strings were moved to the Java Heap<br>Class statics were moved to the Java Heap</p>
+</blockquote>
+<ul>
+<li>永久代属于堆，有大小限制。元空间使用堆外内存，理论上无内存限制</li>
+<li>JDK7之前的HotSpot，字符串常量池的字符串被存储在永久代中，因此可能导致一系列的性能问题和内存溢出错误。在JDK8中，字符串常量池中只保存字符串的引用。</li>
+</ul>
+<p>而如果你去看JDK1.7的oopDesc的定义，你会发现一个奇怪的事<br><figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">oopDesc</span> &#123;</span></span><br><span class="line">  <span class="keyword">friend</span> <span class="class"><span class="keyword">class</span> <span class="title">VMStructs</span>;</span></span><br><span class="line"> <span class="keyword">private</span>:</span><br><span class="line">  <span class="keyword">volatile</span> markOop  _mark;</span><br><span class="line">  <span class="keyword">union</span> _metadata &#123;</span><br><span class="line">    wideKlassOop    _klass;</span><br><span class="line">    narrowOop       _compressed_klass;</span><br><span class="line">  &#125; _metadata;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>这里的Klass，为什么是Oop对象？</p>
+<p>这里引用R大的解释<br><a href="https://rednaxelafx.iteye.com/blog/858009" target="_blank" rel="noopener">https://rednaxelafx.iteye.com/blog/858009</a></p>
+<blockquote>
+<p>因为HotSpot 1.7之前，包括Class在内的元数据对象都需要被GC管理，因此这四列的对象其实都是oopDesc类型，只不过第一列是描述实例的instanceOopDes, 第二三四列为klassOopDesc；这个klassOopDesc可以看作是klass的一个wrapper，仅仅为了被gc更容易滴管理和表示，它的内部有一个klass成员来表达klass的信息。<br>所以第二列的 klassOopDesc 内部的klass 乃Integer类的klass，第三列的klass为 klassOopDesc这个对象的klass——instanceKlassKlass，那第三列这个类的klass是什么呢？由于描述instanceKlassKlass，methodKlassKlass，xxxxKlassKlass等一大票KlassKlass需要的元数据实际上是相同的，他们就是第四列的KlassKlass，第四列的KlassKlass的klass可以用它自己来描述，于是就圆满了。</p>
+</blockquote>
+<p>简单说就是为了偷懒，用Oop包裹一层，让GC一同管理了。<br>到了元方法区，已经不属于堆了，自然不需要这个了，自然可以去掉。</p>
+<p>所以到了1.8，就变成了正常的状态<br><figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">oopDesc</span> &#123;</span></span><br><span class="line">  <span class="keyword">volatile</span> markOop _mark;</span><br><span class="line">  <span class="keyword">union</span> _metadata &#123;</span><br><span class="line">    Klass*      _klass;</span><br><span class="line">    narrowKlass _compressed_klass;</span><br><span class="line">  &#125; _metadata;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h2 id="MarkOop"><a href="#MarkOop" class="headerlink" title="MarkOop"></a>MarkOop</h2><p>还有一些细节，我还是比较困惑的。<br>比如这个MarkOop的定义<br><figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">markOopDesc</span>:</span> <span class="keyword">public</span> oopDesc &#123;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>它是继承于oopDesc的<br>但是在oopDesc的定义中<br><figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">oopDesc</span> &#123;</span></span><br><span class="line">  <span class="keyword">volatile</span> markOop _mark;</span><br><span class="line">  <span class="keyword">union</span> _metadata &#123;</span><br><span class="line">    Klass*      _klass;</span><br><span class="line">    narrowKlass _compressed_klass;</span><br><span class="line">  &#125; _metadata;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>又用到了markOop</p>
+<p>好吧，这个是一件比较奇怪的是。</p>
+<p>上面R大提到，继承与oopDesc的都是被GC管理的，<br>但是这里有个奇怪的点</p>
+<p>MarkOop存在于OopDesc中，讲道理应该是个对象才是，但是它的作用却只是作为对象头。<br>在Java层面没有与之对应的东西。<br>更没有道理要被GC管理着啊</p>
+<p>我翻阅文档的注释<br>发现了这么一句话<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//</span></span><br><span class="line"><span class="comment">// Note that the mark is not a real oop but just a word.</span></span><br><span class="line"><span class="comment">// It is placed in the oop hierarchy for historical reasons.</span></span><br><span class="line"><span class="comment">//</span></span><br></pre></td></tr></table></figure></p>
+<p>既然官方解释是<strong>历史原因</strong>，那就不追究这个问题了。</p>
+<h2 id="JIT热点探测"><a href="#JIT热点探测" class="headerlink" title="JIT热点探测"></a>JIT热点探测</h2><p>这个算是一个小发现<br>我们查看oop的体系，发现Method也有对应的oop<br>在method的oop中，有个变量叫MethodCounters<br><figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">MethodCounters</span> :</span> <span class="keyword">public</span> Metadata &#123;</span><br><span class="line"> <span class="keyword">friend</span> <span class="class"><span class="keyword">class</span> <span class="title">VMStructs</span>;</span></span><br><span class="line"> <span class="keyword">friend</span> <span class="class"><span class="keyword">class</span> <span class="title">JVMCIVMStructs</span>;</span></span><br><span class="line"> <span class="keyword">private</span>:</span><br><span class="line"><span class="meta">#<span class="meta-keyword">if</span> INCLUDE_AOT</span></span><br><span class="line">  Method*           _method;                     <span class="comment">// Back link to Method</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">if</span> defined(COMPILER2) || INCLUDE_JVMCI</span></span><br><span class="line">  <span class="keyword">int</span>               _interpreter_invocation_count; <span class="comment">// Count of times invoked (reused as prev_event_count in tiered)</span></span><br><span class="line">  u2                _interpreter_throwout_count; <span class="comment">// Count of times method was exited via exception while interpreting</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">if</span> INCLUDE_JVMTI</span></span><br><span class="line">  u2                _number_of_breakpoints;      <span class="comment">// fullspeed debugging support</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></span><br><span class="line">  InvocationCounter _invocation_counter;         <span class="comment">// Incremented before each activation of the method - used to trigger frequency-based optimizations</span></span><br><span class="line">  InvocationCounter _backedge_counter;           <span class="comment">// Incremented before each backedge taken - used to trigger frequencey-based optimizations</span></span><br></pre></td></tr></table></figure></p>
+<p>这个类维护了几个关于方法调用次数的计数器，和JIT的热点探测有关</p>
+<p>具体的细节可以查看<br><a href="https://www.jianshu.com/p/1ea9b3d1abb9" target="_blank" rel="noopener">https://www.jianshu.com/p/1ea9b3d1abb9</a> </p>
+<p><a href="http://mail.openjdk.java.net/pipermail/hotspot-compiler-dev/2011-June/005750.html" target="_blank" rel="noopener">http://mail.openjdk.java.net/pipermail/hotspot-compiler-dev/2011-June/005750.html</a></p>
+<h2 id="HSDB"><a href="#HSDB" class="headerlink" title="HSDB"></a>HSDB</h2><p>这个工具，可以用来查看运行时的oop和klass数据<br>简单的使用，网上可以随便百度到，这里介绍下怎么查看虚表<br><a href="https://cloud.tencent.com/developer/article/1180981" target="_blank" rel="noopener">https://cloud.tencent.com/developer/article/1180981</a>  </p>
+<h2 id="参考文档"><a href="#参考文档" class="headerlink" title="参考文档"></a>参考文档</h2><ul>
+<li><a href="https://www.sczyh30.com/posts/Java/jvm-klass-oop/" target="_blank" rel="noopener">https://www.sczyh30.com/posts/Java/jvm-klass-oop/</a></li>
+<li><a href="https://book.douban.com/subject/25847620/" target="_blank" rel="noopener">《HotSpot实战》</a></li>
+<li><a href="https://book.douban.com/subject/27086821/" target="_blank" rel="noopener">《揭秘Java虚拟机》</a></li>
+<li><a href="https://www.cnblogs.com/paddix/p/5309550.html" target="_blank" rel="noopener">https://www.cnblogs.com/paddix/p/5309550.html</a></li>
+<li><a href="https://www.slideshare.net/cafusic/jvm20101228?from_action=save" target="_blank" rel="noopener">R大的JVM分享，强烈推荐</a></li>
+<li><a href="https://blogs.oracle.com/poonam/about-g1-garbage-collector,-permanent-generation-and-metaspace" target="_blank" rel="noopener">oracle文档中对元空间的解释</a></li>
+</ul>
+
+    </div>
+
+    
+    
+    
+        
+
+<div>
+<ul class="post-copyright">
+  <li class="post-copyright-author">
+    <strong>Post author:  </strong>zhy
+  </li>
+  <li class="post-copyright-link">
+    <strong>Post link: </strong>
+    <a href="http://zhyzhyzhy.github.io/2019/02/16/oop-klass模型/" title="oop-klass模型">http://zhyzhyzhy.github.io/2019/02/16/oop-klass模型/</a>
+  </li>
+  <li class="post-copyright-license">
+    <strong>Copyright Notice:  </strong>All articles in this blog are licensed under <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" rel="noopener" target="_blank"><i class="fa fa-fw fa-creative-commons"></i>BY-NC-SA</a> unless stating additionally.
+  </li>
+</ul>
+</div>
+
+        
+
+  <div class="followme">
+    <p>Welcome to my other publishing channels</p>
+
+    <div class="social-list">
+
+            <div class="social-item">
+              <a target="_blank" class="social-link" href="/atom.xml">
+                <span class="icon">
+                  <i class="fa fa-rss"></i>
+                </span>
+
+                <span class="label">RSS</span>
+              </a>
+            </div>
+    </div>
+  </div>
+
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/JVM/" rel="tag"># JVM</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2019/01/05/十万嬉皮/" rel="prev" title="十万嬉皮">
+      <i class="fa fa-chevron-left"></i> 十万嬉皮
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2019/02/18/H2database的MVStore解析/" rel="next" title="h2database的MVStore解析">
+      h2database的MVStore解析 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+    
+  <div class="comments">
+    <div id="disqus_thread">
+      <noscript>Please enable JavaScript to view the comments powered by Disqus.</noscript>
+    </div>
+  </div>
+  
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let activeClass = CONFIG.comments.activeClass;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#前言"><span class="nav-number">1.</span> <span class="nav-text">前言</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#oop-klass"><span class="nav-number">2.</span> <span class="nav-text">oop-klass</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#动态绑定与VTable"><span class="nav-number">3.</span> <span class="nav-text">动态绑定与VTable</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#1-7到1-8"><span class="nav-number">4.</span> <span class="nav-text">1.7到1.8</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#MarkOop"><span class="nav-number">5.</span> <span class="nav-text">MarkOop</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#JIT热点探测"><span class="nav-number">6.</span> <span class="nav-text">JIT热点探测</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#HSDB"><span class="nav-number">7.</span> <span class="nav-text">HSDB</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#参考文档"><span class="nav-number">8.</span> <span class="nav-text">参考文档</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">zhy</p>
+  <div class="site-description" itemprop="description">敌视现实</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">69</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">24</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">38</span>
+        <span class="site-state-item-name">tags</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/zhyzhyzhy" title="GitHub → https://github.com/zhyzhyzhy" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:zhuyichen1017@outlook.com" title="E-Mail → mailto:zhuyichen1017@outlook.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+  <div class="beian"><a href="http://www.beian.miit.gov.cn" rel="noopener" target="_blank">苏ICP备15058469号 </a>
+  </div>
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">zhy</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> v3.8.0
+  </div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">Theme – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> v7.7.1
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+<script src="/js/utils.js"></script><script src="/js/motion.js"></script>
+<script src="/js/schemes/pisces.js"></script>
+<script src="/js/next-boot.js"></script>
+
+
+
+  
+
+
+
+
+  <script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+<script>
+  function loadCount() {
+    var d = document, s = d.createElement('script');
+    s.src = 'https://blog-lovezhy-cc-1.disqus.com/count.js';
+    s.id = 'dsq-count-scr';
+    (d.head || d.body).appendChild(s);
+  }
+  // defer loading until the whole page loading is completed
+  window.addEventListener('load', loadCount, false);
+</script>
+<script>
+  var disqus_config = function() {
+    this.page.url = "http://zhyzhyzhy.github.io/2019/02/16/oop-klass模型/";
+    this.page.identifier = "2019/02/16/oop-klass模型/";
+    this.page.title = "oop-klass模型";
+    };
+  NexT.utils.loadComments(document.querySelector('#disqus_thread'), () => {
+    if (window.DISQUS) {
+      DISQUS.reset({
+        reload: true,
+        config: disqus_config
+      });
+    } else {
+      var d = document, s = d.createElement('script');
+      s.src = 'https://blog-lovezhy-cc-1.disqus.com/embed.js';
+      s.setAttribute('data-timestamp', '' + +new Date());
+      (d.head || d.body).appendChild(s);
+    }
+  });
+</script>
+
+</body>
+</html>

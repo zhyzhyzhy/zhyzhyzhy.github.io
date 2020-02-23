@@ -1,0 +1,57 @@
+title 服务注册
+
+note over ServiceBean:构造出ServerConfig，设置一些默认的属性，ip之类还是为空\n\n构造出ProviderConfig，设置url，bean和ServerConfig
+
+ServiceBean->ServiceFactory:ServiceFactory.addServices(providerConfig);
+
+ServiceFactory->ProviderBootStrap:ProviderBootStrap.init();
+
+note over ProviderBootStrap:Map<String, Server> serversMap\n\n把NettyServer和JettyServer放了进去
+
+ServiceFactory->DefaultPublishPolicy:DefaultPublishPolicy.doAddService(providerConfig)
+
+DefaultPublishPolicy->AbstractPublishPolicy:AbstractPublishPolicy.doAddService(providerConfig)
+
+note over ServicePublisher:ConcurrentHashMap<String, ProviderConfig<?>> serviceCache
+
+AbstractPublishPolicy->ServicePublisher:ServicePublisher.addService(providerConfig);
+
+note over ServicePublisher:serviceCache.put(url, providerConfig);
+
+ServicePublisher->ServiceMethodFactory:ServiceMethodFactory.init(url);
+
+note over ServiceMethodFactory:Map<String, ServiceMethodCache> methods\n\nnew ServiceMethodCache(url, service)\n\nmethods.put(url, serviceMethodCache);
+
+AbstractPublishPolicy->ProviderBootStrap:ProviderBootStrap.startup(providerConfig)
+
+ProviderBootStrap->NettyServer:NettyServer.start(serverConfig);NettyServer.addService(providerConfig);
+
+NettyServer->AbstractServer:AbstractServer.start(ServerConfig);
+
+AbstractServer->NettyServer:NettyServer.doStart(ServerConfig)
+
+note over NettyServer:启动netty的ServerBootstrap进行bind
+
+ProviderBootStrap->NettyServer:NettyServer.addService(providerConfig);
+
+
+ProviderBootStrap-->AbstractPublishPolicy:ServerConfig serverConfig
+
+note over AbstractPublishPolicy:providerConfig.setServerConfig(serverConfig);
+
+AbstractPublishPolicy->ServicePublisher:ServicePublisher.publishService(providerConfig, false);
+
+ServicePublisher->RegistryManager:RegistryManager.registerService
+
+RegistryManager->CuratorRegistry:CuratorRegistry.registerService
+note over CuratorRegistry:调用zookeeper创建节点
+
+
+
+
+
+
+
+
+
+

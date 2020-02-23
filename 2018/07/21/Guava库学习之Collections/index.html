@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 3.8.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+  <meta name="google-site-verification" content="wE7ISC42t3QOT-S-gdbdy_XsP3NB23Xi3alKNWXd0dA">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="//fonts.googleapis.com/css?family=Operator Mono:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    hostname: new URL('http://zhyzhyzhy.github.io').hostname,
+    root: '/',
+    scheme: 'Gemini',
+    version: '7.7.1',
+    exturl: false,
+    sidebar: {"position":"right","display":"always","padding":18,"offset":12,"onmobile":false},
+    copycode: {"enable":true,"show_result":true,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    comments: {"style":"tabs","active":"disqus","storage":true,"lazyload":false,"nav":null,"activeClass":"disqus"},
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: 'search.xml',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}
+  };
+</script>
+
+  <meta name="description" content="前言Collections应该是最最常用的了 MultiMapMultiMap是一个接口，形象的用JDK中的形式解释就是Map&amp;lt;K, Collection&amp;lt;V&amp;gt;&amp;gt; MultiMap有很多的实现类">
+<meta name="keywords" content="Guava">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Guava库学习之Collections">
+<meta property="og:url" content="http://zhyzhyzhy.github.io/2018/07/21/Guava库学习之Collections/index.html">
+<meta property="og:site_name" content="LoveZhy">
+<meta property="og:description" content="前言Collections应该是最最常用的了 MultiMapMultiMap是一个接口，形象的用JDK中的形式解释就是Map&amp;lt;K, Collection&amp;lt;V&amp;gt;&amp;gt; MultiMap有很多的实现类">
+<meta property="og:locale" content="zh-cn">
+<meta property="og:updated_time" content="2018-09-13T15:09:31.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Guava库学习之Collections">
+<meta name="twitter:description" content="前言Collections应该是最最常用的了 MultiMapMultiMap是一个接口，形象的用JDK中的形式解释就是Map&amp;lt;K, Collection&amp;lt;V&amp;gt;&amp;gt; MultiMap有很多的实现类">
+
+<link rel="canonical" href="http://zhyzhyzhy.github.io/2018/07/21/Guava库学习之Collections/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true
+  };
+</script>
+
+  <title>Guava库学习之Collections | LoveZhy</title>
+  
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-125642214-1"></script>
+    <script>
+      if (CONFIG.hostname === location.hostname) {
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'UA-125642214-1');
+      }
+    </script>
+
+
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?c1f963571cb3d8a4a5dc82346dc65842";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+<link rel="alternate" href="/atom.xml" title="LoveZhy" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">LoveZhy</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+  </div>
+
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-fw fa-user"></i>About</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>Tags</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>Categories</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>Archives</a>
+
+  </li>
+        <li class="menu-item menu-item-sitemap">
+
+    <a href="/sitemap.xml" rel="section"><i class="fa fa-fw fa-sitemap"></i>Sitemap</a>
+
+  </li>
+        <li class="menu-item menu-item-movie">
+
+    <a href="/movies/index.html" rel="section"><i class="fa fa-fw fa-film"></i>movie</a>
+
+  </li>
+        <li class="menu-item menu-item-books">
+
+    <a href="/books/index.html" rel="section"><i class="fa fa-fw fa-book"></i>books</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+
+</nav>
+  <div class="site-search">
+    <div class="popup search-popup">
+    <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocorrect="off" autocapitalize="none" placeholder="Searching..." spellcheck="false" type="text" id="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result"></div>
+
+</div>
+<div class="search-pop-overlay"></div>
+
+  </div>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope="" itemtype="http://schema.org/Article" class="post-block " lang="zh-cn">
+    <link itemprop="mainEntityOfPage" href="http://zhyzhyzhy.github.io/2018/07/21/Guava库学习之Collections/">
+
+    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="zhy">
+      <meta itemprop="description" content="敌视现实">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="LoveZhy">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Guava库学习之Collections
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2018-07-21 15:57:01" itemprop="dateCreated datePublished" datetime="2018-07-21T15:57:01+08:00">2018-07-21</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">Edited on</span>
+                <time title="Modified: 2018-09-13 23:09:31" itemprop="dateModified" datetime="2018-09-13T23:09:31+08:00">2018-09-13</time>
+              </span>
+
+          
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="fa fa-comment-o"></i>
+      </span>
+      <span class="post-meta-item-text">Disqus: </span>
+    
+    <a title="disqus" href="/2018/07/21/Guava库学习之Collections/#disqus_thread" itemprop="discussionUrl">
+      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2018/07/21/Guava库学习之Collections/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p><code>Collections</code>应该是最最常用的了</p>
+<h2 id="MultiMap"><a href="#MultiMap" class="headerlink" title="MultiMap"></a>MultiMap</h2><p><code>MultiMap</code>是一个接口，形象的用JDK中的形式解释就是<code>Map&lt;K, Collection&lt;V&gt;&gt;</code></p>
+<p><code>MultiMap</code>有很多的实现类  </p>
+<a id="more"></a>
+<h3 id="HashMultiMap"><a href="#HashMultiMap" class="headerlink" title="HashMultiMap"></a>HashMultiMap</h3><p>需要注意的是，<code>HashMultimap</code>每个<code>key</code>对应的<code>value</code>的集合是一个Set<br>所以下面这个输出是</p>
+<blockquote>
+<p>{World=[2], Hello=[1, 3]}</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">Multimap&lt;String, Integer&gt; multimap = HashMultimap.create();</span><br><span class="line">multimap.put(<span class="string">"Hello"</span>, <span class="number">1</span>);</span><br><span class="line">multimap.put(<span class="string">"World"</span>, <span class="number">2</span>);</span><br><span class="line">multimap.put(<span class="string">"Hello"</span>, <span class="number">3</span>);</span><br><span class="line">multimap.put(<span class="string">"Hello"</span>, <span class="number">3</span>);</span><br><span class="line">System.out.println(multimap);</span><br></pre></td></tr></table></figure>
+<h3 id="LinkedListMultimap"><a href="#LinkedListMultimap" class="headerlink" title="LinkedListMultimap"></a>LinkedListMultimap</h3><p>上面的<code>value</code>是个<code>Set</code>集合，但是如果我们需要是个<code>List</code>集合呢<br>就可以使用<code>LinkedListMultimap</code>这个方法<br>输出</p>
+<blockquote>
+<p>{Hello=[1, 3, 3], World=[2]}</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">Multimap&lt;String, Integer&gt; multimap = LinkedListMultimap.create();</span><br><span class="line">multimap.put(<span class="string">"Hello"</span>, <span class="number">1</span>);</span><br><span class="line">multimap.put(<span class="string">"World"</span>, <span class="number">2</span>);</span><br><span class="line">multimap.put(<span class="string">"Hello"</span>, <span class="number">3</span>);</span><br><span class="line">multimap.put(<span class="string">"Hello"</span>, <span class="number">3</span>);</span><br><span class="line">System.out.println(multimap);</span><br></pre></td></tr></table></figure>
+<h3 id="TreeMultimap"><a href="#TreeMultimap" class="headerlink" title="TreeMultimap"></a>TreeMultimap</h3><p>和<code>HashMultiMap</code>一样，也是<code>value</code>存的是个<code>Set</code>集合，只是这个使用的是红黑树为底层节点。</p>
+<h2 id="MultiSet"><a href="#MultiSet" class="headerlink" title="MultiSet"></a>MultiSet</h2><p>这个接口的作用大概和<code>Apache Common</code>的<code>Bag</code>的概念类似。<br>虽然名字里带<code>Set</code>，但是其实没有实现Set接口。<br>比如<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">Multiset&lt;String&gt; multiset = LinkedHashMultiset.create();</span><br><span class="line">multiset.add(<span class="string">"1"</span>);</span><br><span class="line">multiset.add(<span class="string">"1"</span>);</span><br><span class="line">multiset.add(<span class="string">"1"</span>);</span><br><span class="line">multiset.add(<span class="string">"2"</span>);</span><br><span class="line">multiset.add(<span class="string">"2"</span>);</span><br><span class="line">multiset.add(<span class="string">"3"</span>);</span><br><span class="line">System.out.println(multiset.count(<span class="string">"1"</span>)); <span class="comment">// 3</span></span><br><span class="line">System.out.println(multiset.elementSet()); <span class="comment">// 1 2 3</span></span><br></pre></td></tr></table></figure></p>
+<p>理解为<code>Bag</code>，我们往包里放了3个1，2个2，1个3。<br>调用<code>Count</code>我们可以得到里面究竟有多少1。</p>
+<p><code>MultiSet</code>的主要实现有三个类</p>
+<ul>
+<li><code>HashMultiSet</code> 底层使用<code>HashMap</code></li>
+<li><code>LinkedHashMultiSet</code> 底层使用<code>LinkedHashMap</code>，就是元素顺序就依次添加进去的</li>
+<li><code>TreeMultiSet</code> 底层使用的<code>TreeMap</code> </li>
+</ul>
+<h2 id="BiMap"><a href="#BiMap" class="headerlink" title="BiMap"></a>BiMap</h2><p>正常我们维护一个<code>K,V</code>的关系是选用一个<code>Map</code>，但是如果我们不仅仅需要K,V 还需要一个V,K的关系呢 也就是正向是个Map，全部反过来也是个Map。<br>很多人会New两个Map，然后正着放一遍，反着再放一遍<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">Map&lt;String, Integer&gt; nameToId = Maps.newHashMap();</span><br><span class="line">Map&lt;Integer, String&gt; idToName = Maps.newHashMap();</span><br><span class="line"></span><br><span class="line">nameToId.put(<span class="string">"Bob"</span>, <span class="number">42</span>);</span><br><span class="line">idToName.put(<span class="number">42</span>, <span class="string">"Bob"</span>);</span><br></pre></td></tr></table></figure></p>
+<p>但是这样会有问题，因为<code>Map</code>中的<code>value</code>并不保证是个<code>Set</code>集合。</p>
+<p><code>Guava</code>提供了<code>BiMap</code>接口，使得我们不需要创建两个<code>Map</code>，而且也保证<code>Value</code>是个<code>Set</code>集合。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">BiMap&lt;String, Integer&gt; biMap = HashBiMap.create();</span><br><span class="line">biMap.put(<span class="string">"Hello"</span>, <span class="number">2</span>);</span><br><span class="line">biMap.put(<span class="string">"World"</span>, <span class="number">3</span>);</span><br><span class="line">biMap.put(<span class="string">"Java"</span>, <span class="number">4</span>);</span><br><span class="line">System.out.println(biMap);</span><br><span class="line"></span><br><span class="line">BiMap&lt;Integer, String&gt; inverse = biMap.inverse();</span><br><span class="line">System.out.println(inverse);</span><br></pre></td></tr></table></figure></p>
+<p>如果我们需要反过来的<code>Map</code>，只需要调用<code>inverse</code>方法就行。</p>
+<h2 id="Immutable-Collections"><a href="#Immutable-Collections" class="headerlink" title="Immutable Collections"></a>Immutable Collections</h2><p>在原生的<code>JDK</code>中，似乎并没有想严格的区分可变集合和不可变集合。<br>但是如果你阅读过<code>Effective Java</code>的话，里面在<strong>第十五条</strong>有提到不可变的对象的好处</p>
+<ul>
+<li>不可变的类比可变类更加易于设计、实现和使用</li>
+<li>不可变对象本质上是线程安全的，它们不要求同步<ul>
+<li>首先作为Map的key等这种场景，肯定是适用的</li>
+<li>因为无法修改，所以在多线程下的迭代不会抛出异常</li>
+</ul>
+</li>
+</ul>
+<p>就像<code>String</code>推荐作为<code>Map</code>的<code>key</code>一样，<code>String</code>天生是不可变类，易用且不会出现什么问题。</p>
+<p>那么怎么理解不可变集合类的用法呢<br>个人觉得就像<code>StringBuilder</code>和<code>String</code>的用法一样</p>
+<h3 id="ImmutableList"><a href="#ImmutableList" class="headerlink" title="ImmutableList"></a>ImmutableList</h3><p>创建不可变的<code>List</code><br>同时这个类的声明中还带有<code>RandomAccess</code>接口<br>所以底层是使用了<code>Array</code>来存储元素</p>
+<p>如果不清楚我们需要多少元素，可以先创建一个<code>builder</code><br><strong>builder()</strong><br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">ArrayList&lt;String&gt; arrayList = <span class="keyword">new</span> ArrayList&lt;&gt;();</span><br><span class="line">arrayList.add(<span class="string">"Hello"</span>);</span><br><span class="line">arrayList.add(<span class="string">"World"</span>);</span><br><span class="line">arrayList.add(<span class="string">"Java"</span>);</span><br><span class="line"></span><br><span class="line">ImmutableList.Builder&lt;String&gt; stringBuilder = ImmutableList.&lt;String&gt;builder()</span><br><span class="line">    .add(<span class="string">"Hello"</span>)</span><br><span class="line">    .add(<span class="string">"world"</span>);</span><br><span class="line">    .addAll(arrayList);</span><br><span class="line">stringBuilder.add(<span class="string">"Java"</span>);</span><br><span class="line">ImmutableList&lt;String&gt; strings = stringBuilder.build();</span><br></pre></td></tr></table></figure></p>
+<p><strong>of()</strong><br>或者我们可以直接调用<code>of</code>方法如果我们知道已经知道成员变量。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ImmutableList&lt;String&gt; list = ImmutableList.of(<span class="string">"Hello"</span>, <span class="string">"World"</span>, <span class="string">"Java"</span>);</span><br></pre></td></tr></table></figure></p>
+<p>因为<code>ImmutableList</code>是实现了<code>List</code>接口，所以我们这样也行<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">List&lt;String&gt; list = ImmutableList.of(<span class="string">"Hello"</span>, <span class="string">"World"</span>, <span class="string">"Java"</span>);</span><br></pre></td></tr></table></figure></p>
+<p>如果我们拿到的是<code>List</code>方法，那么他的企图修改List的方法已经被标记为<code>@Deprecated</code><br>并且如果强行调用会抛出<strong><code>UnsupportedOperationException</code></strong></p>
+<p><strong>copyOf()</strong><br>如果我们已经有了一个List，想要根据他来创建一个不可变的<code>List</code><br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">ArrayList&lt;String&gt; arrayList = <span class="keyword">new</span> ArrayList&lt;&gt;();</span><br><span class="line">arrayList.add(<span class="string">"Hello"</span>);</span><br><span class="line">arrayList.add(<span class="string">"World"</span>);</span><br><span class="line">arrayList.add(<span class="string">"Java"</span>);</span><br><span class="line">ImmutableList&lt;String&gt; immutableList = ImmutableList.copyOf(arrayList);</span><br></pre></td></tr></table></figure></p>
+<p><strong>sortedCopyOf()</strong><br>之前的<code>List</code>是可以进行<code>Collections.sort()</code>方法进行修改的<br>但是<code>ImmutableList</code>是不可变的，所以不可以进行<code>sort</code>，或者说在<code>build</code>完成之前是不可以进行<code>sort</code>的<br>那么我们可以调用<code>sortedCopyOf()</code>方法进行构建<br>那么如果我使用的是<code>Builder</code>方法进行构建，可不可以在<code>build()</code>之前对里面的元素进行排序呢？<br>似乎没看到方法。</p>
+<h3 id="ImmutableSet"><a href="#ImmutableSet" class="headerlink" title="ImmutableSet"></a>ImmutableSet</h3><p>其实和上面的<code>ImmutableList</code>差不是很多，就不讲了。</p>
+<h3 id="ImmutableBiMap"><a href="#ImmutableBiMap" class="headerlink" title="ImmutableBiMap"></a>ImmutableBiMap</h3><p>同时<code>BiMap</code>也提供了不可变的类型<br>我们可以使用<code>Builder</code>类方法或者<code>of</code>方法去进行创建<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">ImmutableBiMap.Builder&lt;String, Integer&gt; builder = ImmutableBiMap.builder();</span><br><span class="line">        builder.put(<span class="string">"Hello"</span>, <span class="number">2</span>);</span><br><span class="line">        builder.put(<span class="string">"World"</span>, <span class="number">3</span>);</span><br><span class="line">        builder.put(<span class="string">"Java"</span>, <span class="number">4</span>);</span><br><span class="line">        ImmutableBiMap&lt;String, Integer&gt; biMap = builder.build();</span><br><span class="line">        System.out.println(biMap);</span><br><span class="line">        BiMap&lt;Integer, String&gt; inverse = biMap.inverse();</span><br><span class="line">        System.out.println(inverse);</span><br></pre></td></tr></table></figure></p>
+
+    </div>
+
+    
+    
+    
+        
+
+<div>
+<ul class="post-copyright">
+  <li class="post-copyright-author">
+    <strong>Post author:  </strong>zhy
+  </li>
+  <li class="post-copyright-link">
+    <strong>Post link: </strong>
+    <a href="http://zhyzhyzhy.github.io/2018/07/21/Guava库学习之Collections/" title="Guava库学习之Collections">http://zhyzhyzhy.github.io/2018/07/21/Guava库学习之Collections/</a>
+  </li>
+  <li class="post-copyright-license">
+    <strong>Copyright Notice:  </strong>All articles in this blog are licensed under <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" rel="noopener" target="_blank"><i class="fa fa-fw fa-creative-commons"></i>BY-NC-SA</a> unless stating additionally.
+  </li>
+</ul>
+</div>
+
+        
+
+  <div class="followme">
+    <p>Welcome to my other publishing channels</p>
+
+    <div class="social-list">
+
+            <div class="social-item">
+              <a target="_blank" class="social-link" href="/atom.xml">
+                <span class="icon">
+                  <i class="fa fa-rss"></i>
+                </span>
+
+                <span class="label">RSS</span>
+              </a>
+            </div>
+    </div>
+  </div>
+
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/Guava/" rel="tag"># Guava</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2018/07/20/Presto源码-ExchangeClient和OutputBuffer详解/" rel="prev" title="Presto源码-ExchangeClient和OutputBuffer详解">
+      <i class="fa fa-chevron-left"></i> Presto源码-ExchangeClient和OutputBuffer详解
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2018/07/22/Presto的Join细节研究/" rel="next" title="Presto的Join的细节研究">
+      Presto的Join的细节研究 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+    
+  <div class="comments">
+    <div id="disqus_thread">
+      <noscript>Please enable JavaScript to view the comments powered by Disqus.</noscript>
+    </div>
+  </div>
+  
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let activeClass = CONFIG.comments.activeClass;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#前言"><span class="nav-number">1.</span> <span class="nav-text">前言</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#MultiMap"><span class="nav-number">2.</span> <span class="nav-text">MultiMap</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#HashMultiMap"><span class="nav-number">2.1.</span> <span class="nav-text">HashMultiMap</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#LinkedListMultimap"><span class="nav-number">2.2.</span> <span class="nav-text">LinkedListMultimap</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#TreeMultimap"><span class="nav-number">2.3.</span> <span class="nav-text">TreeMultimap</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#MultiSet"><span class="nav-number">3.</span> <span class="nav-text">MultiSet</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#BiMap"><span class="nav-number">4.</span> <span class="nav-text">BiMap</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Immutable-Collections"><span class="nav-number">5.</span> <span class="nav-text">Immutable Collections</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#ImmutableList"><span class="nav-number">5.1.</span> <span class="nav-text">ImmutableList</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#ImmutableSet"><span class="nav-number">5.2.</span> <span class="nav-text">ImmutableSet</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#ImmutableBiMap"><span class="nav-number">5.3.</span> <span class="nav-text">ImmutableBiMap</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">zhy</p>
+  <div class="site-description" itemprop="description">敌视现实</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">69</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">24</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">38</span>
+        <span class="site-state-item-name">tags</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/zhyzhyzhy" title="GitHub → https://github.com/zhyzhyzhy" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:zhuyichen1017@outlook.com" title="E-Mail → mailto:zhuyichen1017@outlook.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+  <div class="beian"><a href="http://www.beian.miit.gov.cn" rel="noopener" target="_blank">苏ICP备15058469号 </a>
+  </div>
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">zhy</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> v3.8.0
+  </div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">Theme – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> v7.7.1
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+<script src="/js/utils.js"></script><script src="/js/motion.js"></script>
+<script src="/js/schemes/pisces.js"></script>
+<script src="/js/next-boot.js"></script>
+
+
+
+  
+
+
+
+
+  <script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+<script>
+  function loadCount() {
+    var d = document, s = d.createElement('script');
+    s.src = 'https://blog-lovezhy-cc-1.disqus.com/count.js';
+    s.id = 'dsq-count-scr';
+    (d.head || d.body).appendChild(s);
+  }
+  // defer loading until the whole page loading is completed
+  window.addEventListener('load', loadCount, false);
+</script>
+<script>
+  var disqus_config = function() {
+    this.page.url = "http://zhyzhyzhy.github.io/2018/07/21/Guava库学习之Collections/";
+    this.page.identifier = "2018/07/21/Guava库学习之Collections/";
+    this.page.title = "Guava库学习之Collections";
+    };
+  NexT.utils.loadComments(document.querySelector('#disqus_thread'), () => {
+    if (window.DISQUS) {
+      DISQUS.reset({
+        reload: true,
+        config: disqus_config
+      });
+    } else {
+      var d = document, s = d.createElement('script');
+      s.src = 'https://blog-lovezhy-cc-1.disqus.com/embed.js';
+      s.setAttribute('data-timestamp', '' + +new Date());
+      (d.head || d.body).appendChild(s);
+    }
+  });
+</script>
+
+</body>
+</html>

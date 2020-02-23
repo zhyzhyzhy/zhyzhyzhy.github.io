@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 3.8.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+  <meta name="google-site-verification" content="wE7ISC42t3QOT-S-gdbdy_XsP3NB23Xi3alKNWXd0dA">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="//fonts.googleapis.com/css?family=Operator Mono:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    hostname: new URL('http://zhyzhyzhy.github.io').hostname,
+    root: '/',
+    scheme: 'Gemini',
+    version: '7.7.1',
+    exturl: false,
+    sidebar: {"position":"right","display":"always","padding":18,"offset":12,"onmobile":false},
+    copycode: {"enable":true,"show_result":true,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    comments: {"style":"tabs","active":"disqus","storage":true,"lazyload":false,"nav":null,"activeClass":"disqus"},
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: 'search.xml',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}
+  };
+</script>
+
+  <meta name="description" content="同步，阻塞，非阻塞 先来谈谈这个。很多人一直搞不清，从概念上去解释的话，我也很难解释清楚。不过知乎上有个回答很nice。我引用过来。">
+<meta name="keywords" content="Network">
+<meta property="og:type" content="article">
+<meta property="og:title" content="同步，阻塞，非阻塞">
+<meta property="og:url" content="http://zhyzhyzhy.github.io/2017/08/20/IO之同步，阻塞，非阻塞/index.html">
+<meta property="og:site_name" content="LoveZhy">
+<meta property="og:description" content="同步，阻塞，非阻塞 先来谈谈这个。很多人一直搞不清，从概念上去解释的话，我也很难解释清楚。不过知乎上有个回答很nice。我引用过来。">
+<meta property="og:locale" content="zh-cn">
+<meta property="og:updated_time" content="2020-02-23T10:30:00.942Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="同步，阻塞，非阻塞">
+<meta name="twitter:description" content="同步，阻塞，非阻塞 先来谈谈这个。很多人一直搞不清，从概念上去解释的话，我也很难解释清楚。不过知乎上有个回答很nice。我引用过来。">
+
+<link rel="canonical" href="http://zhyzhyzhy.github.io/2017/08/20/IO之同步，阻塞，非阻塞/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true
+  };
+</script>
+
+  <title>同步，阻塞，非阻塞 | LoveZhy</title>
+  
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-125642214-1"></script>
+    <script>
+      if (CONFIG.hostname === location.hostname) {
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'UA-125642214-1');
+      }
+    </script>
+
+
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?c1f963571cb3d8a4a5dc82346dc65842";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+<link rel="alternate" href="/atom.xml" title="LoveZhy" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">LoveZhy</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+  </div>
+
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-fw fa-user"></i>About</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>Tags</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>Categories</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>Archives</a>
+
+  </li>
+        <li class="menu-item menu-item-sitemap">
+
+    <a href="/sitemap.xml" rel="section"><i class="fa fa-fw fa-sitemap"></i>Sitemap</a>
+
+  </li>
+        <li class="menu-item menu-item-movie">
+
+    <a href="/movies/index.html" rel="section"><i class="fa fa-fw fa-film"></i>movie</a>
+
+  </li>
+        <li class="menu-item menu-item-books">
+
+    <a href="/books/index.html" rel="section"><i class="fa fa-fw fa-book"></i>books</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+
+</nav>
+  <div class="site-search">
+    <div class="popup search-popup">
+    <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocorrect="off" autocapitalize="none" placeholder="Searching..." spellcheck="false" type="text" id="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result"></div>
+
+</div>
+<div class="search-pop-overlay"></div>
+
+  </div>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope="" itemtype="http://schema.org/Article" class="post-block " lang="zh-cn">
+    <link itemprop="mainEntityOfPage" href="http://zhyzhyzhy.github.io/2017/08/20/IO之同步，阻塞，非阻塞/">
+
+    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="zhy">
+      <meta itemprop="description" content="敌视现实">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="LoveZhy">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          同步，阻塞，非阻塞
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2017-08-20 00:00:00" itemprop="dateCreated datePublished" datetime="2017-08-20T00:00:00+08:00">2017-08-20</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">Edited on</span>
+                <time title="Modified: 2020-02-23 18:30:00" itemprop="dateModified" datetime="2020-02-23T18:30:00+08:00">2020-02-23</time>
+              </span>
+
+          
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="fa fa-comment-o"></i>
+      </span>
+      <span class="post-meta-item-text">Disqus: </span>
+    
+    <a title="disqus" href="/2017/08/20/IO之同步，阻塞，非阻塞/#disqus_thread" itemprop="discussionUrl">
+      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2017/08/20/IO之同步，阻塞，非阻塞/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h1 id="同步，阻塞，非阻塞"><a href="#同步，阻塞，非阻塞" class="headerlink" title="同步，阻塞，非阻塞"></a>同步，阻塞，非阻塞</h1><hr>
+<p>先来谈谈这个。<br>很多人一直搞不清，从概念上去解释的话，我也很难解释清楚。<br>不过知乎上有个回答很nice。我引用过来。  </p>
+<a id="more"></a>
+<p><a href="https://www.zhihu.com/question/19732473" target="_blank" rel="noopener">同步异步，阻塞非阻塞的区别</a></p>
+<p>正常的来说，一段数据流从网络到我们自己设定的数组中，需要经历以下几个阶段</p>
+<ul>
+<li>数据到端口</li>
+<li>内核把数据从端口拷贝到内核缓存区</li>
+<li>用户调用read让内核把缓存区的数据拷贝到我们设定的数组中</li>
+</ul>
+<p>同步和异步的区别在实际中就是用户和内核的交互上。<br>同步的话就是我们主动的问内核数据来了吗，数据准备好了吗，如果内核高速我们数据已经到缓冲区了，我们还需要自己再去把缓冲区的数据拷过来。  </p>
+<p>异步就是内核把数据准备好了，拷贝到了用户空间后，之后主动调用我们设置的回掉函数。</p>
+<p>阻塞和非阻塞在实际中是用户线程的IO和内核交互上。<br>阻塞就是我们写或者读内核数据时必须等待全部写完或者必须有数据让我们读到。<br>非阻塞是指IO操作被调用后立即返回给用户一个状态值，无需等到IO操作彻底完成。 </p>
+<p>下面结合代码来看看常用的IO模型是什么架构的。</p>
+<h1 id="阻塞IO"><a href="#阻塞IO" class="headerlink" title="阻塞IO"></a>阻塞IO</h1><hr>
+<p>同步阻塞模型其实最常见也是最容易理解的。<br>无论在<code>Java</code>还是<code>c</code>的网络编程中都是<code>bind</code> -&gt; <code>listen</code> -&gt; <code>accept</code>。</p>
+<p>下面是一个简单的<code>echo</code>程序，把接收到的返回回去。  </p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;unistd.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;sys/types.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;netdb.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;sys/socket.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;netinet/in.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdio.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;string.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;arpa/inet.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> BACKLOG 1024</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> BUFFERSIZE 8192</span></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">(<span class="keyword">int</span> argc, <span class="keyword">char</span> *argv[])</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">int</span> server_fd, conn_fd;</span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">short</span> port = <span class="number">1080</span>;</span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">sockaddr_in</span> <span class="title">addr_s</span>;</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">sockaddr_in</span> <span class="title">addr_c</span>;</span></span><br><span class="line">    <span class="comment">//AF_INET ipv4</span></span><br><span class="line">	<span class="comment">//SOCK_STREAM 以流的方式传递</span></span><br><span class="line">	server_fd = socket(AF_INET, SOCK_STREAM, <span class="number">0</span>);</span><br><span class="line">  </span><br><span class="line">    <span class="built_in">memset</span>(&amp;addr_s, <span class="number">0</span>, <span class="keyword">sizeof</span>(addr_c));</span><br><span class="line">    addr_s.sin_family = AF_INET;</span><br><span class="line">    addr_s.sin_addr.s_addr = inet_addr(<span class="string">"127.0.0.1"</span>);</span><br><span class="line">    addr_s.sin_port = htons(port);</span><br><span class="line">  </span><br><span class="line">    <span class="keyword">int</span> ret = bind(server_fd, (struct sockaddr*)&amp;addr_s, <span class="keyword">sizeof</span>(addr_c));</span><br><span class="line">  </span><br><span class="line">    <span class="keyword">char</span> buffer[BUFFERSIZE];</span><br><span class="line">    <span class="keyword">int</span> addr_clen = <span class="keyword">sizeof</span>(addr_c);</span><br><span class="line">    listen(server_fd, BACKLOG);</span><br><span class="line">    <span class="keyword">while</span>(<span class="number">1</span>) &#123;</span><br><span class="line">	    conn_fd = accept(server_fd, (struct sockaddr*)&amp;addr_c, (<span class="keyword">socklen_t</span> *) &amp;addr_clen);</span><br><span class="line">	    <span class="keyword">int</span> size = read(conn_fd, buffer, <span class="number">8192</span>);</span><br><span class="line">	    write(conn_fd, buffer, size);</span><br><span class="line">	    close(conn_fd);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这里的<code>while(1)</code>中，如果没有连接，那么程序就一直等待<code>accept</code>，直到有一个连接产生。   </p>
+<p>等到有一个连接到了，然后去调用<code>read</code>和<code>write</code>函数去响应这个请求。  </p>
+<p>但是在处理这个<code>read</code>的时候如果对方一直没有输入，那么<code>read</code>就会一直等下去。<br>那么<code>read</code>的行为就是阻塞。  </p>
+<p>同样的，对于<code>write</code>，如果发送缓冲区没有空间或者空间不足的话，write操作会直接阻塞住等待有足够的空间。 </p>
+<p>假设第一个连接停在了<code>read</code>或者<code>write</code>，那么下面的连接就无法进行处理了。</p>
+<p>所以一般会进行<code>fork</code>调用去处理请求。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span>(fork() == <span class="number">0</span>) &#123;</span><br><span class="line">	close(server_fd);</span><br><span class="line">	<span class="keyword">int</span> size = read(conn_fd, buffer, <span class="number">8192</span>);</span><br><span class="line">	send(conn_fd, buffer, size, <span class="number">0</span>);</span><br><span class="line">	close(conn_fd);</span><br><span class="line">	<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这样可以处理小批量的并发请求，但是大了就不行了。<br>因为<code>linux</code>进程是需要资源，相对来说开销较大。<br>就像<code>Java</code>中对每一个请求都开一个线程去处理一样。  </p>
+<h1 id="非阻塞IO"><a href="#非阻塞IO" class="headerlink" title="非阻塞IO"></a>非阻塞IO</h1><p>上面提到阻塞IO的问题在<code>read</code>和<code>write</code>函数。  </p>
+<p>在<code>linux</code>或者<code>mac</code>下有一个系统调用。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;fcntl.h&gt;</span></span></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">fcntl</span><span class="params">(<span class="keyword">int</span> fildes, <span class="keyword">int</span> cmd, ...)</span></span>;</span><br></pre></td></tr></table></figure>
+<p>使用这个我们可以改变文件描述符的性质。<br>比如使它成为非阻塞的。   </p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">set_no_blocking</span><span class="params">(<span class="keyword">int</span> fd)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">int</span> flags;</span><br><span class="line">    <span class="comment">//先得到文件描述符原有的属性</span></span><br><span class="line">    <span class="keyword">if</span> ((flags = fcntl(fd, F_GETFL, <span class="number">0</span>)) == <span class="number">-1</span>) &#123;</span><br><span class="line">        log_err(<span class="string">"fcntl error\n"</span>);</span><br><span class="line">        <span class="built_in">exit</span>(<span class="number">1</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">//增加非阻塞属性</span></span><br><span class="line">    flags |= O_NONBLOCK;</span><br><span class="line">    <span class="comment">//设置非阻塞属性</span></span><br><span class="line">    <span class="keyword">if</span> (fcntl(fd, F_SETFL, flags) == <span class="number">-1</span>) &#123;</span><br><span class="line">        log_err(<span class="string">"fcntl error\n"</span>);</span><br><span class="line">        <span class="built_in">exit</span>(<span class="number">1</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这样设置之后，<code>read</code>调用会立即返回。接收缓冲区中有数据时，与阻塞socket有数据的情况是一样的。</p>
+<p>如果接收缓冲区中没有数据，则返回错误号为EWOULDBLOCK,表示该操作本来应该阻塞的，但是由于本socket为非阻塞的socket，因此立刻返回，遇到这样的情况，可以在下次接着去尝试读取。</p>
+<p>如果返回值是其它负值，则表明读取错误。。  </p>
+<p>write也会立即返回。<br>在发送缓冲区没有空间时会直接返回错误号EWOULDBLOCK,表示没有空间可写数据。<br>如果错误号是别的值，则表明发送失败。<br>如果发送缓冲区中有足够空间或者是不足以拷贝所有待发送数据的空间的话，则拷贝前面N个能够容纳的数据，返回实际拷贝的字节数。  </p>
+<h1 id="IO复用"><a href="#IO复用" class="headerlink" title="IO复用"></a>IO复用</h1><hr>
+<p>异步的最普遍的实现方式是回调。<br>但是有回掉的并不就是异步的。 </p>
+<p>比如Libevent中事件回调，还有netty。</p>
+<p>下面选自我的tinyhttp仓库，<a href="https://github.com/zhyzhyzhy/tinyhttp" target="_blank" rel="noopener">地址</a></p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//</span></span><br><span class="line"><span class="comment">// Created by zhy on 2/20/17.</span></span><br><span class="line"><span class="comment">//</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">char</span>* index_home = <span class="string">""</span>;</span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">event_base</span> *<span class="title">base</span>;</span></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">(<span class="keyword">int</span> argc, <span class="keyword">char</span> *argv[])</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">  </span><br><span class="line">    argv[<span class="number">1</span>] = <span class="string">"127.0.0.1"</span>;</span><br><span class="line">    argv[<span class="number">2</span>] = <span class="string">"4000"</span>;</span><br><span class="line">    argv[<span class="number">3</span>] = <span class="string">"/Users/zhuyichen/fortest/tinydemo/v3.bootcss.com/"</span>;</span><br><span class="line">    index_home = argv[<span class="number">3</span>];</span><br><span class="line">    <span class="keyword">if</span> (chdir(index_home) == <span class="number">-1</span>) &#123;</span><br><span class="line">        perror(<span class="string">"index_home : "</span>);</span><br><span class="line">        <span class="built_in">exit</span>(<span class="number">1</span>);</span><br><span class="line">    &#125;</span><br><span class="line">  </span><br><span class="line">    <span class="keyword">int</span> listener;</span><br><span class="line">    listener = socket_bind_listen(argv[<span class="number">1</span>], argv[<span class="number">2</span>]);</span><br><span class="line">    <span class="keyword">if</span> (listener == <span class="number">-1</span>) &#123;</span><br><span class="line">        <span class="built_in">exit</span>(<span class="number">1</span>);</span><br><span class="line">    &#125;</span><br><span class="line">  </span><br><span class="line">    set_no_blocking(listener);</span><br><span class="line">    log_info(<span class="string">"start listen in host %s port %s ...\n"</span>, argv[<span class="number">1</span>], argv[<span class="number">2</span>]);</span><br><span class="line">  </span><br><span class="line">    base = event_base_new();</span><br><span class="line">  </span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">event</span>* <span class="title">ev_listen</span> = <span class="title">event_new</span>(<span class="title">base</span>, <span class="title">listener</span>, <span class="title">EV_READ</span> | <span class="title">EV_PERSIST</span>, <span class="title">on_accept</span>, <span class="title">NULL</span>);</span></span><br><span class="line">    event_base_set(base, ev_listen);</span><br><span class="line">    event_add(ev_listen, <span class="literal">NULL</span>);</span><br><span class="line">    event_base_dispatch(base);</span><br><span class="line">    event_base_free(base);</span><br><span class="line">    </span><br><span class="line">&#125;</span><br><span class="line">  </span><br><span class="line">  </span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">on_accept</span><span class="params">(<span class="keyword">int</span> serverfd, <span class="keyword">short</span> events, <span class="keyword">void</span> *arg)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">int</span> connfd = accept(serverfd, <span class="literal">NULL</span>, <span class="number">0</span>);</span><br><span class="line">    set_no_blocking(connfd);</span><br><span class="line">  </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>重点在以下代码中</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">event</span>* <span class="title">ev_listen</span> = <span class="title">event_new</span>(<span class="title">base</span>, <span class="title">listener</span>, <span class="title">EV_READ</span> | <span class="title">EV_PERSIST</span>, <span class="title">on_accept</span>, <span class="title">NULL</span>);</span></span><br><span class="line">event_base_set(base, ev_listen);</span><br><span class="line">event_add(ev_listen, <span class="literal">NULL</span>);</span><br></pre></td></tr></table></figure>
+<p>我们创建了一个<code>ev_listen</code>事件用来监听<code>socket</code>描述符上的<code>READ</code>事件,设置回调函数为<code>on_accept</code>。<br>这样只要<code>listener</code>文件句柄上产生了新的连接，就是回调<code>on_accept</code>函数，在<code>on_accept</code>函数中进行<code>accept</code>。  </p>
+<p>这就是一个异步的例子。</p>
+<p>很多人以为这就是异步，但是上面我们提到，异步的特点就是，操作系统会自己把数据从内核缓冲区拷贝到用户区，仔细看就会发现，libevent还是需要我们自己去进行read的，只是我们read的时候不会遇到缓冲区为空的情况，说到底，还是同步的读。</p>
+<h1 id="同步IO"><a href="#同步IO" class="headerlink" title="同步IO"></a>同步IO</h1><hr>
+<p>我们再来谈谈同步的IO。<br>其实同步异步非阻塞并不是相互独立的<br>我们说同步就是内核的数据是否准备好需要我们自己去询问和如果准备好了还是需要我们自己去拷贝到用户空间。<br>按照这个条件，其实前两种阻塞IO和非阻塞IO和IO复用都是同步IO。<br>包括<code>select</code> <code>poll</code> <code>epoll</code>函数，都是同步的，因为我们还是需要自己区拷贝数据到用户空间。<br>真正的异步IO这一层是系统帮我们做的。  </p>
+
+    </div>
+
+    
+    
+    
+        
+
+<div>
+<ul class="post-copyright">
+  <li class="post-copyright-author">
+    <strong>Post author:  </strong>zhy
+  </li>
+  <li class="post-copyright-link">
+    <strong>Post link: </strong>
+    <a href="http://zhyzhyzhy.github.io/2017/08/20/IO之同步，阻塞，非阻塞/" title="同步，阻塞，非阻塞">http://zhyzhyzhy.github.io/2017/08/20/IO之同步，阻塞，非阻塞/</a>
+  </li>
+  <li class="post-copyright-license">
+    <strong>Copyright Notice:  </strong>All articles in this blog are licensed under <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" rel="noopener" target="_blank"><i class="fa fa-fw fa-creative-commons"></i>BY-NC-SA</a> unless stating additionally.
+  </li>
+</ul>
+</div>
+
+        
+
+  <div class="followme">
+    <p>Welcome to my other publishing channels</p>
+
+    <div class="social-list">
+
+            <div class="social-item">
+              <a target="_blank" class="social-link" href="/atom.xml">
+                <span class="icon">
+                  <i class="fa fa-rss"></i>
+                </span>
+
+                <span class="label">RSS</span>
+              </a>
+            </div>
+    </div>
+  </div>
+
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/Network/" rel="tag"># Network</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2017/08/09/Java泛型数组/" rel="prev" title="Java泛型">
+      <i class="fa fa-chevron-left"></i> Java泛型
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2017/09/10/动态代理的缓存实现/" rel="next" title="动态代理的缓存实现">
+      动态代理的缓存实现 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+    
+  <div class="comments">
+    <div id="disqus_thread">
+      <noscript>Please enable JavaScript to view the comments powered by Disqus.</noscript>
+    </div>
+  </div>
+  
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let activeClass = CONFIG.comments.activeClass;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#同步，阻塞，非阻塞"><span class="nav-number">1.</span> <span class="nav-text">同步，阻塞，非阻塞</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#阻塞IO"><span class="nav-number">2.</span> <span class="nav-text">阻塞IO</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#非阻塞IO"><span class="nav-number">3.</span> <span class="nav-text">非阻塞IO</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#IO复用"><span class="nav-number">4.</span> <span class="nav-text">IO复用</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#同步IO"><span class="nav-number">5.</span> <span class="nav-text">同步IO</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">zhy</p>
+  <div class="site-description" itemprop="description">敌视现实</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">69</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">24</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">38</span>
+        <span class="site-state-item-name">tags</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/zhyzhyzhy" title="GitHub → https://github.com/zhyzhyzhy" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:zhuyichen1017@outlook.com" title="E-Mail → mailto:zhuyichen1017@outlook.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+  <div class="beian"><a href="http://www.beian.miit.gov.cn" rel="noopener" target="_blank">苏ICP备15058469号 </a>
+  </div>
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">zhy</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> v3.8.0
+  </div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">Theme – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> v7.7.1
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+<script src="/js/utils.js"></script><script src="/js/motion.js"></script>
+<script src="/js/schemes/pisces.js"></script>
+<script src="/js/next-boot.js"></script>
+
+
+
+  
+
+
+
+
+  <script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+<script>
+  function loadCount() {
+    var d = document, s = d.createElement('script');
+    s.src = 'https://blog-lovezhy-cc-1.disqus.com/count.js';
+    s.id = 'dsq-count-scr';
+    (d.head || d.body).appendChild(s);
+  }
+  // defer loading until the whole page loading is completed
+  window.addEventListener('load', loadCount, false);
+</script>
+<script>
+  var disqus_config = function() {
+    this.page.url = "http://zhyzhyzhy.github.io/2017/08/20/IO之同步，阻塞，非阻塞/";
+    this.page.identifier = "2017/08/20/IO之同步，阻塞，非阻塞/";
+    this.page.title = "同步，阻塞，非阻塞";
+    };
+  NexT.utils.loadComments(document.querySelector('#disqus_thread'), () => {
+    if (window.DISQUS) {
+      DISQUS.reset({
+        reload: true,
+        config: disqus_config
+      });
+    } else {
+      var d = document, s = d.createElement('script');
+      s.src = 'https://blog-lovezhy-cc-1.disqus.com/embed.js';
+      s.setAttribute('data-timestamp', '' + +new Date());
+      (d.head || d.body).appendChild(s);
+    }
+  });
+</script>
+
+</body>
+</html>

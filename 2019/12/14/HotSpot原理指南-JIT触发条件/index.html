@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 3.8.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+  <meta name="google-site-verification" content="wE7ISC42t3QOT-S-gdbdy_XsP3NB23Xi3alKNWXd0dA">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="//fonts.googleapis.com/css?family=Operator Mono:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    hostname: new URL('http://zhyzhyzhy.github.io').hostname,
+    root: '/',
+    scheme: 'Gemini',
+    version: '7.7.1',
+    exturl: false,
+    sidebar: {"position":"right","display":"always","padding":18,"offset":12,"onmobile":false},
+    copycode: {"enable":true,"show_result":true,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    comments: {"style":"tabs","active":"disqus","storage":true,"lazyload":false,"nav":null,"activeClass":"disqus"},
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: 'search.xml',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}
+  };
+</script>
+
+  <meta name="description" content="前言通过前面我们知道，对于每个方法，HotSpot都维护两个计数器  Invocation Counter：方法被调用次数，每被调用一次都会+1 BackEdge Counter：专业的说法就是字节码在执行时的回跳次数。通俗点说就是，在For或者While循环中，每执行一次，都会+1。  并且我们知道对于一个方法，JIT有两种不同的编译方式  完整的原方法编译，就是把原本的方法逻辑进行编译。入参和">
+<meta name="keywords" content="Java,HotSpot,JIT">
+<meta property="og:type" content="article">
+<meta property="og:title" content="HotSpot原理指南-JIT触发条件">
+<meta property="og:url" content="http://zhyzhyzhy.github.io/2019/12/14/HotSpot原理指南-JIT触发条件/index.html">
+<meta property="og:site_name" content="LoveZhy">
+<meta property="og:description" content="前言通过前面我们知道，对于每个方法，HotSpot都维护两个计数器  Invocation Counter：方法被调用次数，每被调用一次都会+1 BackEdge Counter：专业的说法就是字节码在执行时的回跳次数。通俗点说就是，在For或者While循环中，每执行一次，都会+1。  并且我们知道对于一个方法，JIT有两种不同的编译方式  完整的原方法编译，就是把原本的方法逻辑进行编译。入参和">
+<meta property="og:locale" content="zh-cn">
+<meta property="og:image" content="http://zhyzhyzhy.github.io/images/HotSpot原理指南-JIT触发条件/编译流程.png">
+<meta property="og:updated_time" content="2020-02-23T10:29:45.890Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="HotSpot原理指南-JIT触发条件">
+<meta name="twitter:description" content="前言通过前面我们知道，对于每个方法，HotSpot都维护两个计数器  Invocation Counter：方法被调用次数，每被调用一次都会+1 BackEdge Counter：专业的说法就是字节码在执行时的回跳次数。通俗点说就是，在For或者While循环中，每执行一次，都会+1。  并且我们知道对于一个方法，JIT有两种不同的编译方式  完整的原方法编译，就是把原本的方法逻辑进行编译。入参和">
+<meta name="twitter:image" content="http://zhyzhyzhy.github.io/images/HotSpot原理指南-JIT触发条件/编译流程.png">
+
+<link rel="canonical" href="http://zhyzhyzhy.github.io/2019/12/14/HotSpot原理指南-JIT触发条件/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true
+  };
+</script>
+
+  <title>HotSpot原理指南-JIT触发条件 | LoveZhy</title>
+  
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-125642214-1"></script>
+    <script>
+      if (CONFIG.hostname === location.hostname) {
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'UA-125642214-1');
+      }
+    </script>
+
+
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?c1f963571cb3d8a4a5dc82346dc65842";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+<link rel="alternate" href="/atom.xml" title="LoveZhy" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">LoveZhy</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+  </div>
+
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-fw fa-user"></i>About</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>Tags</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>Categories</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>Archives</a>
+
+  </li>
+        <li class="menu-item menu-item-sitemap">
+
+    <a href="/sitemap.xml" rel="section"><i class="fa fa-fw fa-sitemap"></i>Sitemap</a>
+
+  </li>
+        <li class="menu-item menu-item-movie">
+
+    <a href="/movies/index.html" rel="section"><i class="fa fa-fw fa-film"></i>movie</a>
+
+  </li>
+        <li class="menu-item menu-item-books">
+
+    <a href="/books/index.html" rel="section"><i class="fa fa-fw fa-book"></i>books</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+
+</nav>
+  <div class="site-search">
+    <div class="popup search-popup">
+    <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocorrect="off" autocapitalize="none" placeholder="Searching..." spellcheck="false" type="text" id="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result"></div>
+
+</div>
+<div class="search-pop-overlay"></div>
+
+  </div>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope="" itemtype="http://schema.org/Article" class="post-block " lang="zh-cn">
+    <link itemprop="mainEntityOfPage" href="http://zhyzhyzhy.github.io/2019/12/14/HotSpot原理指南-JIT触发条件/">
+
+    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="zhy">
+      <meta itemprop="description" content="敌视现实">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="LoveZhy">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          HotSpot原理指南-JIT触发条件
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2019-12-14 00:00:00" itemprop="dateCreated datePublished" datetime="2019-12-14T00:00:00+08:00">2019-12-14</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">Edited on</span>
+                <time title="Modified: 2020-02-23 18:29:45" itemprop="dateModified" datetime="2020-02-23T18:29:45+08:00">2020-02-23</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
+                  <a href="/categories/编程/" itemprop="url" rel="index">
+                    <span itemprop="name">编程</span>
+                  </a>
+                </span>
+            </span>
+
+          
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="fa fa-comment-o"></i>
+      </span>
+      <span class="post-meta-item-text">Disqus: </span>
+    
+    <a title="disqus" href="/2019/12/14/HotSpot原理指南-JIT触发条件/#disqus_thread" itemprop="discussionUrl">
+      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2019/12/14/HotSpot原理指南-JIT触发条件/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>通过前面我们知道，对于每个方法，HotSpot都维护两个计数器</p>
+<ul>
+<li>Invocation Counter：方法被调用次数，每被调用一次都会+1</li>
+<li>BackEdge Counter：专业的说法就是字节码在执行时的回跳次数。通俗点说就是，在For或者While循环中，每执行一次，都会+1。</li>
+</ul>
+<p>并且我们知道对于一个方法，JIT有两种不同的编译方式</p>
+<ul>
+<li>完整的原方法编译，就是把原本的方法逻辑进行编译。入参和运行结果和解释运行都是一致的。</li>
+<li>OSR编译，OSR后的方法入参以及运行流程和原方法有较大差异。</li>
+</ul>
+<p>很自然得我们就会想到，其实计数器和编译方式之间是有对应关系的。</p>
+<ul>
+<li>Invocation Counter -&gt; 完整的原方法编译</li>
+<li>BackEdge Counter  -&gt; OSR编译</li>
+</ul>
+<p>当对应的方法计数器达到一定的次数，就会触发响应的编译</p>
+<a id="more"></a>
+<h2 id="编译流程图"><a href="#编译流程图" class="headerlink" title="编译流程图"></a>编译流程图</h2><p>完整的编译流程如下：</p>
+<p><img src="/images/HotSpot原理指南-JIT触发条件/编译流程.png" alt=""></p>
+<p><strong>注：该图引自R大的JVM分享PPT，如有侵权，请联系我删除</strong></p>
+<p>图中的流程非常的清晰，这里提几个小点：</p>
+<ul>
+<li><p>问：对于同一方法，是否两种编译方式都可能会执行？</p>
+<p>答：是的，而且两种代码可能同时被运行，但是正常情况下，只要运行的够久，都会运行完整的原方法编译后的代码。</p>
+</li>
+<li><p>问：具体哪种编译方式先触发？</p>
+<p>答：其实无法确定，看哪个计数器先达到阈值</p>
+</li>
+</ul>
+<h2 id="触发阈值"><a href="#触发阈值" class="headerlink" title="触发阈值"></a>触发阈值</h2><p>可能你还想更直观的了解下两个计数器的触发阈值到底是多少。</p>
+<p>在HotSpot源码中，有这样两个参数：</p>
+<ul>
+<li><blockquote>
+<p>intx CompileThreshold = 10000</p>
+<p>globals.hpp &gt; ”number of interpreted method invocations before (re-)compiling” </p>
+</blockquote>
+</li>
+<li><blockquote>
+<p>intx BackEdgeThreshold = 100000</p>
+<p>globals.hpp &gt; “Interpreter Back edge threshold at which an OSR compilation is invoked”</p>
+</blockquote>
+</li>
+</ul>
+<p>数值可能根据不同的发行版本略有不同，上面的数值是JDK7版本中的。</p>
+<p>那么你可能以为</p>
+<ul>
+<li>当Invocation Counter &gt; Compile Threshold时，就会触发原来方法的JIT</li>
+<li>当BackEdge Counter &gt; BackEdge Threshold时，就会触发方法的OSR编译</li>
+</ul>
+<p>但是事实并不是如此。</p>
+<p>问题出在哪儿呢？难道官方的定义还会有错吗？</p>
+<p>是的，问题出在BackEdgeThreshold上，虽然HotSpot中确实定义了该参数，描述中似乎也证实了该参数的作用，但是这个参数并没有实际使用过。</p>
+<p>对于BackEdgeThreshold的计算，是另外一套公示。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (ProfileInterpreter) &#123;</span><br><span class="line">  InterpreterBackwardBranchLimit = </span><br><span class="line">                 (CompileThreshold * (OnStackReplacePercentage - InterpreterProfilePercentage)) / <span class="number">100</span>;</span><br><span class="line">&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">  InterpreterBackwardBranchLimit = </span><br><span class="line">                ((CompileThreshold * OnStackReplacePercentage) / <span class="number">100</span>) &lt;&lt; number_of_noncount_bits;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>首先解释下<code>ProfileInterpreter</code>参数，这个参数也是在HotSpot中定义的，之前在文章<code>HotSpot原理指南-C1和C2介绍</code>中也讲解过，就是是否在运行时收集方法的Profile信息，这个字段在Server模式默认是开启的。</p>
+<p>所以大部分情况下，除非你的计算机比较老，都会根据第一个公示进行计算</p>
+<p><code>(CompileThreshold * (OnStackReplacePercentage - InterpreterProfilePercentage)) / 100</code></p>
+<p>其中<strong>OnStackReplacePercentage</strong>默认值是140，<strong>InterpreterProfilePercentage</strong>默认值是33。</p>
+<p>由此我们可以计算出真实的BackEdge Invocation阈值大概是10700左右。</p>
+<h2 id="衰减"><a href="#衰减" class="headerlink" title="衰减"></a>衰减</h2><p>假如方法计数器不会根据时间进行衰减的话，那么只要服务器运行的时间足够长，再罕见被调用的函数，也会触发到阈值，然后被JIT编译。</p>
+<p>这显然是不合理的，因为我们知道JIT后的机器码数据，还是会保存在内存中的，这样相当于一段逻辑在内存中又保存了字节码，又保存了一份机器码，十分的浪费内存。</p>
+<p>所以对于Invocation Counter而言，经过一段时间，个数就会进行减少。</p>
+<p>具体的减少逻辑，读者有兴趣的可以自己去探索。</p>
+<p>但是注意：对于BackEdge Counter，是不会作衰减的。</p>
+
+    </div>
+
+    
+    
+    
+        
+
+<div>
+<ul class="post-copyright">
+  <li class="post-copyright-author">
+    <strong>Post author:  </strong>zhy
+  </li>
+  <li class="post-copyright-link">
+    <strong>Post link: </strong>
+    <a href="http://zhyzhyzhy.github.io/2019/12/14/HotSpot原理指南-JIT触发条件/" title="HotSpot原理指南-JIT触发条件">http://zhyzhyzhy.github.io/2019/12/14/HotSpot原理指南-JIT触发条件/</a>
+  </li>
+  <li class="post-copyright-license">
+    <strong>Copyright Notice:  </strong>All articles in this blog are licensed under <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" rel="noopener" target="_blank"><i class="fa fa-fw fa-creative-commons"></i>BY-NC-SA</a> unless stating additionally.
+  </li>
+</ul>
+</div>
+
+        
+
+  <div class="followme">
+    <p>Welcome to my other publishing channels</p>
+
+    <div class="social-list">
+
+            <div class="social-item">
+              <a target="_blank" class="social-link" href="/atom.xml">
+                <span class="icon">
+                  <i class="fa fa-rss"></i>
+                </span>
+
+                <span class="label">RSS</span>
+              </a>
+            </div>
+    </div>
+  </div>
+
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/Java/" rel="tag"># Java</a>
+              <a href="/tags/HotSpot/" rel="tag"># HotSpot</a>
+              <a href="/tags/JIT/" rel="tag"># JIT</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2019/11/30/银行报考指北/" rel="prev" title="银行报考指北">
+      <i class="fa fa-chevron-left"></i> 银行报考指北
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2020/01/04/HotSpot原理指南-分层编译/" rel="next" title="HotSpot原理指南-分层编译">
+      HotSpot原理指南-分层编译 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+    
+  <div class="comments">
+    <div id="disqus_thread">
+      <noscript>Please enable JavaScript to view the comments powered by Disqus.</noscript>
+    </div>
+  </div>
+  
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let activeClass = CONFIG.comments.activeClass;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#前言"><span class="nav-number">1.</span> <span class="nav-text">前言</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#编译流程图"><span class="nav-number">2.</span> <span class="nav-text">编译流程图</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#触发阈值"><span class="nav-number">3.</span> <span class="nav-text">触发阈值</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#衰减"><span class="nav-number">4.</span> <span class="nav-text">衰减</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">zhy</p>
+  <div class="site-description" itemprop="description">敌视现实</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">69</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">24</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">38</span>
+        <span class="site-state-item-name">tags</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/zhyzhyzhy" title="GitHub → https://github.com/zhyzhyzhy" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:zhuyichen1017@outlook.com" title="E-Mail → mailto:zhuyichen1017@outlook.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+  <div class="beian"><a href="http://www.beian.miit.gov.cn" rel="noopener" target="_blank">苏ICP备15058469号 </a>
+  </div>
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">zhy</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> v3.8.0
+  </div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">Theme – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> v7.7.1
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+<script src="/js/utils.js"></script><script src="/js/motion.js"></script>
+<script src="/js/schemes/pisces.js"></script>
+<script src="/js/next-boot.js"></script>
+
+
+
+  
+
+
+
+
+  <script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+<script>
+  function loadCount() {
+    var d = document, s = d.createElement('script');
+    s.src = 'https://blog-lovezhy-cc-1.disqus.com/count.js';
+    s.id = 'dsq-count-scr';
+    (d.head || d.body).appendChild(s);
+  }
+  // defer loading until the whole page loading is completed
+  window.addEventListener('load', loadCount, false);
+</script>
+<script>
+  var disqus_config = function() {
+    this.page.url = "http://zhyzhyzhy.github.io/2019/12/14/HotSpot原理指南-JIT触发条件/";
+    this.page.identifier = "2019/12/14/HotSpot原理指南-JIT触发条件/";
+    this.page.title = "HotSpot原理指南-JIT触发条件";
+    };
+  NexT.utils.loadComments(document.querySelector('#disqus_thread'), () => {
+    if (window.DISQUS) {
+      DISQUS.reset({
+        reload: true,
+        config: disqus_config
+      });
+    } else {
+      var d = document, s = d.createElement('script');
+      s.src = 'https://blog-lovezhy-cc-1.disqus.com/embed.js';
+      s.setAttribute('data-timestamp', '' + +new Date());
+      (d.head || d.body).appendChild(s);
+    }
+  });
+</script>
+
+</body>
+</html>
