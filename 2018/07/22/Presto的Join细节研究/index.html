@@ -20,7 +20,7 @@
 <script id="hexo-configurations">
   var NexT = window.NexT || {};
   var CONFIG = {
-    hostname: new URL('http://zhyzhyzhy.github.io').hostname,
+    hostname: new URL('https://blog.lovezhy.cc').hostname,
     root: '/',
     scheme: 'Gemini',
     version: '7.7.1',
@@ -51,25 +51,25 @@
 <meta name="keywords" content="Presto">
 <meta property="og:type" content="article">
 <meta property="og:title" content="Presto的Join的细节研究">
-<meta property="og:url" content="http://zhyzhyzhy.github.io/2018/07/22/Presto的Join细节研究/index.html">
+<meta property="og:url" content="https://blog.lovezhy.cc/2018/07/22/Presto的Join细节研究/index.html">
 <meta property="og:site_name" content="LoveZhy">
 <meta property="og:description" content="前言Presto的Join操作可以说是极为复杂的几个步骤之一加上又无其文档和注释，所以想要了解其细节需要自己去耐心的阅读源码笔者进行了一些研究后，进行了一些自己的理解的整理总结出来，希望对你有用">
 <meta property="og:locale" content="zh-cn">
-<meta property="og:image" content="http://zhyzhyzhy.github.io/images/presto-join/demo1.png">
-<meta property="og:image" content="http://zhyzhyzhy.github.io/images/presto-join/demo2.png">
-<meta property="og:image" content="http://zhyzhyzhy.github.io/images/presto-join/demo3.png">
-<meta property="og:image" content="http://zhyzhyzhy.github.io/images/presto-join/demo4.png">
-<meta property="og:image" content="http://zhyzhyzhy.github.io/images/presto-join/demo5.png">
-<meta property="og:image" content="http://zhyzhyzhy.github.io/images/presto-join/demo6.png">
-<meta property="og:image" content="http://zhyzhyzhy.github.io/images/presto-join/demo7.png">
-<meta property="og:image" content="http://zhyzhyzhy.github.io/images/presto-join/demo8.png">
+<meta property="og:image" content="https://blog.lovezhy.cc/images/presto-join/demo1.png">
+<meta property="og:image" content="https://blog.lovezhy.cc/images/presto-join/demo2.png">
+<meta property="og:image" content="https://blog.lovezhy.cc/images/presto-join/demo3.png">
+<meta property="og:image" content="https://blog.lovezhy.cc/images/presto-join/demo4.png">
+<meta property="og:image" content="https://blog.lovezhy.cc/images/presto-join/demo5.png">
+<meta property="og:image" content="https://blog.lovezhy.cc/images/presto-join/demo6.png">
+<meta property="og:image" content="https://blog.lovezhy.cc/images/presto-join/demo7.png">
+<meta property="og:image" content="https://blog.lovezhy.cc/images/presto-join/demo8.png">
 <meta property="og:updated_time" content="2018-09-12T16:17:02.000Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Presto的Join的细节研究">
 <meta name="twitter:description" content="前言Presto的Join操作可以说是极为复杂的几个步骤之一加上又无其文档和注释，所以想要了解其细节需要自己去耐心的阅读源码笔者进行了一些研究后，进行了一些自己的理解的整理总结出来，希望对你有用">
-<meta name="twitter:image" content="http://zhyzhyzhy.github.io/images/presto-join/demo1.png">
+<meta name="twitter:image" content="https://blog.lovezhy.cc/images/presto-join/demo1.png">
 
-<link rel="canonical" href="http://zhyzhyzhy.github.io/2018/07/22/Presto的Join细节研究/">
+<link rel="canonical" href="https://blog.lovezhy.cc/2018/07/22/Presto的Join细节研究/">
 
 
 <script id="page-configurations">
@@ -252,7 +252,7 @@
   
   
   <article itemscope="" itemtype="http://schema.org/Article" class="post-block " lang="zh-cn">
-    <link itemprop="mainEntityOfPage" href="http://zhyzhyzhy.github.io/2018/07/22/Presto的Join细节研究/">
+    <link itemprop="mainEntityOfPage" href="https://blog.lovezhy.cc/2018/07/22/Presto的Join细节研究/">
 
     <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.gif">
@@ -367,7 +367,7 @@
   </li>
   <li class="post-copyright-link">
     <strong>Post link: </strong>
-    <a href="http://zhyzhyzhy.github.io/2018/07/22/Presto的Join细节研究/" title="Presto的Join的细节研究">http://zhyzhyzhy.github.io/2018/07/22/Presto的Join细节研究/</a>
+    <a href="https://blog.lovezhy.cc/2018/07/22/Presto的Join细节研究/" title="Presto的Join的细节研究">https://blog.lovezhy.cc/2018/07/22/Presto的Join细节研究/</a>
   </li>
   <li class="post-copyright-license">
     <strong>Copyright Notice:  </strong>All articles in this blog are licensed under <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" rel="noopener" target="_blank"><i class="fa fa-fw fa-creative-commons"></i>BY-NC-SA</a> unless stating additionally.
@@ -610,7 +610,7 @@
 </script>
 <script>
   var disqus_config = function() {
-    this.page.url = "http://zhyzhyzhy.github.io/2018/07/22/Presto的Join细节研究/";
+    this.page.url = "https://blog.lovezhy.cc/2018/07/22/Presto的Join细节研究/";
     this.page.identifier = "2018/07/22/Presto的Join细节研究/";
     this.page.title = "Presto的Join的细节研究";
     };
