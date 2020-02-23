@@ -54,7 +54,7 @@
 <meta property="og:site_name" content="LoveZhy">
 <meta property="og:description" content="前言之前自己写的时候哪管什么log不log的，遇到啥都是直接sout。后来在写自己的框架的时候，发现不行啊，我要做一个log出来，像spring启动那样。来了美团，这里的log更加的严谨了，除了要运行的时候打印出log，还要把log分类分时间打到本地的文件里， 当然这还不够，美团有个cat框架，还需要我们把log通过网络，打到专门管理log的服务器上去。 大的系统log是很有必要的，这样出了问了l">
 <meta property="og:locale" content="zh-cn">
-<meta property="og:updated_time" content="2018-06-09T05:10:52.000Z">
+<meta property="og:updated_time" content="2020-02-23T10:30:29.525Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="log4j和slf4j配置">
 <meta name="twitter:description" content="前言之前自己写的时候哪管什么log不log的，遇到啥都是直接sout。后来在写自己的框架的时候，发现不行啊，我要做一个log出来，像spring启动那样。来了美团，这里的log更加的严谨了，除了要运行的时候打印出log，还要把log分类分时间打到本地的文件里， 当然这还不够，美团有个cat框架，还需要我们把log通过网络，打到专门管理log的服务器上去。 大的系统log是很有必要的，这样出了问了l">
@@ -233,7 +233,7 @@
                   <i class="fa fa-calendar-check-o"></i>
                 </span>
                 <span class="post-meta-item-text">Edited on</span>
-                <time title="Modified: 2018-06-09 13:10:52" itemprop="dateModified" datetime="2018-06-09T13:10:52+08:00">2018-06-09</time>
+                <time title="Modified: 2020-02-23 18:30:29" itemprop="dateModified" datetime="2020-02-23T18:30:29+08:00">2020-02-23</time>
               </span>
 
           
@@ -264,6 +264,7 @@
         <h1 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h1><p>之前自己写的时候哪管什么log不log的，遇到啥都是直接sout。<br>后来在写自己的框架的时候，发现不行啊，我要做一个log出来，像<code>spring</code>启动那样。<br>来了美团，这里的log更加的严谨了，除了要运行的时候打印出log，还要把log分类分时间打到本地的文件里，</p>
 <p>当然这还不够，美团有个cat框架，还需要我们把log通过网络，打到专门管理log的服务器上去。</p>
 <p>大的系统log是很有必要的，这样出了问了log能给我们很大的启示。</p>
+<a id="more"></a>
 <h1 id="Log框架"><a href="#Log框架" class="headerlink" title="Log框架"></a>Log框架</h1><p>Java的Log框架是比较乱的，之前一直没搞懂，不知道依赖关系。</p>
 <p>主要的有</p>
 <ul>

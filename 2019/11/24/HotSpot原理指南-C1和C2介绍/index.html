@@ -55,7 +55,7 @@
 <meta property="og:description" content="前言HotSpot是一款Java虚拟机的实现，除了基本的解释功能以外，该虚拟机还拥有将字节码编译成机器码的并执行的能力，我们知道，直接执行机器码肯定比解释更快。 HotSpot最初会通过解释的方式执行程序，当它发现某个方法运行得特别频繁时，就会将这些热点（Hot Spot）代码进行编译，编译成平台相关的机器码。这个过程也叫做JIT（Just In Time），与之相对的是AOT（Ahead Of">
 <meta property="og:locale" content="zh-cn">
 <meta property="og:image" content="http://zhyzhyzhy.github.io/images/HotSpot原理指南-C1和C2/add.png">
-<meta property="og:updated_time" content="2019-11-23T16:32:27.275Z">
+<meta property="og:updated_time" content="2020-02-23T10:29:40.512Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="HotSpot原理指南-C1和C2介绍">
 <meta name="twitter:description" content="前言HotSpot是一款Java虚拟机的实现，除了基本的解释功能以外，该虚拟机还拥有将字节码编译成机器码的并执行的能力，我们知道，直接执行机器码肯定比解释更快。 HotSpot最初会通过解释的方式执行程序，当它发现某个方法运行得特别频繁时，就会将这些热点（Hot Spot）代码进行编译，编译成平台相关的机器码。这个过程也叫做JIT（Just In Time），与之相对的是AOT（Ahead Of">
@@ -227,10 +227,16 @@
                 <i class="fa fa-calendar-o"></i>
               </span>
               <span class="post-meta-item-text">Posted on</span>
-              
 
-              <time title="Created: 2019-11-24 00:00:00 / Modified: 00:32:27" itemprop="dateCreated datePublished" datetime="2019-11-24T00:00:00+08:00">2019-11-24</time>
+              <time title="Created: 2019-11-24 00:00:00" itemprop="dateCreated datePublished" datetime="2019-11-24T00:00:00+08:00">2019-11-24</time>
             </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">Edited on</span>
+                <time title="Modified: 2020-02-23 18:29:40" itemprop="dateModified" datetime="2020-02-23T18:29:40+08:00">2020-02-23</time>
+              </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
                 <i class="fa fa-folder-o"></i>
@@ -271,6 +277,7 @@
         <h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>HotSpot是一款Java虚拟机的实现，除了基本的解释功能以外，该虚拟机还拥有将字节码编译成机器码的并执行的能力，我们知道，直接执行机器码肯定比解释更快。</p>
 <p>HotSpot最初会通过解释的方式执行程序，当它发现某个方法运行得特别频繁时，就会将这些热点（Hot Spot）代码进行编译，编译成平台相关的机器码。这个过程也叫做JIT（Just In Time），与之相对的是AOT（Ahead Of Time），比较典型的是C和C++语言。</p>
 <p>HotSpot进行JIT编译的编译器有两个，分别叫做<strong>C1</strong>和<strong>C2</strong>，或者也可以叫做<strong>Client Compiler</strong>和<strong>Server Compiler</strong>。这两种编译器编译策略不同，运用在不同的场景，下面会详细的说明。</p>
+<a id="more"></a>
 <h2 id="JIT编译"><a href="#JIT编译" class="headerlink" title="JIT编译"></a>JIT编译</h2><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Add</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; <span class="number">200</span>; i++) &#123;</span><br><span class="line">            <span class="keyword">long</span> start = System.nanoTime();</span><br><span class="line">            add();</span><br><span class="line">            <span class="keyword">long</span> end = System.nanoTime();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">int</span> <span class="title">add</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">int</span> sum = <span class="number">0</span>;</span><br><span class="line">        <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; <span class="number">1000</span>; i++) &#123;</span><br><span class="line">            sum += i;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> sum;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 <p>上面这段代码，我们有一个<code>add</code>方法，如果我们对改方法进行时间统计，我们会得到下面的曲线。</p>
 <p>X轴是次数，Y轴是时间的log2。</p>

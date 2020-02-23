@@ -46,18 +46,18 @@
   };
 </script>
 
-  <meta name="description" content="同步，阻塞，非阻塞 先来谈谈这个。很多人一直搞不清，从概念上去解释的话，我也很难解释清楚。不过知乎上有个回答很nice。我引用过来。   同步异步，阻塞非阻塞的区别 正常的来说，一段数据流从网络到我们自己设定的数组中，需要经历以下几个阶段  数据到端口 内核把数据从端口拷贝到内核缓存区 用户调用read让内核把缓存区的数据拷贝到我们设定的数组中  同步和异步的区别在实际中就是用户和内核的交互上。">
+  <meta name="description" content="同步，阻塞，非阻塞 先来谈谈这个。很多人一直搞不清，从概念上去解释的话，我也很难解释清楚。不过知乎上有个回答很nice。我引用过来。">
 <meta name="keywords" content="Network">
 <meta property="og:type" content="article">
 <meta property="og:title" content="同步，阻塞，非阻塞">
 <meta property="og:url" content="http://zhyzhyzhy.github.io/2017/08/20/IO之同步，阻塞，非阻塞/index.html">
 <meta property="og:site_name" content="LoveZhy">
-<meta property="og:description" content="同步，阻塞，非阻塞 先来谈谈这个。很多人一直搞不清，从概念上去解释的话，我也很难解释清楚。不过知乎上有个回答很nice。我引用过来。   同步异步，阻塞非阻塞的区别 正常的来说，一段数据流从网络到我们自己设定的数组中，需要经历以下几个阶段  数据到端口 内核把数据从端口拷贝到内核缓存区 用户调用read让内核把缓存区的数据拷贝到我们设定的数组中  同步和异步的区别在实际中就是用户和内核的交互上。">
+<meta property="og:description" content="同步，阻塞，非阻塞 先来谈谈这个。很多人一直搞不清，从概念上去解释的话，我也很难解释清楚。不过知乎上有个回答很nice。我引用过来。">
 <meta property="og:locale" content="zh-cn">
-<meta property="og:updated_time" content="2018-11-12T15:20:36.000Z">
+<meta property="og:updated_time" content="2020-02-23T10:30:00.942Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="同步，阻塞，非阻塞">
-<meta name="twitter:description" content="同步，阻塞，非阻塞 先来谈谈这个。很多人一直搞不清，从概念上去解释的话，我也很难解释清楚。不过知乎上有个回答很nice。我引用过来。   同步异步，阻塞非阻塞的区别 正常的来说，一段数据流从网络到我们自己设定的数组中，需要经历以下几个阶段  数据到端口 内核把数据从端口拷贝到内核缓存区 用户调用read让内核把缓存区的数据拷贝到我们设定的数组中  同步和异步的区别在实际中就是用户和内核的交互上。">
+<meta name="twitter:description" content="同步，阻塞，非阻塞 先来谈谈这个。很多人一直搞不清，从概念上去解释的话，我也很难解释清楚。不过知乎上有个回答很nice。我引用过来。">
 
 <link rel="canonical" href="http://zhyzhyzhy.github.io/2017/08/20/IO之同步，阻塞，非阻塞/">
 
@@ -233,7 +233,7 @@
                   <i class="fa fa-calendar-check-o"></i>
                 </span>
                 <span class="post-meta-item-text">Edited on</span>
-                <time title="Modified: 2018-11-12 23:20:36" itemprop="dateModified" datetime="2018-11-12T23:20:36+08:00">2018-11-12</time>
+                <time title="Modified: 2020-02-23 18:30:00" itemprop="dateModified" datetime="2020-02-23T18:30:00+08:00">2020-02-23</time>
               </span>
 
           
@@ -261,9 +261,9 @@
     <div class="post-body" itemprop="articleBody">
 
       
-        <a id="more"></a>
-<h1 id="同步，阻塞，非阻塞"><a href="#同步，阻塞，非阻塞" class="headerlink" title="同步，阻塞，非阻塞"></a>同步，阻塞，非阻塞</h1><hr>
+        <h1 id="同步，阻塞，非阻塞"><a href="#同步，阻塞，非阻塞" class="headerlink" title="同步，阻塞，非阻塞"></a>同步，阻塞，非阻塞</h1><hr>
 <p>先来谈谈这个。<br>很多人一直搞不清，从概念上去解释的话，我也很难解释清楚。<br>不过知乎上有个回答很nice。我引用过来。  </p>
+<a id="more"></a>
 <p><a href="https://www.zhihu.com/question/19732473" target="_blank" rel="noopener">同步异步，阻塞非阻塞的区别</a></p>
 <p>正常的来说，一段数据流从网络到我们自己设定的数组中，需要经历以下几个阶段</p>
 <ul>

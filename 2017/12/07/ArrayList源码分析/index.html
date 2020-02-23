@@ -46,18 +46,18 @@
   };
 </script>
 
-  <meta name="description" content="前言12public class ArrayList&amp;lt;E&amp;gt; extends AbstractList&amp;lt;E&amp;gt;        implements List&amp;lt;E&amp;gt;, RandomAccess, Cloneable, java.io.Serializable 继承结构是这样 数据结构与扩容操作既然名字是ArrayList，那么底层多多少少和数组有关。 先来看看构造函数">
+  <meta name="description" content="前言12public class ArrayList&amp;lt;E&amp;gt; extends AbstractList&amp;lt;E&amp;gt;        implements List&amp;lt;E&amp;gt;, RandomAccess, Cloneable, java.io.Serializable 继承结构是这样">
 <meta name="keywords" content="Java">
 <meta property="og:type" content="article">
 <meta property="og:title" content="ArrayList源码分析">
 <meta property="og:url" content="http://zhyzhyzhy.github.io/2017/12/07/ArrayList源码分析/index.html">
 <meta property="og:site_name" content="LoveZhy">
-<meta property="og:description" content="前言12public class ArrayList&amp;lt;E&amp;gt; extends AbstractList&amp;lt;E&amp;gt;        implements List&amp;lt;E&amp;gt;, RandomAccess, Cloneable, java.io.Serializable 继承结构是这样 数据结构与扩容操作既然名字是ArrayList，那么底层多多少少和数组有关。 先来看看构造函数">
+<meta property="og:description" content="前言12public class ArrayList&amp;lt;E&amp;gt; extends AbstractList&amp;lt;E&amp;gt;        implements List&amp;lt;E&amp;gt;, RandomAccess, Cloneable, java.io.Serializable 继承结构是这样">
 <meta property="og:locale" content="zh-cn">
-<meta property="og:updated_time" content="2017-12-09T04:19:28.000Z">
+<meta property="og:updated_time" content="2020-02-23T10:29:01.816Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="ArrayList源码分析">
-<meta name="twitter:description" content="前言12public class ArrayList&amp;lt;E&amp;gt; extends AbstractList&amp;lt;E&amp;gt;        implements List&amp;lt;E&amp;gt;, RandomAccess, Cloneable, java.io.Serializable 继承结构是这样 数据结构与扩容操作既然名字是ArrayList，那么底层多多少少和数组有关。 先来看看构造函数">
+<meta name="twitter:description" content="前言12public class ArrayList&amp;lt;E&amp;gt; extends AbstractList&amp;lt;E&amp;gt;        implements List&amp;lt;E&amp;gt;, RandomAccess, Cloneable, java.io.Serializable 继承结构是这样">
 
 <link rel="canonical" href="http://zhyzhyzhy.github.io/2017/12/07/ArrayList源码分析/">
 
@@ -233,7 +233,7 @@
                   <i class="fa fa-calendar-check-o"></i>
                 </span>
                 <span class="post-meta-item-text">Edited on</span>
-                <time title="Modified: 2017-12-09 12:19:28" itemprop="dateModified" datetime="2017-12-09T12:19:28+08:00">2017-12-09</time>
+                <time title="Modified: 2020-02-23 18:29:01" itemprop="dateModified" datetime="2020-02-23T18:29:01+08:00">2020-02-23</time>
               </span>
 
           
@@ -263,6 +263,7 @@
       
         <h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">ArrayList</span>&lt;<span class="title">E</span>&gt; <span class="keyword">extends</span> <span class="title">AbstractList</span>&lt;<span class="title">E</span>&gt;</span></span><br><span class="line"><span class="class">        <span class="keyword">implements</span> <span class="title">List</span>&lt;<span class="title">E</span>&gt;, <span class="title">RandomAccess</span>, <span class="title">Cloneable</span>, <span class="title">java</span>.<span class="title">io</span>.<span class="title">Serializable</span></span></span><br></pre></td></tr></table></figure>
 <p>继承结构是这样</p>
+<a id="more"></a>
 <h2 id="数据结构与扩容操作"><a href="#数据结构与扩容操作" class="headerlink" title="数据结构与扩容操作"></a>数据结构与扩容操作</h2><p>既然名字是<code>ArrayList</code>，那么底层多多少少和数组有关。</p>
 <p>先来看看构造函数里做了啥。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">transient</span> Object[] elementData;</span><br><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> Object[] DEFAULTCAPACITY_EMPTY_ELEMENTDATA = &#123;&#125;;</span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="title">ArrayList</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">this</span>.elementData = DEFAULTCAPACITY_EMPTY_ELEMENTDATA;</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> Object[] EMPTY_ELEMENTDATA = &#123;&#125;;</span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="title">ArrayList</span><span class="params">(<span class="keyword">int</span> initialCapacity)</span> </span>&#123;</span><br><span class="line">	<span class="keyword">if</span> (initialCapacity &gt; <span class="number">0</span>) &#123;</span><br><span class="line">		<span class="keyword">this</span>.elementData = <span class="keyword">new</span> Object[initialCapacity];</span><br><span class="line">	&#125; <span class="keyword">else</span> <span class="keyword">if</span> (initialCapacity == <span class="number">0</span>) &#123;</span><br><span class="line">		<span class="keyword">this</span>.elementData = EMPTY_ELEMENTDATA;</span><br><span class="line">	&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">		<span class="keyword">throw</span> <span class="keyword">new</span> IllegalArgumentException(<span class="string">"Illegal Capacity: "</span>+ initialCapacity);</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
 <p>当构造函数的参数为空时，给成员变量<code>elementData</code>赋了一个空的数组。<br>当我们指定了初始大小的时候，如果参数大于0，那么<code>elementData</code>就是我们设的大小，如果等于0，那么还是赋了一个空的数组给<code>elementData</code>。</p>

@@ -46,18 +46,18 @@
   };
 </script>
 
-  <meta name="description" content="最近想要自己写一个简单的http server，因为之前的那个是epoll的，只能运行在linux平台上。于是我便找到了平台通用的libevent。   libevent是事件驱动的，支持异步的网络框架。   十分值得学习。 由于基于reactor模型，所以事件抽象为event，event loop是reactor，event handler是各种回调函数。 struct event要创建even">
+  <meta name="description" content="最近想要自己写一个简单的http server，因为之前的那个是epoll的，只能运行在linux平台上。于是我便找到了平台通用的libevent。   libevent是事件驱动的，支持异步的网络框架。   十分值得学习。">
 <meta name="keywords" content="Web">
 <meta property="og:type" content="article">
 <meta property="og:title" content="libevent简单使用">
 <meta property="og:url" content="http://zhyzhyzhy.github.io/2017/08/02/libevent简单使用/index.html">
 <meta property="og:site_name" content="LoveZhy">
-<meta property="og:description" content="最近想要自己写一个简单的http server，因为之前的那个是epoll的，只能运行在linux平台上。于是我便找到了平台通用的libevent。   libevent是事件驱动的，支持异步的网络框架。   十分值得学习。 由于基于reactor模型，所以事件抽象为event，event loop是reactor，event handler是各种回调函数。 struct event要创建even">
+<meta property="og:description" content="最近想要自己写一个简单的http server，因为之前的那个是epoll的，只能运行在linux平台上。于是我便找到了平台通用的libevent。   libevent是事件驱动的，支持异步的网络框架。   十分值得学习。">
 <meta property="og:locale" content="zh-cn">
-<meta property="og:updated_time" content="2017-08-04T15:43:54.000Z">
+<meta property="og:updated_time" content="2020-02-23T10:30:23.910Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="libevent简单使用">
-<meta name="twitter:description" content="最近想要自己写一个简单的http server，因为之前的那个是epoll的，只能运行在linux平台上。于是我便找到了平台通用的libevent。   libevent是事件驱动的，支持异步的网络框架。   十分值得学习。 由于基于reactor模型，所以事件抽象为event，event loop是reactor，event handler是各种回调函数。 struct event要创建even">
+<meta name="twitter:description" content="最近想要自己写一个简单的http server，因为之前的那个是epoll的，只能运行在linux平台上。于是我便找到了平台通用的libevent。   libevent是事件驱动的，支持异步的网络框架。   十分值得学习。">
 
 <link rel="canonical" href="http://zhyzhyzhy.github.io/2017/08/02/libevent简单使用/">
 
@@ -233,7 +233,7 @@
                   <i class="fa fa-calendar-check-o"></i>
                 </span>
                 <span class="post-meta-item-text">Edited on</span>
-                <time title="Modified: 2017-08-04 23:43:54" itemprop="dateModified" datetime="2017-08-04T23:43:54+08:00">2017-08-04</time>
+                <time title="Modified: 2020-02-23 18:30:23" itemprop="dateModified" datetime="2020-02-23T18:30:23+08:00">2020-02-23</time>
               </span>
 
           
@@ -264,6 +264,7 @@
         <p>最近想要自己写一个简单的<code>http server</code>，因为之前的那个是<code>epoll</code>的，只能运行在<code>linux</code>平台上。<br>于是我便找到了平台通用的<code>libevent</code>。  </p>
 <p><code>libevent</code>是事件驱动的，支持异步的网络框架。  </p>
 <p>十分值得学习。</p>
+<a id="more"></a>
 <p>由于基于<code>reactor</code>模型，所以事件抽象为<code>event</code>，<code>event loop</code>是<code>reactor</code>，<code>event handler</code>是各种回调函数。</p>
 <p><code>struct event</code><br>要创建<code>event</code>一般使用<code>event_new</code>函数。</p>
 <figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">struct event *<span class="title">event_new</span><span class="params">(struct event_base *base, <span class="keyword">evutil_socket_t</span> fd,</span></span></span><br><span class="line"><span class="function"><span class="params">    <span class="keyword">short</span> what, event_callback_fn cb, <span class="keyword">void</span> *arg)</span></span>;</span><br></pre></td></tr></table></figure>

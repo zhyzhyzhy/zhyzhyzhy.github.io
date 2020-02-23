@@ -46,19 +46,19 @@
   };
 </script>
 
-  <meta name="description" content="前言前面我们讲解了C1和C2的基本知识，但是我们还未触及一个核心的策略，就是什么时候触发即使编译，也就是when的问题。 对于when的问题，相信大家多多少少都大概知道，每个方法都会有一个调用次数的计数器，当这个计数器的次数到达一定的次数时，就会被认为是热点方法，继而触发JIT编译。 但是本文要科普另外一种触发条件，和方法计数器类似。 方法计数器的问题大部分人看来，维护一个方法被调用次数计数器当然">
+  <meta name="description" content="前言前面我们讲解了C1和C2的基本知识，但是我们还未触及一个核心的策略，就是什么时候触发即使编译，也就是when的问题。 对于when的问题，相信大家多多少少都大概知道，每个方法都会有一个调用次数的计数器，当这个计数器的次数到达一定的次数时，就会被认为是热点方法，继而触发JIT编译。 但是本文要科普另外一种触发条件，和方法计数器类似。">
 <meta name="keywords" content="Java">
 <meta property="og:type" content="article">
 <meta property="og:title" content="HotSpot原理指南-OSR是什么">
 <meta property="og:url" content="http://zhyzhyzhy.github.io/2019/11/30/HotSpot原理指南-OSR是什么/index.html">
 <meta property="og:site_name" content="LoveZhy">
-<meta property="og:description" content="前言前面我们讲解了C1和C2的基本知识，但是我们还未触及一个核心的策略，就是什么时候触发即使编译，也就是when的问题。 对于when的问题，相信大家多多少少都大概知道，每个方法都会有一个调用次数的计数器，当这个计数器的次数到达一定的次数时，就会被认为是热点方法，继而触发JIT编译。 但是本文要科普另外一种触发条件，和方法计数器类似。 方法计数器的问题大部分人看来，维护一个方法被调用次数计数器当然">
+<meta property="og:description" content="前言前面我们讲解了C1和C2的基本知识，但是我们还未触及一个核心的策略，就是什么时候触发即使编译，也就是when的问题。 对于when的问题，相信大家多多少少都大概知道，每个方法都会有一个调用次数的计数器，当这个计数器的次数到达一定的次数时，就会被认为是热点方法，继而触发JIT编译。 但是本文要科普另外一种触发条件，和方法计数器类似。">
 <meta property="og:locale" content="zh-cn">
 <meta property="og:image" content="http://zhyzhyzhy.github.io/images/HotSpot原理指南-OSR是什么/hotLoop耗时.png">
-<meta property="og:updated_time" content="2019-11-30T08:38:45.401Z">
+<meta property="og:updated_time" content="2020-02-23T10:29:52.967Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="HotSpot原理指南-OSR是什么">
-<meta name="twitter:description" content="前言前面我们讲解了C1和C2的基本知识，但是我们还未触及一个核心的策略，就是什么时候触发即使编译，也就是when的问题。 对于when的问题，相信大家多多少少都大概知道，每个方法都会有一个调用次数的计数器，当这个计数器的次数到达一定的次数时，就会被认为是热点方法，继而触发JIT编译。 但是本文要科普另外一种触发条件，和方法计数器类似。 方法计数器的问题大部分人看来，维护一个方法被调用次数计数器当然">
+<meta name="twitter:description" content="前言前面我们讲解了C1和C2的基本知识，但是我们还未触及一个核心的策略，就是什么时候触发即使编译，也就是when的问题。 对于when的问题，相信大家多多少少都大概知道，每个方法都会有一个调用次数的计数器，当这个计数器的次数到达一定的次数时，就会被认为是热点方法，继而触发JIT编译。 但是本文要科普另外一种触发条件，和方法计数器类似。">
 <meta name="twitter:image" content="http://zhyzhyzhy.github.io/images/HotSpot原理指南-OSR是什么/hotLoop耗时.png">
 
 <link rel="canonical" href="http://zhyzhyzhy.github.io/2019/11/30/HotSpot原理指南-OSR是什么/">
@@ -227,10 +227,16 @@
                 <i class="fa fa-calendar-o"></i>
               </span>
               <span class="post-meta-item-text">Posted on</span>
-              
 
-              <time title="Created: 2019-11-30 00:00:00 / Modified: 16:38:45" itemprop="dateCreated datePublished" datetime="2019-11-30T00:00:00+08:00">2019-11-30</time>
+              <time title="Created: 2019-11-30 00:00:00" itemprop="dateCreated datePublished" datetime="2019-11-30T00:00:00+08:00">2019-11-30</time>
             </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">Edited on</span>
+                <time title="Modified: 2020-02-23 18:29:52" itemprop="dateModified" datetime="2020-02-23T18:29:52+08:00">2020-02-23</time>
+              </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
                 <i class="fa fa-folder-o"></i>
@@ -271,6 +277,7 @@
         <h1 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h1><p>前面我们讲解了C1和C2的基本知识，但是我们还未触及一个核心的策略，就是<strong>什么时候触发即使编译</strong>，也就是<strong>when</strong>的问题。</p>
 <p>对于when的问题，相信大家多多少少都大概知道，每个方法都会有一个调用次数的计数器，当这个计数器的次数到达一定的次数时，就会被认为是热点方法，继而触发JIT编译。</p>
 <p>但是本文要科普另外一种触发条件，和方法计数器类似。</p>
+<a id="more"></a>
 <h2 id="方法计数器的问题"><a href="#方法计数器的问题" class="headerlink" title="方法计数器的问题"></a>方法计数器的问题</h2><p>大部分人看来，维护一个方法被调用次数计数器当然是一个很完美的方案</p>
 <p>但是有一类方法，即使在我们认知范围内，属于热点方法，但是却无法享受到这个计数器的好处。</p>
 <p>如下代码：</p>

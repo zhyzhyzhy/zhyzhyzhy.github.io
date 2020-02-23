@@ -54,7 +54,7 @@
 <meta property="og:site_name" content="LoveZhy">
 <meta property="og:description" content="起因开始看Lucene源代码，找了个最简单的FSLockFactory开始看。然而还是看出了不明白的地方   在NativeFSLockFactory的close方法中有这么一段注释 1// NOTE: we don&apos;t validate, as unlike SimpleFSLockFactory, we can&apos;t break others locks 我从网上找到了当初的Bug的讨论帖htt">
 <meta property="og:locale" content="zh-cn">
-<meta property="og:updated_time" content="2019-03-29T08:35:34.000Z">
+<meta property="og:updated_time" content="2020-02-23T10:30:12.584Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Java中FileLock的实现细节">
 <meta name="twitter:description" content="起因开始看Lucene源代码，找了个最简单的FSLockFactory开始看。然而还是看出了不明白的地方   在NativeFSLockFactory的close方法中有这么一段注释 1// NOTE: we don&apos;t validate, as unlike SimpleFSLockFactory, we can&apos;t break others locks 我从网上找到了当初的Bug的讨论帖htt">
@@ -225,10 +225,16 @@
                 <i class="fa fa-calendar-o"></i>
               </span>
               <span class="post-meta-item-text">Posted on</span>
-              
 
-              <time title="Created: 2019-03-29 00:00:00 / Modified: 16:35:34" itemprop="dateCreated datePublished" datetime="2019-03-29T00:00:00+08:00">2019-03-29</time>
+              <time title="Created: 2019-03-29 00:00:00" itemprop="dateCreated datePublished" datetime="2019-03-29T00:00:00+08:00">2019-03-29</time>
             </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">Edited on</span>
+                <time title="Modified: 2020-02-23 18:30:12" itemprop="dateModified" datetime="2020-02-23T18:30:12+08:00">2020-02-23</time>
+              </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
                 <i class="fa fa-folder-o"></i>
@@ -271,6 +277,7 @@
 <figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// <span class="doctag">NOTE:</span> we don't validate, as unlike SimpleFSLockFactory, we can't break others locks</span></span><br></pre></td></tr></table></figure>
 <p>我从网上找到了当初的Bug的讨论帖<br><a href="https://issues.apache.org/jira/browse/LUCENE-6507" target="_blank" rel="noopener">https://issues.apache.org/jira/browse/LUCENE-6507</a>  </p>
 <p>从里面讨论了NativeFSLock了一些关于这个文件锁的实现的问题</p>
+<a id="more"></a>
 <h2 id="JDK的BUG"><a href="#JDK的BUG" class="headerlink" title="JDK的BUG"></a>JDK的BUG</h2><blockquote>
 <p>On some systems, closing a channel releases all locks held by the Java virtual machine on the underlying file regardless of whether the locks were acquired via that channel or via another channel open on the same file. It is strongly recommended that, within a program, a unique channel be used to acquire all locks on any given file. </p>
 </blockquote>

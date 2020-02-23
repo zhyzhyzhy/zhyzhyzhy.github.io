@@ -47,7 +47,7 @@
 </script>
 
   <meta name="description" content="前言HotSpot的初衷是将运行环境分为Client和Server，并且为他们定制了不同的JIT策略以及不同的JIT编译器（C1和C2）。 设计出ClientMode的年代，个人PC的性能还比较低，无论是CPU资源还是内存资源都比较稀少且价格较高，所以C1节约资源的快速编译是很有必要的。 随着时代的发展，个人计算机的配置在慢慢升级，同时价格也在慢慢降低，在这种环境下，ClientMode并不是那么">
-<meta name="keywords" content="HotSpot,Java,JIT,JVM">
+<meta name="keywords" content="Java,HotSpot,JIT,JVM">
 <meta property="og:type" content="article">
 <meta property="og:title" content="HotSpot原理指南-分层编译">
 <meta property="og:url" content="http://zhyzhyzhy.github.io/2020/01/04/HotSpot原理指南-分层编译/index.html">
@@ -61,7 +61,7 @@
 <meta property="og:image" content="http://zhyzhyzhy.github.io/images/HotSpot原理指南-分层编译/4个阶段.png">
 <meta property="og:image" content="http://zhyzhyzhy.github.io/images/HotSpot原理指南-分层编译/启动参数.png">
 <meta property="og:image" content="http://zhyzhyzhy.github.io/images/HotSpot原理指南-分层编译/启动参数2.png">
-<meta property="og:updated_time" content="2020-01-04T12:41:15.497Z">
+<meta property="og:updated_time" content="2020-02-23T10:29:32.477Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="HotSpot原理指南-分层编译">
 <meta name="twitter:description" content="前言HotSpot的初衷是将运行环境分为Client和Server，并且为他们定制了不同的JIT策略以及不同的JIT编译器（C1和C2）。 设计出ClientMode的年代，个人PC的性能还比较低，无论是CPU资源还是内存资源都比较稀少且价格较高，所以C1节约资源的快速编译是很有必要的。 随着时代的发展，个人计算机的配置在慢慢升级，同时价格也在慢慢降低，在这种环境下，ClientMode并不是那么">
@@ -233,10 +233,16 @@
                 <i class="fa fa-calendar-o"></i>
               </span>
               <span class="post-meta-item-text">Posted on</span>
-              
 
-              <time title="Created: 2020-01-04 00:00:00 / Modified: 20:41:15" itemprop="dateCreated datePublished" datetime="2020-01-04T00:00:00+08:00">2020-01-04</time>
+              <time title="Created: 2020-01-04 00:00:00" itemprop="dateCreated datePublished" datetime="2020-01-04T00:00:00+08:00">2020-01-04</time>
             </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">Edited on</span>
+                <time title="Modified: 2020-02-23 18:29:32" itemprop="dateModified" datetime="2020-02-23T18:29:32+08:00">2020-02-23</time>
+              </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
                 <i class="fa fa-folder-o"></i>
@@ -277,6 +283,7 @@
         <h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>HotSpot的初衷是将运行环境分为Client和Server，并且为他们定制了不同的JIT策略以及不同的JIT编译器（C1和C2）。</p>
 <p>设计出ClientMode的年代，个人PC的性能还比较低，无论是CPU资源还是内存资源都比较稀少且价格较高，所以C1节约资源的快速编译是很有必要的。</p>
 <p>随着时代的发展，个人计算机的配置在慢慢升级，同时价格也在慢慢降低，在这种环境下，ClientMode并不是那么适用了，所以HotSpot也就慢慢放弃了ClientMode，在个人计算机上默认采用Server模式。</p>
+<a id="more"></a>
 <h2 id="Oracle的想法"><a href="#Oracle的想法" class="headerlink" title="Oracle的想法"></a>Oracle的想法</h2><p>所有的场景都默认使用Server模式自然是没有什么问题的，但是Oracle并不甘心（作者脑补的），主要不甘心在两个方面：</p>
 <ul>
 <li>默认使用Server模式，那么相当于放弃了开发了很久的C1编译器</li>
@@ -398,8 +405,8 @@
 
       <footer class="post-footer">
           <div class="post-tags">
-              <a href="/tags/HotSpot/" rel="tag"># HotSpot</a>
               <a href="/tags/Java/" rel="tag"># Java</a>
+              <a href="/tags/HotSpot/" rel="tag"># HotSpot</a>
               <a href="/tags/JIT/" rel="tag"># JIT</a>
               <a href="/tags/JVM/" rel="tag"># JVM</a>
           </div>

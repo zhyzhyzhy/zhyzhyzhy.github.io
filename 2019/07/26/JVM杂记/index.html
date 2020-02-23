@@ -60,7 +60,7 @@
 <meta property="og:image" content="http://zhyzhyzhy.github.io/images/JVM杂记/写屏障.png">
 <meta property="og:image" content="http://zhyzhyzhy.github.io/images/JVM杂记/栈帧结构.png">
 <meta property="og:image" content="http://zhyzhyzhy.github.io/images/JVM杂记/解释器帧.png">
-<meta property="og:updated_time" content="2019-07-26T05:19:52.000Z">
+<meta property="og:updated_time" content="2020-02-23T10:30:17.951Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="JVM杂记">
 <meta name="twitter:description" content="前言作为写了好几年Java的人，自然想去深入了解一下JVM的构造，它的具体实现。 Clone了代码，运行了起来，看了《HotSpot实战》和《揭秘Java虚拟机-JVM设计原理与实现》，但是能力一般，水平有限，对JVM还是知之甚少，发现继续研究下去将是一种苦修，要做好看很久代码都毫无进展的准备。但是本人志不在此，还是想去研究分布式与数据库，精力有限，只有暂且放弃JVM的深入研究。 如此直接放弃还是">
@@ -232,10 +232,16 @@
                 <i class="fa fa-calendar-o"></i>
               </span>
               <span class="post-meta-item-text">Posted on</span>
-              
 
-              <time title="Created: 2019-07-26 00:00:00 / Modified: 13:19:52" itemprop="dateCreated datePublished" datetime="2019-07-26T00:00:00+08:00">2019-07-26</time>
+              <time title="Created: 2019-07-26 00:00:00" itemprop="dateCreated datePublished" datetime="2019-07-26T00:00:00+08:00">2019-07-26</time>
             </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">Edited on</span>
+                <time title="Modified: 2020-02-23 18:30:17" itemprop="dateModified" datetime="2020-02-23T18:30:17+08:00">2020-02-23</time>
+              </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
                 <i class="fa fa-folder-o"></i>
@@ -277,6 +283,7 @@
 <p>Clone了代码，运行了起来，看了《HotSpot实战》和《揭秘Java虚拟机-JVM设计原理与实现》，但是能力一般，水平有限，对JVM还是知之甚少，发现继续研究下去将是一种苦修，要做好看很久代码都毫无进展的准备。但是本人志不在此，还是想去研究分布式与数据库，精力有限，只有暂且放弃JVM的深入研究。</p>
 <p>如此直接放弃还是有点可惜，虽然目前学到的不成体系，但是还是想写一篇Blog记录一下。</p>
 <p>所以此博客是上文提到的两本书的摘要+自己的一些学习理解，内容会很散，同时为了省力，摘要部分不特别标出。</p>
+<a id="more"></a>
 <h2 id="源码目录"><a href="#源码目录" class="headerlink" title="源码目录"></a>源码目录</h2><p>HotSpot源码目录较多，有几个是比较重要的</p>
 <ul>
 <li>/c1 =&gt; 客户端解释器</li>

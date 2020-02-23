@@ -47,7 +47,7 @@
 </script>
 
   <meta name="description" content="前言通过前面我们知道，对于每个方法，HotSpot都维护两个计数器  Invocation Counter：方法被调用次数，每被调用一次都会+1 BackEdge Counter：专业的说法就是字节码在执行时的回跳次数。通俗点说就是，在For或者While循环中，每执行一次，都会+1。  并且我们知道对于一个方法，JIT有两种不同的编译方式  完整的原方法编译，就是把原本的方法逻辑进行编译。入参和">
-<meta name="keywords" content="HotSpot,Java,JIT">
+<meta name="keywords" content="Java,HotSpot,JIT">
 <meta property="og:type" content="article">
 <meta property="og:title" content="HotSpot原理指南-JIT触发条件">
 <meta property="og:url" content="http://zhyzhyzhy.github.io/2019/12/14/HotSpot原理指南-JIT触发条件/index.html">
@@ -55,7 +55,7 @@
 <meta property="og:description" content="前言通过前面我们知道，对于每个方法，HotSpot都维护两个计数器  Invocation Counter：方法被调用次数，每被调用一次都会+1 BackEdge Counter：专业的说法就是字节码在执行时的回跳次数。通俗点说就是，在For或者While循环中，每执行一次，都会+1。  并且我们知道对于一个方法，JIT有两种不同的编译方式  完整的原方法编译，就是把原本的方法逻辑进行编译。入参和">
 <meta property="og:locale" content="zh-cn">
 <meta property="og:image" content="http://zhyzhyzhy.github.io/images/HotSpot原理指南-JIT触发条件/编译流程.png">
-<meta property="og:updated_time" content="2019-12-14T15:46:07.526Z">
+<meta property="og:updated_time" content="2020-02-23T10:29:45.890Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="HotSpot原理指南-JIT触发条件">
 <meta name="twitter:description" content="前言通过前面我们知道，对于每个方法，HotSpot都维护两个计数器  Invocation Counter：方法被调用次数，每被调用一次都会+1 BackEdge Counter：专业的说法就是字节码在执行时的回跳次数。通俗点说就是，在For或者While循环中，每执行一次，都会+1。  并且我们知道对于一个方法，JIT有两种不同的编译方式  完整的原方法编译，就是把原本的方法逻辑进行编译。入参和">
@@ -227,10 +227,16 @@
                 <i class="fa fa-calendar-o"></i>
               </span>
               <span class="post-meta-item-text">Posted on</span>
-              
 
-              <time title="Created: 2019-12-14 00:00:00 / Modified: 23:46:07" itemprop="dateCreated datePublished" datetime="2019-12-14T00:00:00+08:00">2019-12-14</time>
+              <time title="Created: 2019-12-14 00:00:00" itemprop="dateCreated datePublished" datetime="2019-12-14T00:00:00+08:00">2019-12-14</time>
             </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">Edited on</span>
+                <time title="Modified: 2020-02-23 18:29:45" itemprop="dateModified" datetime="2020-02-23T18:29:45+08:00">2020-02-23</time>
+              </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
                 <i class="fa fa-folder-o"></i>
@@ -284,6 +290,7 @@
 <li>BackEdge Counter  -&gt; OSR编译</li>
 </ul>
 <p>当对应的方法计数器达到一定的次数，就会触发响应的编译</p>
+<a id="more"></a>
 <h2 id="编译流程图"><a href="#编译流程图" class="headerlink" title="编译流程图"></a>编译流程图</h2><p>完整的编译流程如下：</p>
 <p><img src="/images/HotSpot原理指南-JIT触发条件/编译流程.png" alt=""></p>
 <p><strong>注：该图引自R大的JVM分享PPT，如有侵权，请联系我删除</strong></p>
@@ -357,8 +364,8 @@
 
       <footer class="post-footer">
           <div class="post-tags">
-              <a href="/tags/HotSpot/" rel="tag"># HotSpot</a>
               <a href="/tags/Java/" rel="tag"># Java</a>
+              <a href="/tags/HotSpot/" rel="tag"># HotSpot</a>
               <a href="/tags/JIT/" rel="tag"># JIT</a>
           </div>
 

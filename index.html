@@ -226,7 +226,7 @@
               <span class="post-meta-item-text">Posted on</span>
               
 
-              <time title="Created: 2020-02-23 00:00:00 / Modified: 12:26:58" itemprop="dateCreated datePublished" datetime="2020-02-23T00:00:00+08:00">2020-02-23</time>
+              <time title="Created: 2020-02-23 00:00:00 / Modified: 18:25:40" itemprop="dateCreated datePublished" datetime="2020-02-23T00:00:00+08:00">2020-02-23</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -265,42 +265,15 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>虽然网上教程很多，但是我依然要写系列！<br>因为我踩到的坑有的是网上没有遇到过的。</p>
-<h2 id="详细步骤"><a href="#详细步骤" class="headerlink" title="详细步骤"></a>详细步骤</h2><h3 id="克隆源码"><a href="#克隆源码" class="headerlink" title="克隆源码"></a>克隆源码</h3><p><code>git clone https://github.com/apache/kafka.git</code></p>
-<p><strong>这个时候切记不能先用idea直接打开项目！</strong><br><strong>这个时候切记不能先用idea直接打开项目！</strong><br><strong>这个时候切记不能先用idea直接打开项目！</strong></p>
-<h3 id="打包环境"><a href="#打包环境" class="headerlink" title="打包环境"></a>打包环境</h3><p>kafka自带了一些Gradle的Task，可以生成出导入Eclipse或者Idea配置。<br>在Kafka目录下执行</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">./gradlew jar</span><br><span class="line">./gradlew idea</span><br></pre></td></tr></table></figure>
-<p>这个时候目录下会出现一个文件叫<code>kafka.ipr</code><br>在finder中双击这个文件，idea会自动打开并导入项目。<br><strong>注：也就是这个时候才会打开Idea</strong></p>
-<h3 id="配置Gradle"><a href="#配置Gradle" class="headerlink" title="配置Gradle"></a>配置Gradle</h3><p>一般Idea打开会，右下角会弹出一个框，大致意思是：</p>
-<blockquote>
-<p>我们检测出这个是Gradle项目，需要导入Gradle的配置吗？</p>
-</blockquote>
-<p>这个时候，点击确认就行。</p>
-<p>如果打开Idea啥也没发生，那么就需要我们自己打开文件<code>build.gradle</code><br>然后进行刷新之类的操作，具体我也忘了怎么操作的。</p>
-<h3 id="修改配置"><a href="#修改配置" class="headerlink" title="修改配置"></a>修改配置</h3><p>一些配置的修改是比较重要的</p>
-<ol>
-<li>文件build.gradle<br>第一处修改：<br>找到<code>tasks.withType(ScalaCompile) {</code>这一行<br>修改<code>scalaCompileOptions.additionalParameters</code>的配置<figure class="highlight gradle"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line">    scalaCompileOptions.additionalParameters = [</span><br><span class="line">      <span class="string">"-nowarn"</span>,  <span class="comment">//新增</span></span><br><span class="line">      <span class="string">"-deprecation"</span>,</span><br><span class="line">      <span class="string">"-unchecked"</span>,</span><br><span class="line">      <span class="string">"-encoding"</span>, <span class="string">"utf8"</span>,</span><br><span class="line">      <span class="string">"-Xlog-reflective-calls"</span>,</span><br><span class="line">      <span class="string">"-feature"</span>,</span><br><span class="line">      <span class="string">"-language:postfixOps"</span>,</span><br><span class="line">      <span class="string">"-language:implicitConversions"</span>,</span><br><span class="line">      <span class="string">"-language:existentials"</span>,</span><br><span class="line"><span class="comment">//      "-Xlint:constant",  //注释</span></span><br><span class="line"><span class="comment">//      "-Xlint:delayedinit-select",</span></span><br><span class="line"><span class="comment">//      "-Xlint:doc-detached",</span></span><br><span class="line"><span class="comment">//      "-Xlint:missing-interpolator",</span></span><br><span class="line"><span class="comment">//      "-Xlint:nullary-override",</span></span><br><span class="line"><span class="comment">//      "-Xlint:nullary-unit",</span></span><br><span class="line"><span class="comment">//      "-Xlint:option-implicit",</span></span><br><span class="line"><span class="comment">//      "-Xlint:package-object-classes",</span></span><br><span class="line"><span class="comment">//      "-Xlint:poly-implicit-overload",</span></span><br><span class="line"><span class="comment">//      "-Xlint:private-shadow",</span></span><br><span class="line"><span class="comment">//      "-Xlint:stars-align",</span></span><br><span class="line"><span class="comment">//      "-Xlint:type-parameter-shadow",</span></span><br><span class="line"><span class="comment">//      "-Xlint:unused"</span></span><br><span class="line">    ]</span><br></pre></td></tr></table></figure>
-</li>
-</ol>
-<p>第二处修改：<br>还有<code>tasks.withType(JavaCompile) {</code>这一行<br>修改为<br><figure class="highlight gradle"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">  tasks.withType(JavaCompile) &#123;</span><br><span class="line">    <span class="keyword">options</span>.encoding = <span class="string">'UTF-8'</span></span><br><span class="line"><span class="comment">//    options.compilerArgs &lt;&lt; "-Xlint:all"</span></span><br><span class="line">    <span class="comment">// temporary exclusions until all the warnings are fixed</span></span><br><span class="line"><span class="comment">//    options.compilerArgs &lt;&lt; "-Xlint:-rawtypes"</span></span><br><span class="line"><span class="comment">//    options.compilerArgs &lt;&lt; "-Xlint:-serial"</span></span><br><span class="line"><span class="comment">//    options.compilerArgs &lt;&lt; "-Xlint:-try"</span></span><br><span class="line"><span class="comment">//    options.compilerArgs &lt;&lt; "-Werror"</span></span><br><span class="line">    <span class="comment">// --release is the recommended way to select the target release, but it's only supported in Java 9 so we also</span></span><br><span class="line">    <span class="comment">// set --source and --target via `sourceCompatibility` and `targetCompatibility`. If/when Gradle supports `--release`</span></span><br><span class="line">    <span class="comment">// natively (https://github.com/gradle/gradle/issues/2510), we should switch to that.</span></span><br><span class="line">    <span class="keyword">if</span> (JavaVersion.current().isJava9Compatible())</span><br><span class="line">      <span class="keyword">options</span>.compilerArgs &lt;&lt; <span class="string">"--release"</span> &lt;&lt; minJavaVersion</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure></p>
-<p><strong>上面两个修改主要是为了Idea启动时编译，会把一堆warn当做Error报出来，Gradle不给启动</strong></p>
-<p>第三处修改：<br>找到<code>project(&#39;:core&#39;) {</code>这一行<br>下面会有一堆<br><figure class="highlight gradle"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">dependencies</span> &#123;</span><br><span class="line">  <span class="keyword">compile</span> <span class="keyword">project</span>(<span class="string">':clients'</span>)</span><br><span class="line">  <span class="keyword">compile</span> libs.jacksonDatabind</span><br><span class="line">  <span class="keyword">compile</span> libs.jacksonModuleScala</span><br><span class="line">~~~</span><br></pre></td></tr></table></figure></p>
-<p>这种配置<br>在<code>compileOnly libs.log4j</code>这一行的下面，加上<br><code>compile libs.slf4jlog4j</code></p>
-<p><strong>这个修改主要是终端启动Kafka的时候日志打印不出来的问题</strong></p>
-<blockquote>
-<p>很多的网上的答案都是让自己把两个依赖加进去，但是我发现其实Kafka配置了两个依赖，但是却没有Compile，所以不需要自己加进去，只要加上这行配置就行</p>
-</blockquote>
-<ol>
-<li>配置log4j文件<br>第一步：把config目录下的log4j.properties文件复制到core/src/main/resources目录下<br>需要创建rescources目录<br>如图所示：<br><img src="/images/Kafka源码导入Idea/log4j1.png" alt=""></li>
-</ol>
-<p><strong>并不是很多网上说的复制到/scala目录下</strong></p>
-<p>第二步：修改log4j.properties文件<br>主要是把很多的<code>${kafka.logs.dir}</code>这种变量去掉，换成自己电脑上的绝对路径</p>
-<h2 id="启动配置"><a href="#启动配置" class="headerlink" title="启动配置"></a>启动配置</h2><p>下面就是启动配置了，这个网上都有，我就直接复制一下</p>
-<p><strong>首先得自己启动一个Zookeeper进程</strong></p>
-<h3 id="Broker"><a href="#Broker" class="headerlink" title="Broker"></a>Broker</h3><p><img src="/images/Kafka源码导入Idea/Kafka.png" alt=""></p>
-<h3 id="Consumer"><a href="#Consumer" class="headerlink" title="Consumer"></a>Consumer</h3><p><strong>Program arguments可根据自己的情况修改</strong><br><img src="/images/Kafka源码导入Idea/consumer.png" alt=""></p>
-<h3 id="produer"><a href="#produer" class="headerlink" title="produer"></a>produer</h3><p><strong>Program arguments可根据自己的情况修改</strong><br><img src="/images/Kafka源码导入Idea/producer.png" alt=""></p>
-
+          <h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>虽然网上教程很多，但是我依然要写系列<br>因为我踩到的坑有的是网上没有遇到过的</p>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2020/02/23/Kafka源码导入Idea/#more" rel="contents">
+                Read more &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
       
     </div>
 
@@ -342,10 +315,16 @@
                 <i class="fa fa-calendar-o"></i>
               </span>
               <span class="post-meta-item-text">Posted on</span>
-              
 
-              <time title="Created: 2020-01-11 00:00:00 / Modified: 18:38:26" itemprop="dateCreated datePublished" datetime="2020-01-11T00:00:00+08:00">2020-01-11</time>
+              <time title="Created: 2020-01-11 00:00:00" itemprop="dateCreated datePublished" datetime="2020-01-11T00:00:00+08:00">2020-01-11</time>
             </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">Edited on</span>
+                <time title="Modified: 2020-02-23 18:27:41" itemprop="dateModified" datetime="2020-02-23T18:27:41+08:00">2020-02-23</time>
+              </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
                 <i class="fa fa-folder-o"></i>
@@ -383,86 +362,15 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <h2 id="介绍"><a href="#介绍" class="headerlink" title="介绍"></a>介绍</h2><p>延迟任务的实现，一般是利用有序队列，按照执行时间的顺序排列，然后有个线程不断的去取第一个元素，如果到了需要执行的时间，就去执行。</p>
-<p>伪代码：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Delay</span> </span>&#123;</span><br><span class="line">    Queue&lt;Comparable&gt; taskQueue;</span><br><span class="line">    </span><br><span class="line">    <span class="function">func <span class="title">add</span><span class="params">(Comparable task)</span> </span>&#123;</span><br><span class="line">        taskQueue.add(task);</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="function">func <span class="title">pollAndRun</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">for</span> (;;) &#123;</span><br><span class="line">                var task = taskQueue.peek();</span><br><span class="line">                <span class="keyword">if</span> (task.expireTime &lt;= System.currentTime) &#123;</span><br><span class="line">                    run(taskQueue.poll());</span><br><span class="line">                &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                    Thread.sleep(task.expireTime - System.currentTime);</span><br><span class="line">                &#125;</span><br><span class="line">        &#125; </span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
-<p><strong>注意：这里的伪代码不完善，在add方法中，一般来说在某种情况下要interrupt执行pollAndRun的线程。</strong></p>
-<p>目前聚焦的主要问题是Queue是怎么个实现法。<br>在Java中有优先权队列可以进行排序，底层是基于最小堆做的，插入和删除的时间复杂度是O(logn)</p>
-<p>当然正常情况下，这种实现可以了，Java中的标准实现也是这样。</p>
-<p>但是呢，Kafka中有大量的<strong>低延迟</strong>的任务，如果都用最小堆去做，难免性能不太好<br>所以Kafka中实现了时间轮的算法，将插入和删除的时间复杂度降低到了O(1)。</p>
-<p>下面细讲下实现：</p>
-<h2 id="数据结构"><a href="#数据结构" class="headerlink" title="数据结构"></a>数据结构</h2><p>源码路径在：<code>package kafka.utils.timer</code>下。</p>
-<h3 id="TimerTask"><a href="#TimerTask" class="headerlink" title="TimerTask"></a>TimerTask</h3><p>Task是队列中的执行元素</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">trait TimerTask extends Runnable &#123;</span><br><span class="line">    val delayMs: Long </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>实现了Runnable接口，delayMs是指的需要被执行的时间戳，不是相对时间</p>
-<h3 id="TimerTaskList"><a href="#TimerTaskList" class="headerlink" title="TimerTaskList"></a>TimerTaskList</h3><p>看名字就知道是存储Task的集合类</p>
-<p>但是其实它的定义并没有我开始想的那么简单</p>
-<p>TimerTask在TimerTaskList内部的存储形式是双向链表</p>
-<p>所以TimerTask其实被TimerTaskEntry的类包装了一层，增加了Prev和Next指针。</p>
-<p><img src="/images/Kafka时间轮/TimerTaskList.png"></p>
-<p>但是注意哦，这里虽然TimerTask实现了Comparable接口，但是TimerTaskList内部其实就是个简单的双向列表，并不会根据TimerTask的expireTime进行排序。</p>
-<p>恰恰相反，TimerTaskList也实现了Comparable接口。</p>
-<p>在TimerTaskList内部，有一个变量</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span>[<span class="keyword">this</span>] val expiration = <span class="keyword">new</span> AtomicLong(-<span class="number">1L</span>)</span><br></pre></td></tr></table></figure>
-<p>从名字中看出其实是存放的是到期时间，TimerTask有过期时间我们可以理解，那么为什么TimerTaskList也有个过期时间？</p>
-<p>这个过期时间是怎么定的，有什么用？</p>
-<h3 id="TimingWheel"><a href="#TimingWheel" class="headerlink" title="TimingWheel"></a>TimingWheel</h3><p>来了，时间轮最主要的数据结构来了。</p>
-<p><img src="/images/Kafka时间轮/TimerWheel.png"></p>
-<p>首先，看图中，模仿了一个钟表的运行图。<br>每tick一下，就把当前指针指向下一个格子。<br>其中每个格子对应着一个TimerTaskList</p>
-<p>格子在Kafka中叫bucket<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">val buckets = Array.tabulate[TimerTaskList](wheelSize) &#123; _ =&gt; <span class="keyword">new</span> TimerTaskList(taskCounter) &#125;</span><br></pre></td></tr></table></figure></p>
-<p>每一格代表的时间叫TickMs，整个表最长的跨度叫Interval。</p>
-<p>如果TickMs=5，Bucket=4，就表示这个时间轮有4个格子，总共能执行20ms内的延迟任务，同时TickMs也就是该时间轮保证的延迟任务的延迟执行的单位。</p>
-<p>什么意思呢？就是说如果一个任务是2ms后执行，一个是4ms后执行，但是整个时间轮的TickMs是5ms，那么这两个任务在时间轮看来其实是没区别，是同时执行。</p>
-<p>所以时间轮的TickMs最小，时间就越精确。</p>
-<p>如果延迟时间超过了该时间轮的Interval怎么办？</p>
-<p>比如执行50ms后才运行的任务，则需要建立跨度更大的时间轮。</p>
-<p>而Kafka中会自动建立跨度更大的时间轮，叫overflowWheel，<strong>更大的时间轮的TickMs是下一层的Interval</strong>。</p>
-<p>看到这里，其实可以解答TimerTaskList中的expiration有什么用了。</p>
-<p>这里的expiration其实就是整个TimerTaskList的过期时间，是TickMs的整数倍</p>
-<p>与在TimerTaskList中每个Task的具体延迟时间关系是</p>
-<p><code>TimerTaskList.expiration &lt;= Task.expiration &lt;= TimerTaskList.expiration + TickMs</code></p>
-<p>在Kafka中，默认的时间轮配置TickMs=1，Bucket=20，也就是20MS内的延迟任务。</p>
-<h2 id="运行"><a href="#运行" class="headerlink" title="运行"></a>运行</h2><p>讲完了数据结构，下面需要讲怎么运行了。<br>TimingWheel的运行，交给了Timer来操作。<br>Timer有两个方法<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//往时间轮中加入任务</span></span><br><span class="line"><span class="function">def <span class="title">add</span><span class="params">(timerTask: TimerTask)</span></span>&#123;&#125;</span><br><span class="line"><span class="comment">//驱动时间轮向前Tick</span></span><br><span class="line"><span class="function">def <span class="title">advanceClock</span><span class="params">(timeoutMs: Long)</span></span>&#123;&#125;</span><br></pre></td></tr></table></figure></p>
-<h3 id="菜鸡的猜想方案"><a href="#菜鸡的猜想方案" class="headerlink" title="菜鸡的猜想方案"></a>菜鸡的猜想方案</h3><p>让我们暂时脱离源码，猜猜时间轮怎么运行的。</p>
-<p><img src="/images/Kafka时间轮/tick.png" alt=""></p>
-<p>正常来说，我们把任务分到具体的Bucket中，每隔一个TickMs，将当前的指针向下运行一格。</p>
-<p>找到这一格中的TimerTaskList，将里面的任务全部拿出来run一遍。</p>
-<p>伪代码如下：</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">List&lt;TimerTaskList&gt; buckets;</span><br><span class="line"><span class="keyword">int</span> nextBucket;</span><br><span class="line"><span class="function">func <span class="title">tick</span><span class="params">()</span> </span>&#123;</span><br><span class="line">  var timerTaskList = buckets.get(nextBucket % buckets.length)</span><br><span class="line">  <span class="keyword">if</span> (timerTaskList.expiration &lt;= System.currentTime) &#123;</span><br><span class="line">    timerTaskList.timerTaskEntrys.foreach(entry -&gt; entry.run()));</span><br><span class="line">    timerTaskList.timerTaskEntrys.foreach(TimerTaskList::remove);</span><br><span class="line">    nextBucket++;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>在add元素的时候，先需要判断当前的时间轮是否能承载延迟时间，如果不能，则建立overflowWheel，加到overflowWheel中。</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">List&lt;TimerTaskList&gt; buckets;</span><br><span class="line"><span class="function">func <span class="title">add</span><span class="params">(taskEntry)</span> </span>&#123;</span><br><span class="line">  var targetBucketId = (taskEntry.expiration - System.time) / tickMs + nextBucket;</span><br><span class="line">  var timerTaskList = buckets.get(targetBucketId % buckets.length)</span><br><span class="line">  timerTaskList.add(taskEntry);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>看起来非常完美，但是问题来了，这个tick函数，怎么个运行策略呢？</p>
-<p>如果要要跑的非常精确的话，必须要有个线程去单独驱动是肯定的，线程里还得这么跑</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//1</span></span><br><span class="line"><span class="function">func <span class="title">run</span><span class="params">()</span> </span>&#123;</span><br><span class="line">  <span class="keyword">for</span> (;;) &#123;</span><br><span class="line">    timer.tick()</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">//2</span></span><br><span class="line"><span class="function">func <span class="title">run</span><span class="params">()</span> </span>&#123;</span><br><span class="line">  <span class="keyword">for</span> (;;) &#123;</span><br><span class="line">    timer.tick()</span><br><span class="line">    sleep(timer.tickms)</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>有方案1和方案2两种，第二种肯定是有问题的，如果出现了FullGC的情况，那么整个时间轮就不准了。</p>
-<p>只能选择第一种方案，那么第一种肯定是不行的，这样CPU就是100%了，即使时间轮中没有任何任务，很多时间都是无用功，太浪费CPU了。</p>
-<p>其实这里还有个很严重的问题，我们没有考虑overflowWheel。</p>
-<p>正常情况下，在overflowWheel中的任务，如果已经到了下一层TimingWheel的interval范围内，是需要手动放到下一层的。</p>
-<p>如果是这种实现的话，对于overflowWheel的处理会更加的复杂。</p>
-<h3 id="Kafka中的实现"><a href="#Kafka中的实现" class="headerlink" title="Kafka中的实现"></a>Kafka中的实现</h3><p>菜鸡的猜想方案是不行的，面试都是直接挂的节奏。</p>
-<p>所以这种思路是不成立的，那么我们能不能换个思路呢？</p>
-<p>我们沿用最基本的最小堆来实现延迟任务的思路，建立一个优先权队列</p>
-<p>但是队列中的元素不再是TimerTask了，而是TimerTaskList，相比较最原始的方案，队列中的元素少了一个数量级。</p>
-<p>这样，每次单独的线程进行Tick的时候，选出最早需要执行的TimerTaskList，如果还没到执行时间，就可以进行Sleep，而不是占满CPU。</p>
-<p>所以在TimingWheel中增加一个数据结构</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">var queue = <span class="keyword">new</span> PriorityQueue&lt;TimerTaskList&gt;()</span><br></pre></td></tr></table></figure>
-<p>每次进行add时，除了把TaskEntry添加到TimerTaskEntry中，还将TimerTaskList添加到queue中。</p>
-<p>这样线程的驱动函数就是这么写：</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">func <span class="title">run</span><span class="params">()</span> </span>&#123;</span><br><span class="line">  <span class="keyword">for</span> (;;) &#123;</span><br><span class="line">    var timerTaskList = timer.queue.poll();</span><br><span class="line">    <span class="keyword">if</span> (timerTaskList.expiration &lt; System.time) &#123;</span><br><span class="line">      sleep(System.time - timerTaskList.expiration);</span><br><span class="line">    &#125;</span><br><span class="line">    ...</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>虽然也使用了插入是O(logn)的最小堆结构，但是堆中元素不再是全量的Task了，而是TaskList，所以时间复杂度其实类似于O(1)了。</p>
-<p>那么对于overflowWheel里面的Task怎么处理呢？</p>
-<p>很简单，和第一层的timingWheel一样，将overFlowWheel中的TimerTaskList也加到queue中</p>
-<p>但是从Queue取出的时候，就不是立即执行了，而是再走一遍add程序</p>
-<p>下面是源码：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line">//类似于源代码中nextBuckets的作用，这里是绝对时间，startMs是时间轮的开始的绝对时间，这里计算成tickMs的整数倍</span><br><span class="line">private[this] var currentTime = startMs - (startMs % tickMs)</span><br><span class="line"></span><br><span class="line">//向时间轮中加入任务</span><br><span class="line">def add(timerTaskEntry: TimerTaskEntry): Boolean = &#123;</span><br><span class="line">   val expiration = timerTaskEntry.expirationMs</span><br><span class="line">   if (timerTaskEntry.cancelled) &#123;</span><br><span class="line">     //如果任务已经取消，添加失败，可以直接实行</span><br><span class="line">     false</span><br><span class="line">   &#125; else if (expiration &lt; currentTime + tickMs) &#123;</span><br><span class="line">     //如果已经到执行时间，那么也是可以直接执行</span><br><span class="line">     false</span><br><span class="line">   &#125; else if (expiration &lt; currentTime + interval) &#123;</span><br><span class="line">           //这里其实还挺难理解的，如果我们按照钟表的概念，指针每隔一段时间去转动一下，就很难理解下面的代码</span><br><span class="line">           //这里其实就是每隔tickMs，指针不转，整个表顺时针转tickMs圈</span><br><span class="line">     val virtualId = expiration / tickMs</span><br><span class="line">     val bucket = buckets((virtualId % wheelSize.toLong).toInt)</span><br><span class="line">     bucket.add(timerTaskEntry)</span><br><span class="line"></span><br><span class="line">     if (bucket.setExpiration(virtualId * tickMs)) &#123;</span><br><span class="line">       //如果Bucket的失效时间设置成功，就把这个TimerTaskList加入到queue中</span><br><span class="line">       queue.offer(bucket)</span><br><span class="line">     &#125;</span><br><span class="line">     true</span><br><span class="line">   &#125; else &#123;</span><br><span class="line">     //放不下，建立overflowWheel，overflowWheel和当前timingWheel公用一个queue</span><br><span class="line">     if (overflowWheel == null) addOverflowWheel()</span><br><span class="line">     overflowWheel.add(timerTaskEntry)</span><br><span class="line">   &#125;</span><br><span class="line"> &#125;</span><br></pre></td></tr></table></figure>
-<p>timingWheel的advanceClock代码：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">def advanceClock(timeMs: Long): Unit = &#123;</span><br><span class="line">  if (timeMs &gt;= currentTime + tickMs) &#123;</span><br><span class="line">    currentTime = timeMs - (timeMs % tickMs)</span><br><span class="line">    if (overflowWheel != null) overflowWheel.advanceClock(currentTime)</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>主要就是调整下currentTime，其实currentTime在有了queue之后，就没有其他作用了，主要就是在add方法中拦住即将过期或者已经过期的任务</p>
-<p>下面是伪代码中的run方法：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">def advanceClock(timeoutMs: Long): Boolean = &#123;</span><br><span class="line">   var bucket = delayQueue.poll(timeoutMs, TimeUnit.MILLISECONDS)</span><br><span class="line">   if (bucket != null) &#123;</span><br><span class="line">     writeLock.lock()</span><br><span class="line">     try &#123;</span><br><span class="line">       while (bucket != null) &#123;</span><br><span class="line">         timingWheel.advanceClock(bucket.getExpiration())</span><br><span class="line">         //这里不能把bucket中的任务全部执行，因为可能是overFlowWheel中的TimerTaskList，还没到执行时间，直接再走一遍add程序</span><br><span class="line">         bucket.flush(reinsert)</span><br><span class="line">         bucket = delayQueue.poll()</span><br><span class="line">       &#125;</span><br><span class="line">     &#125; finally &#123;</span><br><span class="line">       writeLock.unlock()</span><br><span class="line">     &#125;</span><br><span class="line">     true</span><br><span class="line">   &#125; else &#123;</span><br><span class="line">     false</span><br><span class="line">   &#125;</span><br><span class="line"> &#125;</span><br></pre></td></tr></table></figure>
-<p>注意一下这里的delayQueue，其中poll方法返回的是过期的任务，并不是集合中第一个元素。</p>
-<p>也就是说，即使queue中元素，但是没有元素要过期，返回的也是null。</p>
-<p>当时作者在哪儿晕了半天。</p>
-
+          <h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>Kafka延迟任务的实现</p>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2020/01/11/Kafka时间轮实现/#more" rel="contents">
+                Read more &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
       
     </div>
 
@@ -504,10 +412,16 @@
                 <i class="fa fa-calendar-o"></i>
               </span>
               <span class="post-meta-item-text">Posted on</span>
-              
 
-              <time title="Created: 2020-01-04 00:00:00 / Modified: 20:41:15" itemprop="dateCreated datePublished" datetime="2020-01-04T00:00:00+08:00">2020-01-04</time>
+              <time title="Created: 2020-01-04 00:00:00" itemprop="dateCreated datePublished" datetime="2020-01-04T00:00:00+08:00">2020-01-04</time>
             </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">Edited on</span>
+                <time title="Modified: 2020-02-23 18:29:32" itemprop="dateModified" datetime="2020-02-23T18:29:32+08:00">2020-02-23</time>
+              </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
                 <i class="fa fa-folder-o"></i>
@@ -548,102 +462,14 @@
           <h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>HotSpot的初衷是将运行环境分为Client和Server，并且为他们定制了不同的JIT策略以及不同的JIT编译器（C1和C2）。</p>
 <p>设计出ClientMode的年代，个人PC的性能还比较低，无论是CPU资源还是内存资源都比较稀少且价格较高，所以C1节约资源的快速编译是很有必要的。</p>
 <p>随着时代的发展，个人计算机的配置在慢慢升级，同时价格也在慢慢降低，在这种环境下，ClientMode并不是那么适用了，所以HotSpot也就慢慢放弃了ClientMode，在个人计算机上默认采用Server模式。</p>
-<h2 id="Oracle的想法"><a href="#Oracle的想法" class="headerlink" title="Oracle的想法"></a>Oracle的想法</h2><p>所有的场景都默认使用Server模式自然是没有什么问题的，但是Oracle并不甘心（作者脑补的），主要不甘心在两个方面：</p>
-<ul>
-<li>默认使用Server模式，那么相当于放弃了开发了很久的C1编译器</li>
-<li>由于Server模式JIT编译策略问题，会导致应用的Warm-Up时间较长</li>
-</ul>
-<p>那么有没有什么方法可以结合C1和C2呢？</p>
-<p>比如用C1解决Warm-Up时间过长的问题。</p>
-<h2 id="分层编译"><a href="#分层编译" class="headerlink" title="分层编译"></a>分层编译</h2><p>前面提到过，Oracle想用C1解决Server模式中Warm-Up时间过长的问题，于是引入了分层编译的概念。</p>
-<p>如下图所示：</p>
-<p><img src="/images/HotSpot原理指南-分层编译/c1c2.png" alt=""></p>
-<p>解释阶段主要是为了收集运行时Profile，Profile收集的越多，对JIT编译出的代码性能帮助越大。</p>
-<p>先看上半部分图，如果我们采用传统的ServerMode运行，在一段时间X内，只能收集300份Profile，然后将这些Profile丢给C2去进行编译。</p>
-<p>我们可以减少解释模式的运行时间，尽快用C1把字节码编译成机器码，用机器码去收集Profile。这就如下半部分图所示：</p>
-<p>收集了100份Profile后，运行C1编译后的代码，在一段时间内，可以收集到更多的Profile。</p>
-<p>上面是限制了收集Profile的时间是一定的，如果我们反过来，<strong>收集Profile的样本数是一定的</strong>：</p>
-<ul>
-<li>传统的Server模式，可能需要花费更多的时间进行收集到指定次数的样本</li>
-<li>先利用C1进行代码编译，提升方法的运行速度，相对可以花费更少的时间进行收集</li>
-</ul>
-<p>如上的思想就是引入C1解决传统的ServerMode热身时间较少的问题，也就是分层编译：先采用C1进行编译，再采用C2进行编译。</p>
-<p>具体的时间对比如下两张图所示：只使用C2 VS 分层编译</p>
-<p><img src="/images/HotSpot原理指南-分层编译/only-c2.png" alt=""><br><img src="/images/HotSpot原理指南-分层编译/tier.png" alt=""></p>
-<h2 id="参数"><a href="#参数" class="headerlink" title="参数"></a>参数</h2><p>分层编译在JDK7中就引入了，但是默认是不开启的</p>
-<p>如果运行环境还是JDK7，可以使用<code>-XX:+TieredCompilation</code>开启</p>
-<p>在JDK8中，分层编译就默认开启了，如果要关闭它，可以使用<code>-XX:-TieredCompilation</code>关闭</p>
-<h2 id="扩展"><a href="#扩展" class="headerlink" title="扩展"></a>扩展</h2><p>正常的话，只要理解到上面就够了，分层大概分为两层，先是C1，然后是C2。</p>
-<p>但是事实上，我们如果查看以Tier开头的HotSpot参数的话，会发现其包含的参数很多很多</p>
-<p><img src="/images/HotSpot原理指南-分层编译/参数.png" alt=""></p>
-<p>笔者第一次搜索出来时，实在是吃了一惊。<br>经过研究，其实发现分层编译，并不是分了两层，而是足足分了<strong>4</strong>层。</p>
-<ul>
-<li>第0层：解释阶段</li>
-<li>第1-3层：C1编译<ul>
-<li>第1层：C1编译出的<strong>不收集任何Profile</strong>的机器码</li>
-<li>第2层：C1编译出的<strong>仅仅收集方法调用计数</strong>的机器码</li>
-<li>第3层：C1编译出的<strong>收集全部Profile</strong>的机器码</li>
-</ul>
-</li>
-<li>第4层：C2编译</li>
-</ul>
-<p>可以看到，在C1编译的阶段，还拆分成了三个小的阶段。<br>同时，对于这三个小的阶段，需要理解的是，<strong>运行上并不是递进关系</strong>，也就是说并不是先运行第1层，再运行第2层，再运行第3层。具体怎么运行，其实和很多因素有关。<br>我们先看看有哪些经典的分层流程：</p>
-<p><img src="/images/HotSpot原理指南-分层编译/4个阶段.png" alt=""><br>如上图所示。</p>
-<ul>
-<li>流程1：正常的方法的编译流程，先是解释执行，然后直接跳到第3阶段，也就是C1编译出的收集全部Profile的机器码。然后再跳到第4层，也就是C2编译。深色的框表示是编译的终止阶段。</li>
-<li>流程2：但是，如果第3层的等待队列太长，可能就先提交到第2层进行编译，等待一段时间后，再提交给第3层</li>
-<li>流程3：如果该方法比较简单，是个Trivial方法，比如Getter方法，这种方法去收集Profile其实没有什么Profile，给C2去进行编译纯属于浪费资源，所以提交给第3层后，直接给第1层，然后终止。</li>
-<li>流程4：同样也是Trivial方法，如果在解释阶段就发现其比较简单，也可以直接提交给第1层编译</li>
-</ul>
-<p>以上是一些经典的流程，还有一些流程，比如从解释阶段可以直接提交给C2等。</p>
-<p>所以，虽说是分层编译，但是具体的编译流程是不确定的，这个各个编译器的状态以及方法的属性有关。</p>
-<h2 id="C1和C2编译线程数"><a href="#C1和C2编译线程数" class="headerlink" title="C1和C2编译线程数"></a>C1和C2编译线程数</h2><p>各个编译的状态，最简单的就是负责编译的线程数<br>HotSpot分配给C1和C2编译器的线程数，和<strong>指定的启动参数</strong>以及<strong>机器的核心数</strong>有关。</p>
-<p>启动参数：影响线程数的参数有CICompilerCount和CICompilerCountPerCPU两个，默认值如下，一般不会去改这些<br><img src="/images/HotSpot原理指南-分层编译/启动参数.png" alt=""></p>
-<p>有了参数之后，具体的分配代码如下：<br><img src="/images/HotSpot原理指南-分层编译/启动参数2.png" alt=""></p>
-<p>简单聊聊分配策略：</p>
-<ul>
-<li>C1+C2的总的线程数：log2(log2(CoreNum)) * 3 / 2</li>
-<li>C1 / C2 = 1 / 2</li>
-<li>C1和C2至少有一个线程</li>
-</ul>
-<p>下面表格简单显示了一些常见情况</p>
-<table>
-<thead>
-<tr>
-<th>CPU Core</th>
-<th>C1</th>
-<th>C2</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>4</td>
-<td>1</td>
-<td>2</td>
-</tr>
-<tr>
-<td>8</td>
-<td>1</td>
-<td>3</td>
-</tr>
-<tr>
-<td>16</td>
-<td>4</td>
-<td>8</td>
-</tr>
-<tr>
-<td>32</td>
-<td>5</td>
-<td>10</td>
-</tr>
-<tr>
-<td>64</td>
-<td>6</td>
-<td>12</td>
-</tr>
-</tbody>
-</table>
-
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2020/01/04/HotSpot原理指南-分层编译/#more" rel="contents">
+                Read more &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
       
     </div>
 
@@ -685,10 +511,16 @@
                 <i class="fa fa-calendar-o"></i>
               </span>
               <span class="post-meta-item-text">Posted on</span>
-              
 
-              <time title="Created: 2019-12-14 00:00:00 / Modified: 23:46:07" itemprop="dateCreated datePublished" datetime="2019-12-14T00:00:00+08:00">2019-12-14</time>
+              <time title="Created: 2019-12-14 00:00:00" itemprop="dateCreated datePublished" datetime="2019-12-14T00:00:00+08:00">2019-12-14</time>
             </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">Edited on</span>
+                <time title="Modified: 2020-02-23 18:29:45" itemprop="dateModified" datetime="2020-02-23T18:29:45+08:00">2020-02-23</time>
+              </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
                 <i class="fa fa-folder-o"></i>
@@ -742,54 +574,14 @@
 <li>BackEdge Counter  -&gt; OSR编译</li>
 </ul>
 <p>当对应的方法计数器达到一定的次数，就会触发响应的编译</p>
-<h2 id="编译流程图"><a href="#编译流程图" class="headerlink" title="编译流程图"></a>编译流程图</h2><p>完整的编译流程如下：</p>
-<p><img src="/images/HotSpot原理指南-JIT触发条件/编译流程.png" alt=""></p>
-<p><strong>注：该图引自R大的JVM分享PPT，如有侵权，请联系我删除</strong></p>
-<p>图中的流程非常的清晰，这里提几个小点：</p>
-<ul>
-<li><p>问：对于同一方法，是否两种编译方式都可能会执行？</p>
-<p>答：是的，而且两种代码可能同时被运行，但是正常情况下，只要运行的够久，都会运行完整的原方法编译后的代码。</p>
-</li>
-<li><p>问：具体哪种编译方式先触发？</p>
-<p>答：其实无法确定，看哪个计数器先达到阈值</p>
-</li>
-</ul>
-<h2 id="触发阈值"><a href="#触发阈值" class="headerlink" title="触发阈值"></a>触发阈值</h2><p>可能你还想更直观的了解下两个计数器的触发阈值到底是多少。</p>
-<p>在HotSpot源码中，有这样两个参数：</p>
-<ul>
-<li><blockquote>
-<p>intx CompileThreshold = 10000</p>
-<p>globals.hpp &gt; ”number of interpreted method invocations before (re-)compiling” </p>
-</blockquote>
-</li>
-<li><blockquote>
-<p>intx BackEdgeThreshold = 100000</p>
-<p>globals.hpp &gt; “Interpreter Back edge threshold at which an OSR compilation is invoked”</p>
-</blockquote>
-</li>
-</ul>
-<p>数值可能根据不同的发行版本略有不同，上面的数值是JDK7版本中的。</p>
-<p>那么你可能以为</p>
-<ul>
-<li>当Invocation Counter &gt; Compile Threshold时，就会触发原来方法的JIT</li>
-<li>当BackEdge Counter &gt; BackEdge Threshold时，就会触发方法的OSR编译</li>
-</ul>
-<p>但是事实并不是如此。</p>
-<p>问题出在哪儿呢？难道官方的定义还会有错吗？</p>
-<p>是的，问题出在BackEdgeThreshold上，虽然HotSpot中确实定义了该参数，描述中似乎也证实了该参数的作用，但是这个参数并没有实际使用过。</p>
-<p>对于BackEdgeThreshold的计算，是另外一套公示。</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (ProfileInterpreter) &#123;</span><br><span class="line">  InterpreterBackwardBranchLimit = </span><br><span class="line">                 (CompileThreshold * (OnStackReplacePercentage - InterpreterProfilePercentage)) / <span class="number">100</span>;</span><br><span class="line">&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">  InterpreterBackwardBranchLimit = </span><br><span class="line">                ((CompileThreshold * OnStackReplacePercentage) / <span class="number">100</span>) &lt;&lt; number_of_noncount_bits;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>首先解释下<code>ProfileInterpreter</code>参数，这个参数也是在HotSpot中定义的，之前在文章<code>HotSpot原理指南-C1和C2介绍</code>中也讲解过，就是是否在运行时收集方法的Profile信息，这个字段在Server模式默认是开启的。</p>
-<p>所以大部分情况下，除非你的计算机比较老，都会根据第一个公示进行计算</p>
-<p><code>(CompileThreshold * (OnStackReplacePercentage - InterpreterProfilePercentage)) / 100</code></p>
-<p>其中<strong>OnStackReplacePercentage</strong>默认值是140，<strong>InterpreterProfilePercentage</strong>默认值是33。</p>
-<p>由此我们可以计算出真实的BackEdge Invocation阈值大概是10700左右。</p>
-<h2 id="衰减"><a href="#衰减" class="headerlink" title="衰减"></a>衰减</h2><p>假如方法计数器不会根据时间进行衰减的话，那么只要服务器运行的时间足够长，再罕见被调用的函数，也会触发到阈值，然后被JIT编译。</p>
-<p>这显然是不合理的，因为我们知道JIT后的机器码数据，还是会保存在内存中的，这样相当于一段逻辑在内存中又保存了字节码，又保存了一份机器码，十分的浪费内存。</p>
-<p>所以对于Invocation Counter而言，经过一段时间，个数就会进行减少。</p>
-<p>具体的减少逻辑，读者有兴趣的可以自己去探索。</p>
-<p>但是注意：对于BackEdge Counter，是不会作衰减的。</p>
-
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2019/12/14/HotSpot原理指南-JIT触发条件/#more" rel="contents">
+                Read more &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
       
     </div>
 
@@ -831,10 +623,16 @@
                 <i class="fa fa-calendar-o"></i>
               </span>
               <span class="post-meta-item-text">Posted on</span>
-              
 
-              <time title="Created: 2019-11-30 00:00:00 / Modified: 16:38:45" itemprop="dateCreated datePublished" datetime="2019-11-30T00:00:00+08:00">2019-11-30</time>
+              <time title="Created: 2019-11-30 00:00:00" itemprop="dateCreated datePublished" datetime="2019-11-30T00:00:00+08:00">2019-11-30</time>
             </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">Edited on</span>
+                <time title="Modified: 2020-02-23 18:29:52" itemprop="dateModified" datetime="2020-02-23T18:29:52+08:00">2020-02-23</time>
+              </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
                 <i class="fa fa-folder-o"></i>
@@ -875,57 +673,14 @@
           <h1 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h1><p>前面我们讲解了C1和C2的基本知识，但是我们还未触及一个核心的策略，就是<strong>什么时候触发即使编译</strong>，也就是<strong>when</strong>的问题。</p>
 <p>对于when的问题，相信大家多多少少都大概知道，每个方法都会有一个调用次数的计数器，当这个计数器的次数到达一定的次数时，就会被认为是热点方法，继而触发JIT编译。</p>
 <p>但是本文要科普另外一种触发条件，和方法计数器类似。</p>
-<h2 id="方法计数器的问题"><a href="#方法计数器的问题" class="headerlink" title="方法计数器的问题"></a>方法计数器的问题</h2><p>大部分人看来，维护一个方法被调用次数计数器当然是一个很完美的方案</p>
-<p>但是有一类方法，即使在我们认知范围内，属于热点方法，但是却无法享受到这个计数器的好处。</p>
-<p>如下代码：</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">OSRExample</span> </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">int</span> sum = <span class="number">0</span>;</span><br><span class="line">        <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; <span class="number">200000</span>; i++) &#123;</span><br><span class="line">            <span class="comment">//do a lot of things</span></span><br><span class="line">        &#125;</span><br><span class="line">        System.out.println(sum);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>在Main函数中，有一个循环，在循环中并没有调用某个方法，而是一直在线性执行一些逻辑。</p>
-<p>假如我们把循环中的逻辑看做一个函数，这个函数肯定是热点函数，需要进行JIT编译的，但是在这种场景下，并不是一个函数，也就是无法进行JIT。</p>
-<p>如果JIT无法处理这种情况，将是非常可惜的。</p>
-<h2 id="Hot-Loop优化"><a href="#Hot-Loop优化" class="headerlink" title="Hot Loop优化"></a>Hot Loop优化</h2><p>但是如果我们构造一个上面的代码的情况，并且使用计数器给每次循环的执行时间进行计时。</p>
-<p>会发现下面这张时间和次数的图</p>
-<p><img src="/images/HotSpot原理指南-OSR是什么/hotLoop耗时.png" alt=""></p>
-<p>从图中我们可以看出，大概在150次的时候，整个Loop的耗时突发的大大降低。</p>
-<p>说明在HotSpot的JIT中，是可以处理这种情况的。</p>
-<p>那么HotSpot究竟是怎么做的呢？</p>
-<p>前面我们提到过，如果在Loop中调用的是方法，将不会存在上述的问题，但是实际的情况并不是调用的方法。</p>
-<p>那么，我们能不能，把它包装成一个函数呢？</p>
-<p>举个例子，原方法如下：</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">OSRExample</span> </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">int</span> sum = <span class="number">0</span>;</span><br><span class="line">        <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; <span class="number">20000</span>; i++) &#123;</span><br><span class="line">            sum += i;</span><br><span class="line">          	sum *= sum;</span><br><span class="line">          	sum |= sum;</span><br><span class="line">        &#125;</span><br><span class="line">        System.out.println(sum);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>我们把它改成如下的方法</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">OSRExample</span> </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">int</span> sum = <span class="number">0</span>;</span><br><span class="line">        <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; <span class="number">20000</span>; i++) &#123;</span><br><span class="line">					sum = doLoop(sum);</span><br><span class="line">        &#125;</span><br><span class="line">        System.out.println(sum);</span><br><span class="line">    &#125;</span><br><span class="line">  	</span><br><span class="line">  	<span class="function"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">int</span> <span class="title">doLoop</span><span class="params">(<span class="keyword">int</span> sum)</span> </span>&#123;</span><br><span class="line">      	sum += i;</span><br><span class="line">      	sum *= sum;</span><br><span class="line">      	sum |= sum;</span><br><span class="line">      	<span class="keyword">return</span> sum;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>这样可以不可以呢？</p>
-<p>当然是可以的。</p>
-<p>但是！这是作者的猜测，HotSpot真实的情况并不是这样。</p>
-<p>事实上，这种割裂整个main方法，动态把一部分代码进行修改的操作似乎消耗太大了，性价比并不高。</p>
-<p>HotSpot并不会把Loop的内容动态生成一个函数，然后对该函数进行JIT。</p>
-<p>而是对包含这个Loop的<strong>整个方法进行了JIT</strong>。</p>
-<p>什么？对整个方法进行JIT？</p>
-<p>要知道，这个方法在运行中啊，可能再也不会运行第二次，对整个方法进行JIT有什么意义呢？</p>
-<p>稍安勿躁，虽然对整个方法进行了JIT，但是JIT后的代码和原来的函数其实还是有区别的。</p>
-<p>如果我们需要将运行到一半的函数，从一个源代码替换到另外一个源代码，遇到的问题是什么呢？</p>
-<p>首先，这个方法的循环执行到一半，这个i的具体数值肯定不是0了，是一个不可预测的值。</p>
-<p>同时这个sum的值，肯定也是一个不好预测的值。</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; <span class="number">20000</span>; i++) &#123;</span><br><span class="line">		sum = doLoop(sum);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>如果要进行替换，需要把替换时的i和sum的值记录下来，那么替换后的源代码大概就长这样</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">public static void main#jit(int i, int sum) &#123;</span><br><span class="line">		<span class="keyword">for</span> (; i &lt; <span class="number">20000</span>; i++) &#123;</span><br><span class="line">        sum += i;</span><br><span class="line">      	sum *= sum;</span><br><span class="line">      	sum |= sum;</span><br><span class="line">    &#125;</span><br><span class="line">    System.out.println(sum);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>没错！把运行中动态的值作为参数传给JIT后的函数，就是HotSpot的JIT对于这种HotLoop的优化。</p>
-<h2 id="OSR"><a href="#OSR" class="headerlink" title="OSR"></a>OSR</h2><p>OSR的全称是On-Stack-Replacement。也就是栈上替换。</p>
-<p>从上一节我们了解的可以知道，对于main函数，JIT进行编译的时候，直接把运行中的main函数源代码进行了替换，替换成了修改后的main函数。那么之前的main函数栈帧其实就完全失效了，被替换成了新的函数的栈帧。</p>
-<p>这种JIT编译的方式就叫OSR编译。</p>
-<p>这种栈上替换的方式其实并不是HotSpot独有的，很多其他的语言中也有这样的优化，如V8。</p>
-<h2 id="后续问题"><a href="#后续问题" class="headerlink" title="后续问题"></a>后续问题</h2><p>OSR能够解决HotLoop的优化问题，但是其实在HotSpot中还是有几个值得深究的点。</p>
-<ol>
-<li><p>如果这个main函数方法非常大，Loop只是很小的一部分，那么把整个函数进行JIT编译的性价比就值得商榷了。核心问题其实是，为什么必须要编译整个方法呢？</p>
-<p>这个问题R大也给了我们解释，详细看文章</p>
-<p><a href="https://github.com/AdoptOpenJDK/jitwatch/wiki/Understanding-the-On-Stack-Replacement-(OSR)-optimisation-in-the-HotSpot-C1-compiler" target="_blank" rel="noopener">https://github.com/AdoptOpenJDK/jitwatch/wiki/Understanding-the-On-Stack-Replacement-(OSR)-optimisation-in-the-HotSpot-C1-compiler</a></p>
-</li>
-<li><p>OSR其实并不是完美的解决方案，在某些场景下它会生成非常丑陋的代码，如果有多个Loop或者Loop进行嵌套的方法。</p>
-<p>HotSpot在一篇文章中进行了解释，有兴趣可以看文章</p>
-<p><a href="https://www.h2o.ai/blog/what-the-heck-is-osr-and-why-is-it-bad-or-good/" target="_blank" rel="noopener">What ths heck is osr and why is it bad or good?</a></p>
-</li>
-</ol>
-
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2019/11/30/HotSpot原理指南-OSR是什么/#more" rel="contents">
+                Read more &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
       
     </div>
 
@@ -975,7 +730,7 @@
                   <i class="fa fa-calendar-check-o"></i>
                 </span>
                 <span class="post-meta-item-text">Edited on</span>
-                <time title="Modified: 2019-12-07 10:36:36" itemprop="dateModified" datetime="2019-12-07T10:36:36+08:00">2019-12-07</time>
+                <time title="Modified: 2020-02-23 18:28:41" itemprop="dateModified" datetime="2020-02-23T18:28:41+08:00">2020-02-23</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1015,81 +770,14 @@
 
       
           <h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>看到标题，你可能会疑问，为什么我会去报考银行，我不是在互联网公司上班吗？难道是想逃离互联网回家养老去了？</p>
-<p>当然，这个是个多因一果的事情。我确实报考了银行，并且顺利拿到了Offer。但是我并不是想逃离互联网，而是一次尝试，很大程度上只是去看看，顺便敷衍一下我妈。</p>
-<p>当我说到敷衍我妈时，其实我比较伤心的，因为我妈一直觉得做技术太苦了，天天加班，不仅压力大，而且到了35岁会面临辞退的危险，所以希望我回家安安稳稳的过日子。</p>
-<p>讲道理，我也有这种疑虑，但是目前并没有回家养老的意思，所以还是会继续留在南京上班。</p>
-<p>扯了一堆，这次报考流程也算是踩了一次坑，这里记录下来，留给后人参考。</p>
-<h2 id="报名"><a href="#报名" class="headerlink" title="报名"></a>报名</h2><p>一般我不会关注银行的招聘的，但是消息是我妈发给我的</p>
-<p><a href="http://www.yinhangzhaopin.com/yzrcb/2019/0929/85386.html" target="_blank" rel="noopener">http://www.yinhangzhaopin.com/yzrcb/2019/0929/85386.html</a></p>
-<p>后来我才发现原来有个网站专门就是收集各种银行招聘的信息。</p>
-<p>报名在51Job上报名，上去填写一些资料就行了。</p>
-<p>然后它会审核你的资料，算是一个初审，初审过了之后，会再发一封邮件给你告诉你初审过了，可以去缴费了。</p>
-<p><img src="/images/银行报考指北/资料审核通过.png" alt=""></p>
-<p>但是这个缴费网站，要到一定时间才会开通。</p>
-<p>等到开通之后，登录到这个网站，付报名费，大概100块左右，然后选择考场。</p>
-<p>这个考场并不是你报哪儿就必须去哪儿考试的。</p>
-<p>比如我在南京，但是我报的是扬州的农商行，并不是一定要去扬州考试。他在每个城市都会有考点的。</p>
-<p>在南京有4个考点，我记得有林业大学考点，金陵科技学院考点，还有两个记不得了。</p>
-<p>我报的是金陵科技学院的考点。</p>
-<p>好消息就是它考试是在周末考，这样如果是上学或者是上班的话，就不用请假了。</p>
-<p>交完费之后，它还会给你一封邮件，让你准备笔试。</p>
-<p><img src="/images/银行报考指北/笔试通知.png" alt=""></p>
-<h2 id="考试"><a href="#考试" class="headerlink" title="考试"></a>考试</h2><p>周末那一天考试是从9：00到11：30。时间还是挺长的。</p>
-<p>准考证需要提前打印好，然后考试带自己身份证就行了。也可以带一支笔，因为题目可能有数学题。</p>
-<p>写到这个章节，你可能最想知道的是考试考什么题目。</p>
-<p>题目其实是分岗位的，通用岗的我不是很清楚，我报的是科技岗，而且可能各个银行之间又不太一样。</p>
-<p>首先题量很大。题型主要分为：</p>
-<ul>
-<li>找病句</li>
-<li>句子排序</li>
-<li>数学题。比如一排数字，让你找规律那种，那种题基本看一会儿看不出来就过吧</li>
-<li>图形题。和公务员那种差不多，给三个奇怪的组合图形，然后让你选下一个和他们属性一致的图形是什么，这个看一会儿看不出来也过吧</li>
-<li><p>材料题。给一些数据的图标，然后给4个选择题，让你从图标中找答案。还挺难找的。题量少。</p>
-</li>
-<li><p>英语题，缺词填空那种。大概有20道</p>
-</li>
-<li>计算机专业的题目。设计网络，操作系统，Java等。大概有80题。</li>
-<li>考验智商的。比如给你个矩阵，会随机出现几个图形，5秒后消失，然后让你点击刚才出现的图形的位置。</li>
-</ul>
-<p>总而言之，有几点值得关注</p>
-<ul>
-<li>题量大。如果每道题都细做肯定来不及的，有点数学题不会就直接瞎选的。</li>
-<li>不需要专业知识。我考之前有人和我说要很多经济学知识的，其实发现并不需要。</li>
-</ul>
-<p>我当时高估了自己，再加上其实去的意愿不高，做了一个半小时就赶紧溜了去上班了。</p>
-<p>大概百分之60的题目，我都是瞎选的。</p>
-<h2 id="面试"><a href="#面试" class="headerlink" title="面试"></a>面试</h2><p>其实我笔试考完觉得自己肯定挂了，但是过了两天打电话告诉我过了。</p>
-<p>过了就过了吧，大概就是通知我去面试了。</p>
-<p>让我周六去扬州交材料，周日面试。</p>
-<p>我正好有朋友在扬州，所以就打算去顺便找他玩一下。</p>
-<p>交材料的话，需要毕业证的复印件。身份证的正反面复印件，学信网的电子备案表的打印件。</p>
-<p>周六去交了材料，顺便问了我的成绩。</p>
-<p>傍晚的时候发短信通知我明天中午去面试。</p>
-<p>我中午到的时候，发现大家都是穿正装来的，就我穿的花里胡哨的。心想大概率是凉了。</p>
-<p>哈哈，所以这里提醒大家最好穿正装去面试，没有正装也穿个黑色的衣服去。</p>
-<p>然后就是签到。</p>
-<p>到了时间又让我们做了一个半小时的题目，题目大概和笔试的差不多，不知道这个是什么套路。</p>
-<p>这个题目并不包括计算机的题目，我估计通用的和科技岗的都一样。</p>
-<p>做完题目，需要把手机交上去，然后排队去面试。</p>
-<p>流程是这样的，一个一个进去面试，当一个人进去时，后面一个人去等候区，等候区就一个人，有张桌子，上面有张纸，记着三个题目，有人给你计时4分钟，你看完题目想想怎么回答。</p>
-<p>然后前一个出来时，你进去，然后对面三个面试官，面试官不会多对你说什么，你就把三个问题的答案说一遍就行。每个题目计时2分钟，说完也没有其他的问题，你就可以直接走了。</p>
-<p>具体的题目其实和计算机的关系不大，属于需要总结概括的题目，需要的话可能私聊我。</p>
-<p>面完就直接回去了，也没管什么。</p>
-<h2 id="体检"><a href="#体检" class="headerlink" title="体检"></a>体检</h2><p>其实我面完之后感觉自己肯定差不多挂了，下面应该没后续流程了。</p>
-<p>然后过了两天，大概是周二的时候，银行打电话告诉我过了面试。</p>
-<p>下面的流程是体检，而且就在明天，银行的人问我能不能去。</p>
-<p>我一想这也太突然了，我今天就得再去扬州，这也不太可能啊，所以我直接拒绝了。</p>
-<p>以为这个机会就没了，但是她告诉我明天不去，那就等下一批的通知吧。</p>
-<p>感情原来体检还是分批来的，我说好的。</p>
-<p>其实我比较奇怪的地方是为什么直接去体检了，而不是先谈工资待遇啥的，这是明摆着面试通过了大家就肯定先去吗？</p>
-<p>然后我问了在银行工作的同学，似乎他们都是这样的，都不知道具体的待遇什么的，都是上了一个月的班才知道具体的工资是多少。</p>
-<p>这就有点坑了。</p>
-<p>我回去也和我爸妈商量了下，我说我其实不太想回去。我爸妈也表示明白。</p>
-<p>然后下一次打电话来的时候，我就直接拒绝了。</p>
-<p>我以为银行的人会问问为什么，结果她直接说好的。</p>
-<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>这次的银行面试经历就是如上了，我顺利的度过了笔试和面试，中间决定不去了。</p>
-<p>整体上的体验一般般，流程拉的太长了，而且面试和体检都是在固定的地方，所以导致体验不会太好。</p>
-
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2019/11/30/银行报考指北/#more" rel="contents">
+                Read more &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
       
     </div>
 
@@ -1139,7 +827,7 @@
                   <i class="fa fa-calendar-check-o"></i>
                 </span>
                 <span class="post-meta-item-text">Edited on</span>
-                <time title="Modified: 2019-11-20 20:06:06" itemprop="dateModified" datetime="2019-11-20T20:06:06+08:00">2019-11-20</time>
+                <time title="Modified: 2020-02-23 18:29:35" itemprop="dateModified" datetime="2020-02-23T18:29:35+08:00">2020-02-23</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1182,104 +870,14 @@
 <p>内联的本质是把几个方法合并成一个方法</p>
 <p>从一方面讲，内联减少了函数调用的栈帧创建和销毁的时间消耗</p>
 <p>从另一方面讲，内联为很多其他的优化方法提供了更多的可能，比如逃逸分析，无用代码消除，虚函数优化等，这也是内联被叫做<strong>优化之母</strong>（The Mother Of All Optimization）的原因。</p>
-<h2 id="HotSpot-JIT"><a href="#HotSpot-JIT" class="headerlink" title="HotSpot-JIT"></a>HotSpot-JIT</h2><h3 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h3><p>对于HotSpot的JIT而言，内联是一个渐进的过程，这个渐进表现在两方面</p>
-<ul>
-<li>C1和C2两个JIT编译器的内联策略不同，C2可能更加激进一些</li>
-<li>内联策略和很多因素有关<ul>
-<li>内联发起函数大小，被内联函数大小</li>
-<li>被内联函数的调用次数</li>
-<li>内联深度</li>
-<li>中间表示的NodeCount</li>
-<li>函数方法签名</li>
-</ul>
-</li>
-</ul>
-<h3 id="初步体验"><a href="#初步体验" class="headerlink" title="初步体验"></a>初步体验</h3><p>先看一段代码，初步的了解下HotSpot的内联，以下代码的执行参数<code>-XX:CompileCommand=exclude,Inline.main</code></p>
-<p>这个参数的意义是禁止<code>main</code>函数内联<code>inline</code>方法</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Inline</span> </span>&#123;</span><br><span class="line">  </span><br><span class="line"><span class="keyword">static</span> Random random = <span class="keyword">new</span> Random();</span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span> ; i &lt; <span class="number">1000000</span>; i++) &#123;</span><br><span class="line">            inline();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">int</span> <span class="title">inline</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> add(random.nextInt(), </span><br><span class="line">               random.nextInt());</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">int</span> <span class="title">add</span><span class="params">(<span class="keyword">int</span> a, <span class="keyword">int</span> b)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> a + b;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p><img src="/images/HotSpot原理指南-内联/inline.png" alt="inline"></p>
-<p>上图中展示了经过C2编译后，整个<code>inline</code>函数的内联状态</p>
-<p>可以看到不仅仅内联了<code>random.nextInt()</code>方法，还将<code>nextInt</code>方法中的<code>next</code>方法等等好几个再下层的方法也内联了进来</p>
-<h3 id="HotSpot参数"><a href="#HotSpot参数" class="headerlink" title="HotSpot参数"></a>HotSpot参数</h3><p><code>java -XX:+PrintFlagsFinal | grep &quot;Inlin&quot;</code></p>
-<p><img src="/images/HotSpot原理指南-内联/内联参数.png" alt="内联参数"></p>
-<p>可以看到HotSpot可以控制内联的参数很多很多，从侧面也表示HotSpot的内联策略是非常复杂的。</p>
-<p>笔者也无法精通所有的内联策略，所以只挑选出比较重要的几个参数来讲解。</p>
-<p>主要讲解如下几个参数</p>
-<table>
-<thead>
-<tr>
-<th>参数</th>
-<th>默认值</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>MaxTrivialSize</td>
-<td>6</td>
-</tr>
-<tr>
-<td>MaxInlineSize</td>
-<td>35</td>
-</tr>
-<tr>
-<td>FreqInlineSize</td>
-<td>350</td>
-</tr>
-<tr>
-<td>MinInliningThreshold</td>
-<td>250</td>
-</tr>
-<tr>
-<td>InlineSmallCode</td>
-<td>1000(No-Tier)  2000(Tier)</td>
-</tr>
-<tr>
-<td>MaxInlineLevel</td>
-<td>9</td>
-</tr>
-<tr>
-<td>MaxRecursiveInlineLevel</td>
-<td>1</td>
-</tr>
-</tbody>
-</table>
-<h2 id="内联策略"><a href="#内联策略" class="headerlink" title="内联策略"></a>内联策略</h2><h3 id="MaxTrivialSize"><a href="#MaxTrivialSize" class="headerlink" title="MaxTrivialSize"></a>MaxTrivialSize</h3><p>对于Trivial方法，在HotSpot中有着严格的定义</p>
-<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">bool</span> SimpleThresholdPolicy::is_trivial(Method* method) &#123;</span><br><span class="line">  <span class="keyword">if</span> (method-&gt;is_accessor() ||</span><br><span class="line">      method-&gt;is_constant_getter()) &#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="literal">true</span>;</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">if</span> (method-&gt;has_loops() || method-&gt;code_size() &gt;= <span class="number">15</span>) &#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="literal">false</span>;</span><br><span class="line">  &#125;</span><br><span class="line">  MethodData* mdo = method-&gt;method_data();</span><br><span class="line">  <span class="keyword">if</span> (mdo != <span class="literal">NULL</span> &amp;&amp; !mdo-&gt;would_profile() &amp;&amp;</span><br><span class="line">      (method-&gt;code_size() &lt; <span class="number">5</span>  || (mdo-&gt;num_blocks() &lt; <span class="number">4</span>))) &#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="literal">true</span>;</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">return</span> <span class="literal">false</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>从上面的代码可以看出，常见的Getter方法，肯定是trivial方法</p>
-<p>而函数中有循环，或者函数大小超过15bytes，则不是trivial方法</p>
-<p>对于trivial方法，如果它的函数字节码小于<strong>MaxTrivialSize</strong>，那么即使它在调用方至今一次也没有被执行过，HotSpot也会将它内联进来。</p>
-<p>这是对于C1而言，对于C2而言，则不会进行内联，而是会生成<code>UnCommon Trap</code></p>
-<h3 id="MaxInlineSize"><a href="#MaxInlineSize" class="headerlink" title="MaxInlineSize"></a>MaxInlineSize</h3><p>我们了解了MaxTrivialSize，那么对于MaxInlineSize则很容易理解。</p>
-<p>对于调用方至少执行过一次的方法，如果它的大小小于MaxInlineSize，那么就会考虑将它内联进去</p>
-<h3 id="FreqInlineSize和MinInliningThreshold"><a href="#FreqInlineSize和MinInliningThreshold" class="headerlink" title="FreqInlineSize和MinInliningThreshold"></a>FreqInlineSize和MinInliningThreshold</h3><p>了解了以上两个参数后，你可能会问，如果被调用的函数既不符合Trivial方法，大小也大于MaxInlineSize，但是这个方法非常的Hot，就没有机会被内联了吗</p>
-<p>并不是，FreqInlineSize和MinInliningThreshold这两个参数就是为这种方法设置的。</p>
-<p>当一个方法既不是Trivial方法，而且大于MaxInlineSize，如果他的调用次数大于MinInliningThreshold，也就是250次，且它的大小小于FreqInlineSize，那么它也会被内联</p>
-<h3 id="InlineSmallCode"><a href="#InlineSmallCode" class="headerlink" title="InlineSmallCode"></a>InlineSmallCode</h3><p>我们知道，调用方进行方法内联的时候，函数本身的大小会越来越大。</p>
-<p>这时候你又会问了，那调用方内联可以无限内联吗，内联后的大小肯定会有限制的吧。</p>
-<p>对的！InlineSmallCode就是限制的大小</p>
-<p>如果是非分层编译的环境，阈值是1000bytes</p>
-<p>如果是分层编译的环境，那么阈值是2000bytes</p>
-<h3 id="MaxInlineLevel"><a href="#MaxInlineLevel" class="headerlink" title="MaxInlineLevel"></a>MaxInlineLevel</h3><p>对于一个函数进行其他函数的内联，除了内联后的大小限制，内联的深度也是有限制的。</p>
-<p>在HotSpot中，默认的内联最大深度是MaxInlineLevel控制，也就是9层。</p>
-<p>为什么要限制内联的最大深度呢？</p>
-<p>在stackoverflow上有个我认为比较中肯的答案</p>
-<p><a href="https://stackoverflow.com/questions/32503669/why-does-the-jvm-have-a-maximum-inline-depth" target="_blank" rel="noopener">Why does the JVM have a maximum inline depth?</a></p>
-<blockquote>
-<p>Not exactly, but I guess the basic reason is to keep things simple. Unlimited inlining depth would increase complexity, the compilation time and memory usage might be less predictable (that is OK for AOT compilers, but not for JIT). Also mind that compiled code should keep track of the whole inlining tree at run-time (to be able to unwind and deoptimize). Though I think the default value of 9 is outdated. It has not been changed for ages, but nowadays, with much more resources available, with streams and lamdas in mind, there is definitely a place for improvement</p>
-</blockquote>
-<p>总结一下答案：</p>
-<ul>
-<li>为了保持内联的简单性。无限制的内联会增加复杂度。</li>
-<li>内联后的编译代码，需要记录整个内联树。</li>
-<li>编译时间和内存消耗会变得不可预测。</li>
-</ul>
-<p>当然，作者也认为默认值9已经很久没有改动了，随着计算机资源变得不再那么昂贵，完全可以适当调大这个值。</p>
-<h3 id="MaxRecursiveInlineLevel"><a href="#MaxRecursiveInlineLevel" class="headerlink" title="MaxRecursiveInlineLevel"></a>MaxRecursiveInlineLevel</h3><p>对于递归的方法，它内联自己最多只能内联MaxRecursiveInlineLevel层，也就是1次。</p>
-<h2 id="查看内联结果"><a href="#查看内联结果" class="headerlink" title="查看内联结果"></a>查看内联结果</h2><p>如果想要知道我们的代码在编译时，内联了哪些方法，那么可以加上参数</p>
-<p><code>java -XX:+UnlockDiagnosticVMOptions -XX:+PrintInlining</code></p>
-<p>对于上面的inline.java的结果输出如下</p>
-<p><img src="/images/HotSpot原理指南-内联/内联输出结果.png" alt="内联输出结果"></p>
-
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2019/11/28/HotSpot原理指南-内联/#more" rel="contents">
+                Read more &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
       
     </div>
 
@@ -1329,7 +927,7 @@
                   <i class="fa fa-calendar-check-o"></i>
                 </span>
                 <span class="post-meta-item-text">Edited on</span>
-                <time title="Modified: 2019-11-28 18:18:58" itemprop="dateModified" datetime="2019-11-28T18:18:58+08:00">2019-11-28</time>
+                <time title="Modified: 2020-02-23 18:29:38" itemprop="dateModified" datetime="2020-02-23T18:29:38+08:00">2020-02-23</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1370,72 +968,14 @@
       
           <h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>前文讲述了C1和C2的功能定位，以及引出了Client和Server模式的区别。</p>
 <p>这回抛开功能和定位的角度，简单看看从设计与实现角度的区别。</p>
-<h2 id="前导知识"><a href="#前导知识" class="headerlink" title="前导知识"></a>前导知识</h2><p>要讲解设计与实现角度的区别，需要了解很多的编译原理知识。</p>
-<p>😄编译原理是科班必学的一门课，当时作者上的迷迷糊糊的，觉得没什么用，也没怎么听。</p>
-<p>现在看到C1和C2的东西，真的是一筹莫展。</p>
-<p>相信很多科班和非科班的人也是。</p>
-<p>不过大家不用担心，作者水平有限，更是不会瞎写自己根本不会的东西，所以涉及到编译原理的东西讲的都很简单。</p>
-<h3 id="IR"><a href="#IR" class="headerlink" title="IR"></a>IR</h3><p>IR，中文中间表示，全称是intermediate representation。</p>
-<p>其实它和中间语言的定义类似，但是中间语言的定义更加狭义，只规定必须是某种语言，而中间表示则扩宽了范围，可以是树类型或者是图类型的表示。</p>
-<p>在维基百科上，中间语言的定义是</p>
-<blockquote>
-<p><strong>中间语言</strong>（英语：Intermediate language），在计算机科学中，是指一种应用于抽象机器（abstract machine）的编程语言，它设计的目的，是用来帮助我们分析计算机程序。这个术语源自于编译器，在编译器将源代码编译为目的码的过程中，会先将源代码转换为一个或多个的中间表述，以方便编译器进行最佳化，并产生出目的机器的机器语言</p>
-</blockquote>
-<p>其实更简单的定义，我觉得就是源代码的另一种表达形式。</p>
-<p>比如Java代码，会被编译成字节码，字节码也是一种IR，是Java代码的中间表示。</p>
-<p>IR在编译原理中的作用个人理解其实起到两种：</p>
-<ul>
-<li>统一后端语言。比如JRuby，Scala，Kotlin等，他们的解释器其实都是JVM。但是他们的源代码都是不一样的。倘若对于每种语言的处理都是不一样的，那其实JVM的实现就没什么意义了，所以将所有语言的源代码都编译成同一种IR，然后JVM不用关心源语言是什么，只要符合该IR定义的都可以执行。</li>
-<li>方便优化。很多的优化技术，其实人眼可以简单看出的，很难归一化到程序去理解。但是通过一些IR的表示，使用特定的规则，就可以进行优化。就行我们在拼魔方时的公式一样。那为什么有这么多种IR呢，很大一个程度的区别就是他们在解决一些特定优化时各有优势。比如SSA在进行复制传播时就很方便。</li>
-</ul>
-<h3 id="寄存器分配"><a href="#寄存器分配" class="headerlink" title="寄存器分配"></a>寄存器分配</h3><p>一个解释器执行的程序和以机器码执行的程序的一个很大的区别就是对于系统寄存器的使用。</p>
-<p>比如对于下面的函数</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">int</span> <span class="title">add</span><span class="params">(<span class="keyword">int</span> i, <span class="keyword">int</span> j)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">int</span> k = i + j;</span><br><span class="line">    k += <span class="number">2</span>;</span><br><span class="line">    k *= <span class="number">2</span>;</span><br><span class="line">    <span class="keyword">return</span> i + j;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>如果是以解释的形式而言，则需要把k存在内存的变量中，然后再进行运算，每一步的运算都要把k的值写回到内存中。</p>
-<p>但是如果是C++的话，完全可以给k分配一个寄存器，把k放到寄存器中，然后直接对寄存器中的值进行运算就行。</p>
-<p>所以，如果能够很好的利用系统现有的寄存器，那么程序执行的性能将提升一个档次。</p>
-<p>对于寄存器的分配算法，有很多论文可以参考，作者水平有限，还没能学会一种。</p>
-<p>读者有兴趣可以自己去搜索相关论文进行了解。</p>
-<h2 id="C1流程"><a href="#C1流程" class="headerlink" title="C1流程"></a>C1流程</h2><p><img src="/images/HotSpot原理指南-C1和C2流程/C1流程.png" alt=""></p>
-<p>C1的流程较为简单，如上图所示。</p>
-<p>首先，字节码会经过转换，变成HIR，也就是High Level的IR，高级中间表示。</p>
-<p>在HIR中，会进行一些优化，比如</p>
-<ul>
-<li>GVN优化</li>
-<li>基本块优化</li>
-<li>null检查消除</li>
-<li>…</li>
-</ul>
-<p>经过HIR优化之后，转换成LIR，也就是Low-Level的IR，低级中间表示。</p>
-<p>这个阶段的IR其实已经很接近机器码了</p>
-<p>在LIR时，进行</p>
-<ul>
-<li>寄存器分配。这里的寄存器分配算法是线性扫描，时间消耗短，但是分配效果有限</li>
-<li>窥孔优化</li>
-</ul>
-<p>在LIR的优化过后，就是机器码的生成。</p>
-<p>对于C1的更详细的流程，笔者也从网上找到了当时作者的一个PPT，有兴趣的可以自行下载</p>
-<p><a href="http://compilers.cs.uni-saarland.de/ssasem/talks/Christian.Wimmer.pdf" target="_blank" rel="noopener">http://compilers.cs.uni-saarland.de/ssasem/talks/Christian.Wimmer.pdf</a></p>
-<p>同时，如果有人对线性扫描寄存器分配算法有兴趣，也可以参照论文</p>
-<p><a href="http://web.cs.ucla.edu/~palsberg/course/cs132/linearscan.pdf" target="_blank" rel="noopener">http://web.cs.ucla.edu/~palsberg/course/cs132/linearscan.pdf</a></p>
-<h2 id="C2流程"><a href="#C2流程" class="headerlink" title="C2流程"></a>C2流程</h2><p>通过前面我们已经知道C2相对于C1编译过程，更加的耗时，这个耗时可以体现在两方面</p>
-<ul>
-<li>比C1有更多的优化</li>
-<li>同一种优化使用的算法不同，C2的结果更好</li>
-</ul>
-<p>对于C2而言，它的IR只有一种，叫<code>Sea Of Nodes</code></p>
-<p>就笔者了解到的知识来看，这个IR非常的牛逼，在V8引擎中，也是使用的这种IR。</p>
-<p>不过这种IR的资料似乎非常少，笔者也仅仅是搜到了论文，没什么更深层次的讲解。</p>
-<p>如果有人想要了解Sea Of Nodes的原理，那么大家可以从网上搜集资料来看。</p>
-<p><strong>比C1拥有更多的优化</strong></p>
-<p>相比较于C1，C2几乎会做所有的经典优化。如下图所示</p>
-<p><img src="/images/HotSpot原理指南-C1和C2流程/C2优化.png" alt=""></p>
-<p><strong>同一种优化使用不同的算法</strong></p>
-<p>这个体现在寄存器分配算法上，我们知道对于C1而言，使用的较为简单的线性扫描的分配算法，执行较快。</p>
-<p>而C2使用了叫图染色的算法，消耗的时间更久，但是产生的解法比线性扫描更优。</p>
-<p>对于图染色算法，在经典的编译原理书中都有解答。</p>
-<p>笔者这里就不赘述了（其实是笔者也没看懂）</p>
-
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2019/11/27/HotSpot原理指南-C1和C2编译流程/#more" rel="contents">
+                Read more &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
       
     </div>
 
@@ -1477,10 +1017,16 @@
                 <i class="fa fa-calendar-o"></i>
               </span>
               <span class="post-meta-item-text">Posted on</span>
-              
 
-              <time title="Created: 2019-11-24 00:00:00 / Modified: 00:32:27" itemprop="dateCreated datePublished" datetime="2019-11-24T00:00:00+08:00">2019-11-24</time>
+              <time title="Created: 2019-11-24 00:00:00" itemprop="dateCreated datePublished" datetime="2019-11-24T00:00:00+08:00">2019-11-24</time>
             </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">Edited on</span>
+                <time title="Modified: 2020-02-23 18:29:40" itemprop="dateModified" datetime="2020-02-23T18:29:40+08:00">2020-02-23</time>
+              </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
                 <i class="fa fa-folder-o"></i>
@@ -1521,100 +1067,14 @@
           <h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>HotSpot是一款Java虚拟机的实现，除了基本的解释功能以外，该虚拟机还拥有将字节码编译成机器码的并执行的能力，我们知道，直接执行机器码肯定比解释更快。</p>
 <p>HotSpot最初会通过解释的方式执行程序，当它发现某个方法运行得特别频繁时，就会将这些热点（Hot Spot）代码进行编译，编译成平台相关的机器码。这个过程也叫做JIT（Just In Time），与之相对的是AOT（Ahead Of Time），比较典型的是C和C++语言。</p>
 <p>HotSpot进行JIT编译的编译器有两个，分别叫做<strong>C1</strong>和<strong>C2</strong>，或者也可以叫做<strong>Client Compiler</strong>和<strong>Server Compiler</strong>。这两种编译器编译策略不同，运用在不同的场景，下面会详细的说明。</p>
-<h2 id="JIT编译"><a href="#JIT编译" class="headerlink" title="JIT编译"></a>JIT编译</h2><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Add</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; <span class="number">200</span>; i++) &#123;</span><br><span class="line">            <span class="keyword">long</span> start = System.nanoTime();</span><br><span class="line">            add();</span><br><span class="line">            <span class="keyword">long</span> end = System.nanoTime();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">int</span> <span class="title">add</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">int</span> sum = <span class="number">0</span>;</span><br><span class="line">        <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; <span class="number">1000</span>; i++) &#123;</span><br><span class="line">            sum += i;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> sum;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>上面这段代码，我们有一个<code>add</code>方法，如果我们对改方法进行时间统计，我们会得到下面的曲线。</p>
-<p>X轴是次数，Y轴是时间的log2。</p>
-<p><img src="/images/HotSpot原理指南-C1和C2/add.png" alt=""></p>
-<p>从这个曲线我们可以看出，在第大概100次的时间，时间消耗会下滑，也就是性能提升了一个档次。</p>
-<p>由此我们可以猜到，前100次的add方法是由解释执行的，在100次后，执行的是由JIT编译器编译过的机器码。所以性能会有较大的提升。</p>
-<h2 id="Profile"><a href="#Profile" class="headerlink" title="Profile"></a>Profile</h2><p>在详细讲述C1和C2之前，我们还有一个内容需要科普，就是方法的Profile信息。</p>
-<p>除了最基本的用于判定某个方法是否是HotSpot的方法调用次数（Invocation Counter）信息外，对于某个方法，还有一些信息是会在运行时进行收集的。</p>
-<p>比如我们看下面这段代码</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">record</span><span class="params">(List&lt;String&gt; list)</span> </span>&#123;</span><br><span class="line">	<span class="keyword">if</span> (list != <span class="keyword">null</span>) &#123;</span><br><span class="line">		list.add(<span class="string">"大骚包卢布"</span>);</span><br><span class="line">  &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">    log.warn(<span class="string">"我不是大骚包"</span>);</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p><code>record</code>函数的功能很简单，入参是一个List，如果List不为空，那么就把<code>大骚包卢布</code>这个字符串传递进去。不然的话就打出一个warn级别的日志<code>我不是大骚包</code>。</p>
-<p>那么在调用这个方法的时候，HotSpot还会记录哪些信息呢</p>
-<ul>
-<li>List的真实类。因为List在Java中是一个接口，具体的传入可能是ArrayList或者LinkedList或者其他的。HotSpot需要记录具体的类为了以后的优化。</li>
-<li>Log的真实类，理由和List一样。</li>
-<li>进入if的次数，以及进入else的次数，更通俗的说是条件选择的实际情况。</li>
-</ul>
-<p>有人可能会问统计这些Profile有什么用。</p>
-<p>举个最简单的例子，如果我们需要对<code>list.add</code>做内联，那么我们到底内联那个实现呢，这个就需要我们收集list的真实实现是什么。</p>
-<h2 id="C1和C2"><a href="#C1和C2" class="headerlink" title="C1和C2"></a>C1和C2</h2><table>
-<thead>
-<tr>
-<th></th>
-<th>C1</th>
-<th>C2</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>编译时间</td>
-<td>快</td>
-<td>慢（x4）</td>
-</tr>
-<tr>
-<td>执行时间</td>
-<td>慢</td>
-<td>快（30%）</td>
-</tr>
-<tr>
-<td>输出代码</td>
-<td>多</td>
-<td>少</td>
-</tr>
-</tbody>
-</table>
-<p>上表是C1和C2在编译时间，执行时间，输出代码的区别</p>
-<ul>
-<li>编译时间：同样一段代码，C1需要时间比C2短，也就是需求的CPU资源较少</li>
-<li>执行时间：C1编译时间短，通常意味着优化不如C2，所以C2编译出的机器码执行效率较高</li>
-<li>输出代码：C1编译时间短，最终也就导致输出的机器码占用的内存要比C2多的</li>
-</ul>
-<p>总结：同一段代码，C1消耗的CPU资源较少，但是输出的代码质量不如C2。但是毋庸置疑的事，无论是C1还是C2输出的机器码，执行效率肯定都比解释快的。</p>
-<p>C1又称<strong>Client Compiler</strong>，C2又称<strong>Server Compiler</strong>，不是没有历史渊源的。</p>
-<p>或许我们都听过java在启动的时候可以执行是<code>client</code>模式还是<code>server</code>模式。</p>
-<p>当我们使用client模式时，一般运行的是应用程序，比如java swing，awt之类的图形软件，对于这些桌面软件，作为使用者而言，并不希望哪个桌面应用占用大量的CPU，所以非常适合C1的场景</p>
-<ul>
-<li>编译速度快</li>
-<li>占用CPU资源少</li>
-</ul>
-<p>而对于Server模式而言，一般是公司的服务器上跑的稳定的服务应用，服务器的资源一般较为丰富，同时一个应用并不会像桌面应用一样频繁的开关，一般都要跑几周或者几个月甚至几年。这种应用，当然速度越快越好。所以非常适合C2的场景</p>
-<ul>
-<li>编译消耗更多的CPU资源</li>
-<li>代码质量更高，也就是性能更好</li>
-</ul>
-<h2 id="C1和C2和Profile"><a href="#C1和C2和Profile" class="headerlink" title="C1和C2和Profile"></a>C1和C2和Profile</h2><p>前面提到过的Profile信息，你可能会疑惑这个和C1和C2有什么联系。</p>
-<p>其实我们需要先明白一个概念，就是收集那些Profile不仅仅会占用程序以外的更多的内容，而且会占用很多的CPU消耗。同样一段代码，插入了收集Profile逻辑和没有插入收集Profile逻辑，执行性能是不同的。</p>
-<p>结合我们提到的C1和C2的使用场景的区别，可以得出这样的结论，这个收集Profile的消耗，对于桌面应用而言，是非常<strong>不合适</strong>的。</p>
-<p>但是C2则需要这些Profile去做更好的性能优化。</p>
-<p>所以对于Client模式的应用而言，解释器不会去收集程序的Profile信息，而Server模式在解释器阶段，则会进行Profile的收集，这也就导致了Client模式的起步性能是比Server模式的起步性能要好很多。</p>
-<h2 id="启动模式"><a href="#启动模式" class="headerlink" title="启动模式"></a>启动模式</h2><p>在JDK1.6之前，指定是<code>client</code>还是<code>server</code>模式，我们在java程序启动时直接加参数就行了</p>
-<p><code>java -client Hello</code></p>
-<p><strong>但是</strong></p>
-<p>注意我这个但是</p>
-<p>其实自从JDK6的某个版本开始，你已经控制不了这个参数了</p>
-<p><a href="https://docs.oracle.com/javase/7/docs/technotes/guides/vm/server-class.html" target="_blank" rel="noopener">https://docs.oracle.com/javase/7/docs/technotes/guides/vm/server-class.html</a></p>
-<p>从这个网站可以看到，默认如果你是64位的机器并且至少有2G内存和2核心的CPU，默认都是Server模式了。</p>
-<p><code>-client</code>这个参数会被忽略</p>
-<p>但是也并不是没有办法指定client模式</p>
-<p>不仅仅要在启动参数中加上<code>-client</code></p>
-<p>还需要去修改文件<code>jre/lib/jvm.cfg</code></p>
-<p>比如我的文件中默认是这个状态</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">-server KNOWN</span><br><span class="line">-client IGNORE</span><br><span class="line">-hotspot ERROR</span><br><span class="line">-classic WARN</span><br><span class="line">-native ERROR</span><br><span class="line">-green ERROR</span><br></pre></td></tr></table></figure>
-<p>注意到我的<code>-client</code>后面跟的是<code>IGNORE</code>，所以我指定<code>-client</code>模式其实是不生效的</p>
-<p>我需要改成<code>-client KNOWN</code>才行。</p>
-<p>当然Oracle选择忽略<code>-client</code>模式也不是没有道理的</p>
-<ul>
-<li>Java的桌面应用已经很少了，Swing基本已经死了</li>
-<li>现在大家的笔记本的CPU和内容资源都很充足</li>
-</ul>
-<p>所以全部使用<code>server</code>模式也没问题。</p>
-<h2 id="后续"><a href="#后续" class="headerlink" title="后续"></a>后续</h2><p>当然C1和C2的故事并没有这么简单</p>
-<p>同时JIT编译的策略也不是非C1就是C2，在JDK7中引入了分层编译，结合了C1和C2的优点。</p>
-<p>这些会在后面的文章讲述。</p>
-
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2019/11/24/HotSpot原理指南-C1和C2介绍/#more" rel="contents">
+                Read more &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
       
     </div>
 
@@ -1664,7 +1124,7 @@
                   <i class="fa fa-calendar-check-o"></i>
                 </span>
                 <span class="post-meta-item-text">Edited on</span>
-                <time title="Modified: 2019-11-11 21:58:18" itemprop="dateModified" datetime="2019-11-11T21:58:18+08:00">2019-11-11</time>
+                <time title="Modified: 2020-02-23 18:28:07" itemprop="dateModified" datetime="2020-02-23T18:28:07+08:00">2020-02-23</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1705,67 +1165,14 @@
       
           <h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>Cat是美团开源的一套监控系统，功能非常强大<br>一般对方法进行打点，它会自动生成每个方法的耗时，同时也会记录全链路的每个调用方法的耗时</p>
 <p>对于查系统的性能瓶颈和稳定性有非常大的帮助</p>
-<p>基本用法<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">Transaction tranx = Cat.newTransaction(<span class="string">"Cache"</span>, <span class="string">"get"</span>);</span><br><span class="line">tranx.addData(<span class="string">"key"</span>, <span class="string">"name"</span>);</span><br><span class="line"><span class="comment">//do something</span></span><br><span class="line">tranx.setStatus(<span class="string">"0"</span>);</span><br><span class="line">tranx.complete();</span><br></pre></td></tr></table></figure></p>
-<p>上面的方法就是对中间的代码执行进行耗时打点，这里假设的是我们对Redis的get方法进行打点</p>
-<ul>
-<li>第一句：new一个Transaction出来，Type是Cache，也就是Transaction属于Cache，然后具体的方法是get</li>
-<li>第二句：addData，在执行过程中进行关键日志的记录，我们这里记录了get的key是name，方面查询长耗时的方法，增加一些提示性的参数</li>
-<li>第三句：执行具体的方法</li>
-<li>第四句：执行成功，设置status=0，0表示成功的意思，当然也有失败的方法，可以把具体的Exception传递进去</li>
-<li>第五句：标记Transaction完成</li>
-</ul>
-<h2 id="框架集成"><a href="#框架集成" class="headerlink" title="框架集成"></a>框架集成</h2><p>Cat只是提供了一些工具，并没有直接提供方法与常见的方法集成，让我们在业务代码的每个方法都手动编码上面这些流程肯定不现实，可以借助于很多的方法进行隐式的插入逻辑。</p>
-<h3 id="与Dubbo集成"><a href="#与Dubbo集成" class="headerlink" title="与Dubbo集成"></a>与Dubbo集成</h3><p>Dubbo提供了Filter机制，可以声明一个Filter进行对Dubbo服务方法的打点</p>
-<p><a href="https://github.com/dianping/cat/tree/master/integration/dubbo" target="_blank" rel="noopener">Dubbo</a></p>
-<p>在Cat的官方仓库中收集了此集成方式，可以直接使用</p>
-<h2 id="与Mybatis集成"><a href="#与Mybatis集成" class="headerlink" title="与Mybatis集成"></a>与Mybatis集成</h2><p>和Dubbo一个，Mybatis也提供了Filter插件</p>
-<p><a href="https://github.com/dianping/cat/tree/master/integration/mybatis" target="_blank" rel="noopener">Mybatis</a></p>
-<p>在Cat的官方仓库中收集了此集成方式，可以直接使用</p>
-<p>上面两种插件几乎是最常用的两个了，但是Redis的需求也比较强烈</p>
-<h2 id="Redis打点"><a href="#Redis打点" class="headerlink" title="Redis打点"></a>Redis打点</h2><p>Cat的官方仓库并没有提供Redis的打点插件，借着Filter的简单的逻辑，我准备找找现有框架的逻辑插入方法</p>
-<p>在正常的SpringBoot应用中，默认的Redis使用类是RedisTemplate，如果具体到某个操作，在内部声明了多个具体的类</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">RedisTemplate</span>&lt;<span class="title">K</span>, <span class="title">V</span>&gt;    </span>&#123;</span><br><span class="line">  <span class="comment">// cache singleton objects (where possible)</span></span><br><span class="line">    <span class="keyword">private</span> <span class="meta">@Nullable</span> ValueOperations&lt;K, V&gt; valueOps;</span><br><span class="line">    <span class="keyword">private</span> <span class="meta">@Nullable</span> ListOperations&lt;K, V&gt; listOps;</span><br><span class="line">    <span class="keyword">private</span> <span class="meta">@Nullable</span> SetOperations&lt;K, V&gt; setOps;</span><br><span class="line">    <span class="keyword">private</span> <span class="meta">@Nullable</span> ZSetOperations&lt;K, V&gt; zSetOps;</span><br><span class="line">    <span class="keyword">private</span> <span class="meta">@Nullable</span> GeoOperations&lt;K, V&gt; geoOps;</span><br><span class="line">    <span class="keyword">private</span> <span class="meta">@Nullable</span> HyperLogLogOperations&lt;K, V&gt; hllOps;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>比如当我们调用</p>
-<p><code>redisTemplate.opsForSet().members(cacheName)</code>时，</p>
-<p>调用的是</p>
-<p><code>DefaultSetOperations.members(K key)</code>方法</p>
-<p>所以我们只要对上面提到的具体操作的类的一些方法进行打点就行</p>
-<p>但是很可惜，RedisTemplate并没有提供</p>
-<h2 id="方案一"><a href="#方案一" class="headerlink" title="方案一"></a>方案一</h2><p>直接使用SpringAop对具体的类进行代理</p>
-<p>这当时是我觉得最简单的方法，但是很遗憾</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">DefaultSetOperations</span>&lt;<span class="title">K</span>, <span class="title">V</span>&gt; <span class="keyword">extends</span> <span class="title">AbstractOperations</span>&lt;<span class="title">K</span>, <span class="title">V</span>&gt; <span class="keyword">implements</span> <span class="title">SetOperations</span>&lt;<span class="title">K</span>, <span class="title">V</span>&gt; </span>&#123;&#125;</span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">DefaultValueOperations</span>&lt;<span class="title">K</span>, <span class="title">V</span>&gt; <span class="keyword">extends</span> <span class="title">AbstractOperations</span>&lt;<span class="title">K</span>, <span class="title">V</span>&gt; <span class="keyword">implements</span> <span class="title">ValueOperations</span>&lt;<span class="title">K</span>, <span class="title">V</span>&gt; </span>&#123;&#125;</span><br></pre></td></tr></table></figure>
-<p>这些具体实现类都不是public的，对这些方法进行切面处理是处理不了的</p>
-<h2 id="方案二"><a href="#方案二" class="headerlink" title="方案二"></a>方案二</h2><p>最简单的方法被否决了，于是只能找一些其他的方法</p>
-<p>当时看到Java的Agent可以在类被加载时进行一些修改，于是产生了写一个javaagent的方法</p>
-<p>目标效果</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> V <span class="title">get</span><span class="params">(Object key)</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> execute(<span class="keyword">new</span> ValueDeserializingRedisCallback(key) &#123;</span><br><span class="line">        <span class="meta">@Override</span></span><br><span class="line">        <span class="keyword">protected</span> <span class="keyword">byte</span>[] inRedis(<span class="keyword">byte</span>[] rawKey, RedisConnection connection) &#123;</span><br><span class="line">            <span class="keyword">return</span> connection.get(rawKey);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;, <span class="keyword">true</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">=&gt;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">public</span> V <span class="title">get</span><span class="params">(Object key)</span> </span>&#123;</span><br><span class="line">    Transaction tranx = Cat.newTransaction(<span class="string">"Cache"</span>, <span class="string">"get"</span>); </span><br><span class="line">    tranx.addData(<span class="string">"key"</span>, key);</span><br><span class="line">    V res = execute(<span class="keyword">new</span> ValueDeserializingRedisCallback(key) &#123;</span><br><span class="line">        <span class="meta">@Override</span></span><br><span class="line">        <span class="keyword">protected</span> <span class="keyword">byte</span>[] inRedis(<span class="keyword">byte</span>[] rawKey, RedisConnection connection) &#123;</span><br><span class="line">            <span class="keyword">return</span> connection.get(rawKey);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;, <span class="keyword">true</span>);</span><br><span class="line">    </span><br><span class="line">    tranx.setStatus(<span class="string">"0"</span>);</span><br><span class="line">    tranx.complete();</span><br><span class="line">    <span class="keyword">return</span> res;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>但是为了得到失败的效果，同时防止Cat方法抛出异常影响正常逻辑，需要多加几个try catch</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> V <span class="title">get</span><span class="params">(Object key)</span> </span>&#123;</span><br><span class="line">    Transaction tranx = <span class="keyword">null</span>;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">      tranx = Cat.newTransaction(<span class="string">"Cache"</span>, <span class="string">"get"</span>);</span><br><span class="line">      tranx.addData(<span class="string">"key"</span>, key);</span><br><span class="line">    &#125; <span class="keyword">catch</span> (Throwable e) &#123;&#125;</span><br><span class="line">    </span><br><span class="line">    V res = <span class="keyword">null</span>;</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        V res = execute(<span class="keyword">new</span> ValueDeserializingRedisCallback(key) &#123;</span><br><span class="line"></span><br><span class="line">              <span class="meta">@Override</span></span><br><span class="line">              <span class="keyword">protected</span> <span class="keyword">byte</span>[] inRedis(<span class="keyword">byte</span>[] rawKey, RedisConnection connection) &#123;</span><br><span class="line">                  <span class="keyword">return</span> connection.get(rawKey);</span><br><span class="line">              &#125;</span><br><span class="line">          &#125;, <span class="keyword">true</span>);</span><br><span class="line">    &#125; <span class="keyword">catch</span> (Throwable e) &#123;</span><br><span class="line">       <span class="keyword">try</span> &#123;</span><br><span class="line">         <span class="keyword">if</span> (tranx != <span class="keyword">null</span>) &#123;</span><br><span class="line">           tranx.setStatus(e);</span><br><span class="line">           tranx.complete();</span><br><span class="line">         &#125;</span><br><span class="line">       &#125; <span class="keyword">catch</span> (Throwable e) &#123;</span><br><span class="line">         </span><br><span class="line">       &#125;</span><br><span class="line">       <span class="keyword">throw</span> e;</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">      <span class="keyword">if</span> (tranx != <span class="keyword">null</span>) &#123;</span><br><span class="line">        tranx.setStatus(<span class="string">"0"</span>);</span><br><span class="line">        tranx.complete();</span><br><span class="line">      &#125;</span><br><span class="line">    &#125; <span class="keyword">catch</span>(Throwable e) &#123;&#125;</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">return</span> res;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>可以看到，代码非常长，但是不用担心性能，经过编译优化之后很多其实都被优化掉了</p>
-<h2 id="java-lang-instrument包"><a href="#java-lang-instrument包" class="headerlink" title="java.lang.instrument包"></a>java.lang.instrument包</h2><blockquote>
-<p>Provides services that allow Java programming language agents to instrument programs running on the JVM. The mechanism for instrumentation is modification of the byte-codes of methods.<br>Package Specification</p>
-</blockquote>
-<p>Oracle的官网上对这个包的定义如上，简单的说就是给与我们能力动态的修改Java类的字节码<br>一般可以用来监控，织入类似于AOP的逻辑</p>
-<h2 id="实现"><a href="#实现" class="headerlink" title="实现"></a>实现</h2><p>当时选择了javaassit进行字节码的织入，但是javaassit有一个很大的局限就是不能使用本地变量</p>
-<p>比如<code>Transaction tranx</code>这个我们在声明出来之后，在下面的代码就获取不到这个变量了</p>
-<p>但是整个方法不会触及多线程的场景，所以想到的方案就是放在一个ThreadLocal中</p>
-<p>先构造出一个ThreadLocal的类进行封装</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">RedisCatLog</span> </span>&#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> ThreadLocal&lt;RedisCatLog&gt; THREAD_LOCAL_CAT_LOG = <span class="keyword">new</span> ThreadLocal&lt;&gt;();</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">startLog</span><span class="params">(String action, Object data)</span> </span>&#123;</span><br><span class="line">        THREAD_LOCAL_CAT_LOG.remove();</span><br><span class="line">        RedisCatLog redisCatLog = <span class="keyword">new</span> RedisCatLog(action);</span><br><span class="line">        redisCatLog.before(String.valueOf(data));</span><br><span class="line">        THREAD_LOCAL_CAT_LOG.set(redisCatLog);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">endLog</span><span class="params">(<span class="keyword">boolean</span> success)</span> </span>&#123;</span><br><span class="line">        RedisCatLog redisCatLog = THREAD_LOCAL_CAT_LOG.get();</span><br><span class="line">        <span class="keyword">if</span> (Objects.nonNull(redisCatLog)) &#123;</span><br><span class="line">            redisCatLog.after(success);</span><br><span class="line">            THREAD_LOCAL_CAT_LOG.remove();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> String action;</span><br><span class="line">    <span class="keyword">private</span> Transaction tranx;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">RedisCatLog</span><span class="params">(String action)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">this</span>.action = action;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">before</span><span class="params">(String data)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">this</span>.tranx = Cat.newTransaction(<span class="string">"Cache."</span>, <span class="keyword">this</span>.action);</span><br><span class="line">        <span class="keyword">if</span> (<span class="keyword">this</span>.tranx <span class="keyword">instanceof</span> NullMessage) &#123;</span><br><span class="line">            log.error(<span class="string">"is null message"</span>);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">this</span>.tranx.addData(<span class="string">"key"</span>, data);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">after</span><span class="params">(<span class="keyword">boolean</span> success)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">if</span> (!success) &#123;</span><br><span class="line">            <span class="keyword">this</span>.tranx.setStatus(<span class="string">"failed"</span>);</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            <span class="keyword">this</span>.tranx.setStatus(<span class="string">"0"</span>);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">this</span>.tranx.complete();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>这样，有了这个类之后，我们的织入代码就比较简单了</p>
-<ul>
-<li>给现有方法的开始加入RedisCatLog.startLog()</li>
-<li>给方法的结尾加上RedisCatLog.endLog()</li>
-<li>给原有的完整代码加上try catch</li>
-</ul>
-<figure class="highlight"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">public V get(Object key) &#123;</span><br><span class="line">    try &#123;RedisCatLog.startLog("get", key);&#125; catch(Throwable e) &#123;&#125;</span><br><span class="line">  </span><br><span class="line">    try &#123;</span><br><span class="line">        V res = execute(new ValueDeserializingRedisCallback(key) &#123;</span><br><span class="line">              @Override</span><br><span class="line">              protected byte[] inRedis(byte[] rawKey, RedisConnection connection) &#123;</span><br><span class="line">                  return connection.get(rawKey);</span><br><span class="line">              &#125;</span><br><span class="line">          &#125;, true);</span><br><span class="line">    &#125; catch(Throwable e) &#123;</span><br><span class="line">        try &#123;RedisCatLog.endLog(false);&#125; catch(Throwable e) &#123;&#125;</span><br><span class="line">        throw e;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    try &#123;RedisCatLog.endLog(true);&#125; catch(Throwable e) &#123;&#125;</span><br><span class="line">    return res;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>整体来看是不是简单的了很多</p>
-<p>下面就是具体的javaassit代码编写了</p>
-<p>在编写时参考了文档，并没有系统的学习javaassit</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">String methodName = methods[i].getName();</span><br><span class="line">CtClass etype = ClassPool.getDefault().get(<span class="string">"java.lang.Throwable"</span>);</span><br><span class="line">methods[i].addCatch(<span class="string">"&#123; RedisCatLog.endLog(false); throw $e; &#125;"</span>, etype);</span><br><span class="line">methods[i].insertBefore(before(classMethodNameInfo.getType() + <span class="string">"-"</span> + methodName));</span><br><span class="line">methods[i].insertAfter(after());</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> String <span class="title">before</span><span class="params">(String action)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> String.format(<span class="string">"try &#123; RedisCatLog.startLog(\"%s\", $1); &#125; catch (Throwable e) &#123;&#125;"</span>, action);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> String <span class="title">after</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="string">"try&#123; RedisCatLog.endLog(true);&#125; catch (Throwable e) &#123;&#125;"</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>大概的整体逻辑如下</p>
-<p>项目我传到了Github上，<a href="https://github.com/zhyzhyzhy/CatRedisLogAspect" target="_blank" rel="noopener">https://github.com/zhyzhyzhy/CatRedisLogAspect</a></p>
-<p>大家可以参考文档进行使用</p>
-
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2019/11/08/给RedisTemplate插入Cat打点/#more" rel="contents">
+                Read more &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
       
     </div>
 
@@ -1898,10 +1305,16 @@
                 <i class="fa fa-calendar-o"></i>
               </span>
               <span class="post-meta-item-text">Posted on</span>
-              
 
-              <time title="Created: 2019-07-26 00:00:00 / Modified: 13:19:52" itemprop="dateCreated datePublished" datetime="2019-07-26T00:00:00+08:00">2019-07-26</time>
+              <time title="Created: 2019-07-26 00:00:00" itemprop="dateCreated datePublished" datetime="2019-07-26T00:00:00+08:00">2019-07-26</time>
             </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">Edited on</span>
+                <time title="Modified: 2020-02-23 18:30:17" itemprop="dateModified" datetime="2020-02-23T18:30:17+08:00">2020-02-23</time>
+              </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
                 <i class="fa fa-folder-o"></i>
@@ -1943,276 +1356,14 @@
 <p>Clone了代码，运行了起来，看了《HotSpot实战》和《揭秘Java虚拟机-JVM设计原理与实现》，但是能力一般，水平有限，对JVM还是知之甚少，发现继续研究下去将是一种苦修，要做好看很久代码都毫无进展的准备。但是本人志不在此，还是想去研究分布式与数据库，精力有限，只有暂且放弃JVM的深入研究。</p>
 <p>如此直接放弃还是有点可惜，虽然目前学到的不成体系，但是还是想写一篇Blog记录一下。</p>
 <p>所以此博客是上文提到的两本书的摘要+自己的一些学习理解，内容会很散，同时为了省力，摘要部分不特别标出。</p>
-<h2 id="源码目录"><a href="#源码目录" class="headerlink" title="源码目录"></a>源码目录</h2><p>HotSpot源码目录较多，有几个是比较重要的</p>
-<ul>
-<li>/c1 =&gt; 客户端解释器</li>
-<li>/classfile =&gt; Class文件解析</li>
-<li>/gc =&gt; gc相关</li>
-<li>/interpreter =&gt; C++解释器和模板解释器都在里面</li>
-<li>/oops =&gt; Java的类模型，也就是OOP-KLASS模型</li>
-<li>/opto =&gt; c2解释器，也就是服务端解释器</li>
-<li>/prims =&gt; 供外部程序访问JVM的通道，比如JNI，Perf，JMX等</li>
-<li>/runtime =&gt; 运行时模块，包括frame，thread，VMOptions等</li>
-<li>/shark =&gt; 基于LLVM实现的JIT编译器</li>
-</ul>
-<h2 id="源码"><a href="#源码" class="headerlink" title="源码"></a>源码</h2><p>JMM开头的方法，和Memory没关系，指的是Management的意思</p>
-<h2 id="命令行选项"><a href="#命令行选项" class="headerlink" title="命令行选项"></a>命令行选项</h2><p>JRockit JVM中命令行选项分为三种</p>
-<ul>
-<li>系统属性，-D开头</li>
-<li>标准选项，-X,-Xms其实我觉得全拼是-X:memory-start?</li>
-<li>非标准选项,-XX</li>
-</ul>
-<h2 id="Class文件解析"><a href="#Class文件解析" class="headerlink" title="Class文件解析"></a>Class文件解析</h2><p>Class文件的解析的代码都在/classfile目录下</p>
-<p><img src="/images/JVM杂记/class文件格式.jpg" alt=""></p>
-<p>HotSpot构建了一个叫systemDictionary的字典，结构是<code>[class name,class loader] -&gt; class</code>，用来存储系统中已经加载的类，从这个Map中我们可以看到一些类加载器的条件，双亲委派的概念。</p>
-<p>在classFileParser.cpp中，宏定义了Class文件开头的MagicWord和Java_Version的对应关系<br><figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">define</span> JAVA_CLASSFILE_MAGIC              0xCAFEBABE</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> JAVA_MIN_SUPPORTED_VERSION        45</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> JAVA_MAX_SUPPORTED_VERSION        53</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> JAVA_MAX_SUPPORTED_MINOR_VERSION  0</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> JAVA_1_5_VERSION                  49</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> JAVA_6_VERSION                    50</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> JAVA_7_VERSION                    51</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> JAVA_8_VERSION                    52</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> JAVA_9_VERSION                    53</span></span><br></pre></td></tr></table></figure></p>
-<p>文件解析后，各个Class文件是独立的，而各个类之间的联系其实是通过符号引用来串联在一起，JVM在进行符号引用的解析之后，就可以进行类型的相互引用和方法调用</p>
-<p>JVM的链接分为三个部分：</p>
-<ul>
-<li>验证：对方法进行一系列的检查，方法的访问控制，参数和静态类型检查等</li>
-<li>准备：为类静态变量分配内存空间，但是不会初始化值</li>
-<li>解析：将常量池中的4类符号引用转换为直接引用(用常量池项表示的字符串 -&gt; 实际内存地址)<ul>
-<li>类</li>
-<li>接口</li>
-<li>字段</li>
-<li>类方法和接口方法</li>
-</ul>
-</li>
-</ul>
-<p>链接完之后就是进行初始化，也就是调用static {}方法</p>
-<p>对于方法的链接，运用的是链接解析器，LinkResolver对方法进行解析和查找<br>对一个方法进行解析时，需要对instanceKlass中的method表进行查找，找到目标方法后转换成MethodHandle类型句柄返回<br>对方法的权限检查（public，private这种）是在找到之后进行</p>
-<h2 id="runtime模块与Shutdown-Hook"><a href="#runtime模块与Shutdown-Hook" class="headerlink" title="runtime模块与Shutdown Hook"></a>runtime模块与Shutdown Hook</h2><p>runtime模块主要定义HotSpot运行时数据</p>
-<p><code>frame.hpp</code>定义了栈帧的结构，包括Java栈帧，C栈帧。</p>
-<p><code>destroy_vm</code>的退出流程中，会运行JVM层的关闭钩子函数。<br>这里的关闭钩子函数就是提到的<code>Runtime.getRuntime().addShutdownHook();</code><br>书中提到的File.deleteOnExit方法，也是调用的这个，但是获取方式看起来不太一样<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">sun.misc.SharedSecrets.getJavaLangAccess()</span><br><span class="line">            .registerShutdownHook(<span class="number">2</span> <span class="comment">/* Shutdown hook invocation order */</span>,</span><br><span class="line">                <span class="keyword">true</span> <span class="comment">/* register even if shutdown in progress */</span>,</span><br><span class="line">                <span class="keyword">new</span> Runnable() &#123;</span><br><span class="line">                    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">run</span><span class="params">()</span> </span>&#123;</span><br><span class="line">                       runHooks();</span><br><span class="line">                    &#125;</span><br><span class="line">                &#125;</span><br></pre></td></tr></table></figure></p>
-<p>而且参数也是不止一个，看起来还可以指定顺序<br>但是不管咋样，最后两种方式其实都是调用的<code>Shutdown.add</code>方法<br>Runtime中的调用<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">Shutdown.add(<span class="number">1</span> <span class="comment">/* shutdown hook invocation order */</span>,</span><br><span class="line">               <span class="keyword">false</span> <span class="comment">/* not registered if shutdown in progress */</span>,</span><br><span class="line">               <span class="keyword">new</span> Runnable() &#123;</span><br><span class="line">                   <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">run</span><span class="params">()</span> </span>&#123;</span><br><span class="line">                       runHooks();</span><br><span class="line">                   &#125;</span><br><span class="line">               &#125;</span><br><span class="line">           );</span><br></pre></td></tr></table></figure></p>
-<p>看Order的参数来说的话，其实Runtime的优先级更高，而File.deleteOnExit的优先级第二。</p>
-<h2 id="synchronized实现"><a href="#synchronized实现" class="headerlink" title="synchronized实现"></a>synchronized实现</h2><p>synchronized方法或者代码块，会生成两个特殊的字节码  </p>
-<ul>
-<li>monitorenter  </li>
-<li>monitorexit<br>对于解释器而言，具体的执行逻辑在<br><code>intercepter/bytecodeIntercepter.cpp 1803行 JDK9</code><br>也就是<code>CASE(_monitorenter)</code>中<br>具体的实现分为偏向锁，轻量级锁，重量级锁<br>最后会调用<code>InterpreterRuntime::monitorenter</code>方法，这个方法定义在<code>interpreter/interpreterRuntime.cpp</code>中<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">IRT_ENTRY_NO_ASYNC(<span class="keyword">void</span>, InterpreterRuntime::monitorenter(JavaThread* thread, BasicObjectLock* elem))</span><br><span class="line">	...</span><br><span class="line">  <span class="keyword">if</span> (PrintBiasedLockingStatistics) &#123;</span><br><span class="line">    Atomic::inc(BiasedLocking::slow_path_entry_count_addr());</span><br><span class="line">  &#125;</span><br><span class="line">  Handle h_obj(thread, elem-&gt;obj());</span><br><span class="line">  assert(Universe::heap()-&gt;is_in_reserved_or_null(h_obj()),</span><br><span class="line">         <span class="string">"must be NULL or an object"</span>);</span><br><span class="line">  <span class="keyword">if</span> (UseBiasedLocking) &#123;</span><br><span class="line">    <span class="comment">// Retry fast entry if bias is revoked to avoid unnecessary inflation</span></span><br><span class="line">    ObjectSynchronizer::fast_enter(h_obj, elem-&gt;lock(), <span class="literal">true</span>, CHECK);</span><br><span class="line">  &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">    ObjectSynchronizer::slow_enter(h_obj, elem-&gt;lock(), CHECK);</span><br><span class="line">  &#125;</span><br><span class="line"> ...</span><br></pre></td></tr></table></figure>
-</li>
-</ul>
-<p>仔细看会使用到<code>ObjectSynchronizer</code>的两个方法，如果使用了偏向锁，那么就是<code>fast_enter</code>，如果不允许偏向锁，那么就是<code>slow_enter</code></p>
-<p>在<code>slow_enter</code>的最后，如果还是不行，就会进入锁膨胀的状态，也就是重量级锁</p>
-<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">ObjectSynchronizer::inflate(THREAD,</span><br><span class="line">                            obj(),</span><br><span class="line">                            inflate_cause_monitor_enter)-&gt;enter(THREAD);</span><br></pre></td></tr></table></figure>
-<p>这个时候就要用到<code>ObjectMonitor</code>类中的方法，最后还会涉及到<code>ObjectWaiter</code>类，这个类就是设计了一个链表，类似于<code>ReententLock</code>中的等待链表。</p>
-<p>最后还是很好奇最终的互斥锁到底是怎么实现的，代码在<code>runtime/mutex.cpp</code>中，仔细看了一下，并没有使用到c语言中的Mutex库，最终还是依赖于CAS实现的。</p>
-<p>其实说到底，最后所有的锁都是基于CAS + 链表。</p>
-<p>这里有一个概念上的观念，就是<a href="https://stackoverflow.com/questions/1898374/does-the-jvm-create-a-mutex-for-every-object-in-order-to-implement-the-synchron" target="_blank" rel="noopener">https://stackoverflow.com/questions/1898374/does-the-jvm-create-a-mutex-for-every-object-in-order-to-implement-the-synchron</a>该问题中提到的</p>
-<blockquote>
-<p>Ask: Using only CAS instructions, how do you get the OS scheduler to put a thread to sleep? </p>
-<p>Answer: you don’t. You only use CAS to acquire / release the lock in the uninflated / uncontended case. If contention is detected, the locking/unlocking code would then do the relevant thread scheduling syscalls … or whatever.</p>
-</blockquote>
-<p>如果你查看ReentrentLock的最后将等待的线程放入等待链表中，对线程调用的是<code>LockSupport.park()</code>方法，这是一个native方法，要去源码中找实现，在<code>hotspot/src/os/linux/vm/os_linux.cpp</code>中，可以看到这里为了让线程能够进入os的调度，也就是放弃CPU资源，还是需要进行<code>pthread_cond_wait</code>的调用的。最后对线程的唤醒，还是需要进行notify的。</p>
-<p>在synchronized的底层实现中，最后也是进行park，调用的是<code>os::PlatformEvent::park</code>方法，使用的类是</p>
-<p><code>class ParkEvent : public os::PlatformEvent</code></p>
-<p>所以，(CAS+链表+pthread_mutex)才是真正的实现机制。</p>
-<p>而如果是多线程争用的情况，其实最终的目的还是要保证原子释放CPU资源。</p>
-<p>说了一堆，其实核心在锁的实现上，基本都放弃了直接使用pthread_mutex的方法，而是运用<strong>CAS的方式进行自旋</strong>，而pthread_mutex的使用仅仅是为了将线程进行操作系统的重新调度。</p>
-<p>参考文章：</p>
-<ul>
-<li><a href="https://github.com/farmerjohngit/myblog/issues/15" target="_blank" rel="noopener">https://github.com/farmerjohngit/myblog/issues/15</a></li>
-<li><a href="https://www.jianshu.com/p/c5058b6fe8e5" target="_blank" rel="noopener">https://www.jianshu.com/p/c5058b6fe8e5</a></li>
-</ul>
-<p>偏向锁<br>这个名词看名字不是那么容易理解，在JRockit中描述为延迟解锁</p>
-<p><img src="/images/JVM杂记/锁转换.png" alt=""></p>
-<blockquote>
-<p>在上图中，有三种锁类型，其中胖锁和瘦锁在之前中介绍过，这里新增了延迟锁，用来解释 锁在大部分情况下都只作用于线程局部场景下的情况。<br>正如之前介绍过的，对象首先是未加锁状态的，然后线程 T1 执行 monitorenter 指令，使 之进入延迟加锁状态。但如果线程 T1 在该对象上执行了 monitorexit 指令，这时系统会假装 已经解锁了，但实际上仍是锁定状态，锁对象的锁字中仍记录着线程 T1 的线程 ID。在此之后， 线程 T1 如果再执行加锁操作，就不用再执行相关操作了。<br>如果另一个线程 T2 试图获取同一个锁，则之前所做“该锁绝大部分被线 T1 程使用”的假 设不再成立，会受到性能惩罚，将锁字中的线程 ID 由线程 T1 的 ID 替换为线程 T2 的。如果这 种情况经常出现，那么可能会禁用该对象作为延迟锁，并将该对象作为普通的瘦锁使用。假设这 是线程 T2 第一次在该对象上调用 monitorenter 指令，则程序会进入瘦锁控制流程。在上图中， 被禁用于延迟解锁的对象用星号(*)做了标记。此时，当线程 T3 试图在某个已被禁用于延迟解 锁的对象上加锁，如果该对象还未被锁定，则此时仍会使用瘦锁。<br>使用瘦锁时，如果竞争激烈，或者在锁对象上调用了 wait 方法或 notify 方法，则瘦锁会 膨胀为胖锁，需要等待队列来处理。从图中可以看到，处于延迟解锁状态的对象直接调用 wait 方法或 notify 方法的话，也会膨胀为胖锁</p>
-</blockquote>
-<p>单例模式的双重校验锁的实现其实是有问题的，加了volatile能解决问题，但是会带来略微的性能问题</p>
-<h2 id="内存-OOP"><a href="#内存-OOP" class="headerlink" title="内存 OOP"></a>内存 OOP</h2><p>虚拟机中内存空间按照内存的用途，可以划分为<strong>堆和非堆</strong></p>
-<ul>
-<li>堆：用于对象的分配空间</li>
-<li>非堆：包括方法区和Code Cache</li>
-</ul>
-<p>Perf Data区域，有perfMemory模块管理<br>为了支持虚拟机性能监控，在虚拟机中开辟了一块共享内存，专门存储一些性能指标<br>虚拟机使用共享内存方式向外部进程提供了一种通信手段，允许外部监控进程attach至虚拟机进程，从共享内存中读取这些perf Data</p>
-<p>oop-klass模型<br>这个感觉是比较重要的点了<br>还是一个老生长谈的问题，why的问题<br>运用C++的基础模型去实现有没有问题呢？<br>其实我感觉是没有问题的，但是相对于C++的模型，Java这种方式，其实主要是更省内存。<br>同一个类的所有对象维护同一个VTable，其次就是和C++的多态方式不同，Java是模型每一个函数都是可以被子类覆盖的，而C++的只有是虚函数才能，换句话说，Java里面每个函数都是虚函数。<br>虚函数暴增的情况下，显然这种方式更加的省内存。<br>//fixMe</p>
-<blockquote>
-<p>而且我感觉还和Java的类加载机制有关，因为Java的符号引用转换为直接引用的解析过程，是可以再运行中才进行的，如果父类的方法被动态改变了，函数的地址肯定也需要进行相应的改变，而现有子类的对于这个方法的指向，只要改变一次Klass就行。</p>
-</blockquote>
-<p>在该模型中，Java的method也作为一种OOP存在</p>
-<p><img src="/images/JVM杂记/markword.jpg" alt=""></p>
-<p>实例对象的创建 分为快速分配和慢速分配  </p>
-<ul>
-<li>快速分配就是必须是该类已经被加载和正确解析 因为类的解析，就是符号引用变直接引用的过程不一定就是ClassLoader的时候进行，HotSpot是类第一次被使用的时候解析<br>快速分配就是可以在TLAB，就是线程缓存中分配，而不必先分配到Eden区，如果开启了TLAB选项</li>
-<li>慢速分配就是需要先解析，然后在Eden区分配</li>
-</ul>
-<p>对象在内存中的布局，也就是OOP对象，可以分为连续的两部分，也就是MarkWord对象头和实例数据部分<br>而在Klass模型中，存储着对象的每个变量在实例数据部分的偏移量和长度</p>
-<p>Klass中，有一个和Java类对应的mirror成员</p>
-<p>JVM为每个线程分配一个PC寄存器，在真实机器中，往往提供一个PC寄存器专门用来保存程序运行的指令在内存中的位置，在HotSpot的实现中，为每个线程分配了一个字长的存储空间，以实现类似硬件级的PC寄存器<br>如果当前执行方法不是本地方法，那么PC寄存器就保存的是JVM正在执行的字节码指令的地址，如果是本地方法，那么PC寄存器的值是未定义的，因为本地方法的执行依赖硬件PC寄存器，其值是由操作系统维护</p>
-<p>Java虚拟机栈的作用：存储方法执行中的局部变量，中间演算结果以及方法返回结果</p>
-<p>JVM允许Java虚拟机栈被实现为固定大小和动态收缩</p>
-<ul>
-<li><p>固定大小，顾名思义，如果超过，抛出StackOverflowError异常</p>
-</li>
-<li><p>动态扩展：OOM异常</p>
-</li>
-</ul>
-<p>虚拟机规范对方法区实现的位置并没有明确要求，在HotSpot中，位于永久代中。<br>HotSpot会收集方法区，主要是常量池的收集和类的卸载<br>在HotSpot内部，Java方法也是由一个内部对象表示的，对象的类型是methodOop，是Java方法在JVM内部的表示方式<br>methodOop内部有指向所在类的运行时常量池的指针<br>methodOop内部有个_constMethod指针，类型是constMethodOop，用来存储和定位方法中的只读数据，如字节码，方法引用，方法名，方法签名，异常表等信息</p>
-<p>Perf Data区域，有perfMemory模块管理<br>为了支持虚拟机性能监控，在虚拟机中开辟了一块共享内存，专门存储一些性能指标<br>虚拟机使用共享内存方式向外部进程提供了一种通信手段，允许外部监控进程attach至虚拟机进程，从共享内存中读取这些perf Data</p>
-<p>Java类的生命周期的第一个阶段，加载，就是为了在JVM内部创建一个与Java类结构对等的数据对象</p>
-<p>如果想要破坏双亲委派的机制，自定义类加载器加载核心类库，还是会被拒绝，因为在defineClass方法中，会提供保护，对类名为Java开头的类，直接抛出异常</p>
-<p>同样的，类型转换需要两个类都是同一个类加载器加载的，不然会报错，上次那个Dubbo的问题就这样，报错是两个一样的类，无法进行cast</p>
-<h2 id="GC"><a href="#GC" class="headerlink" title="GC"></a>GC</h2><p>GC的几个策略</p>
-<ul>
-<li>GC工作线程：串行还是并行</li>
-<li>GC工作线程和应用线程：并发执行还是暂停应用</li>
-<li>基本收集算法：压缩，非压缩还是拷贝</li>
-</ul>
-<p>吞吐量：应用程序运行时间/(应用程序运行时间 + 垃圾收集时间)</p>
-<p>HotSpot每个线程在Eden区都有自己的一小块区域，用于TLAB分配<br>通常情况下，系统中有大量连续的内存块可以用来进行分配的话，碰撞指针算法进行分配，效率很高。思路就是记录上一次分配对象的位置，当有新对象要分配的时候，只需要一次移动位置就可以完成内存的分配<br>在TLAB中进行分配，也就是碰撞指针(bump-the-pointer)分配，效率很高</p>
-<p>不然就需要全局锁进行在Eden区分配</p>
-<p>还有另外一种优化，叫栈上分配</p>
-<p>栈上分配需要对方法的对象进行逃逸分析<br>如果局部变量的作用域仅限于方法内部，则JVM直接在栈帧内分配对象，避免在堆中分配<br>但是这里引用R大的话</p>
-<blockquote>
-<p>嗯但是Oracle/Sun的HotSpot VM从来没在产品里实现过栈上分配，而只实现过它的一种特殊形式——标量替换（scalar replacement）。这俩是不一样的喔。栈上分配还是要分配完整的对象结构，只不过是在栈帧里而不在GC堆里分配；标量替换则不分配完整的对象，直接把对象的字段打散看作方法的局部变量，也就是说标量替换后就没有对象头了，也不需要把该对象的字段打包为一个整体。<br><a href="https://book.douban.com/people/RednaxelaFX/annotation/25847620/" target="_blank" rel="noopener">https://book.douban.com/people/RednaxelaFX/annotation/25847620/</a></p>
-</blockquote>
-<p>有个类叫GCCause，里面定义了一些枚举，就是引起GC的一些情况<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">enum</span> Cause &#123;</span><br><span class="line"><span class="comment">/* public */</span></span><br><span class="line">_java_lang_system_gc,</span><br><span class="line">_full_gc_alot,</span><br><span class="line">_scavenge_alot,</span><br><span class="line">_allocation_profiler,</span><br><span class="line">_jvmti_force_gc,</span><br><span class="line">_gc_locker,</span><br><span class="line">_heap_inspection,</span><br><span class="line">_heap_dump,</span><br><span class="line">_wb_young_gc,</span><br><span class="line">_wb_conc_mark,</span><br><span class="line">_wb_full_gc,</span><br><span class="line">_update_allocation_context_stats_inc,</span><br><span class="line">_update_allocation_context_stats_full,</span><br><span class="line"></span><br><span class="line"><span class="comment">/* implementation independent, but reserved for GC use */</span></span><br><span class="line">_no_gc,</span><br><span class="line">_no_cause_specified,</span><br><span class="line">_allocation_failure,</span><br><span class="line"></span><br><span class="line"><span class="comment">/* implementation specific */</span></span><br><span class="line"></span><br><span class="line">_tenured_generation_full,</span><br><span class="line">_metadata_GC_threshold,</span><br><span class="line">_metadata_GC_clear_soft_refs,</span><br><span class="line"></span><br><span class="line">_cms_generation_full,</span><br><span class="line">_cms_initial_mark,</span><br><span class="line">_cms_final_remark,</span><br><span class="line">_cms_concurrent_mark,</span><br><span class="line"></span><br><span class="line">_old_generation_expanded_on_last_scavenge,</span><br><span class="line">_old_generation_too_full_to_scavenge,</span><br><span class="line">_adaptive_size_policy,</span><br><span class="line"></span><br><span class="line">_g1_inc_collection_pause,</span><br><span class="line">_g1_humongous_allocation,</span><br><span class="line"></span><br><span class="line">_dcmd_gc_run,</span><br><span class="line"></span><br><span class="line">_last_gc_cause</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure></p>
-<p>收集算法</p>
-<ul>
-<li>标记-清除 Mark-Sweep</li>
-<li>复制算法 Copying</li>
-<li>标记-压缩算法 Mark-Compact</li>
-</ul>
-<p>堆的类型</p>
-<p>不同的收集器可能对应着不同类型的堆</p>
-<p><code>CollectedHeap &lt;- ParallelScavengeHeap</code></p>
-<p><code>CollectedHeap &lt;- SharedHeap &lt;- G1CollectedHeap</code></p>
-<p>CMS的创新之处在于把标记分为两个阶段，初始标记和并发标记</p>
-<p>但是引入了新的缺点，就是并发收集失败的问题，在并发标记时，内存使用过度，只有STW，采取线性标记和收集</p>
-<p>而且只能由于并发清除的问题，只能进行标记-清除，将产生内存碎片，而新生代由于其特殊性，将产生更多的内存碎片，所以CMS在新生代并不适用，只运用在老年代</p>
-<p>安全点</p>
-<blockquote>
-<p>由于JVM系统运行期间的复杂性，不可能做到随时暂停，因此引入了安全点（safepoint）：程序只有在运行到安全点的时候，才准暂停下来。HotSpot采取主动中断的方式，让执行线程在运行时轮询是否需要暂停的标识，若需要则中断挂起。</p>
-</blockquote>
-<p>//fixme<br>其实我觉得这里说的不对，应该不是不可能做到随时暂停，而是随时暂停的消耗太大了，因为后面也写到是主动中断的方式，如果在每个字节码后面都插入check是否需要中断的代码，则消耗确实是太大了<br>参考文章：<a href="https://www.jianshu.com/p/c79c5e02ebe6" target="_blank" rel="noopener">https://www.jianshu.com/p/c79c5e02ebe6</a></p>
-<p>G1收集器<br>G1重新定义了堆空间，打破了原有的分代模型，将堆划分为一个个区域<br>在进行收集的时候，不必在全堆的范围内进行，好吃就是带来了停顿时间的可预测<br>G1会通过一个合理的计算模型，计算出每个region的收集成本并量化</p>
-<p>分代模型的写屏障<br>这个是比较重要的一个，一开始是比较难理解的<br><img src="/images/JVM杂记/写屏障.png" alt=""><br>我们从正常的新生代的GC开始说，从图中看到，如果只从GCRoot出发，其实是扫描不到F的，如果扫描不到，说明F是需要被清除的<br>但是其实F被老年代的E所引用，也就是说他不能被清除<br>这就是说，GCRoot需要包含新生代中的被老年代引用的对象。<br>但是如果要实现这个功能，可能要扫描所有的老年代对象了，如果每次进行新生代的GC时都扫描老年代，那么分代GC的意义就不是那么明显了<br>所以这里用了一个写屏障，底层使用的是卡表的概念进行标记。<br>简单的说就是每当有老年代对象引用新生代对象时，就把老年代对象所在的位置标记一下，然后进行新生代GC时，把老年代标记了的位置进行扫描进行，而不用全部扫描<br><a href="https://juejin.im/post/5c39920b6fb9a049e82bbf94" target="_blank" rel="noopener">https://juejin.im/post/5c39920b6fb9a049e82bbf94</a></p>
-<p>压缩指针<br>指针的大小一般是平台的决定的，但是在64位的机器上，但是还是可以进行一些优化，优化的基础是内存的申请是一下子一大片连续的内存<br>举个例子就是在64位机器上，如果我们要申请的一块内存小于4G，那么完全可以只用32位就可以进行指针的保存</p>
-<p>JRockit里面提到了一种伪优化<br>就是对象池，有人认为，保留一个存活对象池来重新使用已创建的对象可以提升垃圾回收的性能</p>
-<blockquote>
-<p>但实际上，对象池不仅增加了应用程序的复杂度，还很容易出错。对于现代垃圾收集器来说，使用 java.lang. ref.Reference 系列类实现缓存，或者直接将无用对象的引用置为 null 就好了，不用多操心。<br>此外，长期持有无用的对象其实是个大麻烦，分代式垃圾回收器可以很好地处理临时对象，但如果这些临时对象被人为保存下来，无法被回收掉的话，最终就会被提升到老年代，并将其挤满。</p>
-</blockquote>
-<h2 id="栈帧"><a href="#栈帧" class="headerlink" title="栈帧"></a>栈帧</h2><p>如果函数要返回整数或者指针的话，寄存器%eax可以用来返回值<br>寄存器eax，edx，ecx被划分为调用者保存<br>而寄存器ebx，esi，edi寄存器划分为被调用者保存<br>栈是以帧为单位保存当前线程的运行状态<br>当线程执行一个方法时，它会跟踪当前常量池<br>栈帧存储了方法的局部变量表，操作数栈，动态链接和方法返回地址</p>
-<p><img src="/images/JVM杂记/栈帧结构.png" alt=""><br><img src="/images/JVM杂记/解释器帧.png" alt=""></p>
-<p>局部变量表</p>
-<ul>
-<li>局部变量表被组织为一个字长为单位，从0开始计数的数组</li>
-<li>存储时以slot为单位，一个slot一般为32位，short，byte，char在存入表中要先转换为int</li>
-<li>一般会存储的类型除了基本类型和引用，还有returnAddress类型，它指向了一个字节码指令的地址</li>
-<li>参数值到参数变量列表的传递依赖于局部变量表</li>
-<li>第0位索引的slot默认是用于传递方法所属对象实例的引用</li>
-</ul>
-<p>局部变量表的描述</p>
-<ul>
-<li>start_pc，length：描述局部变量的作用域</li>
-<li>name_index：描述局部变量名的常量池索引，对应Class文件中的Name</li>
-<li>descriptor_index:描述局部变量类型的常量池索引，对应Class文件中的Signature</li>
-<li>index：描述局部变量在当前栈帧的局部变量索引</li>
-</ul>
-<p>局部变量表的大小在编译期就可以确定，在Code属性中明确了大小</p>
-<p>操作数栈</p>
-<ul>
-<li>操作数栈的深度由Code属性max_stacks在编译期确定</li>
-<li>和局部变量表不同的是，操作数栈不是通过索引来访问的，而是通过入栈和出栈来访问</li>
-<li>还有一个比较重要的点，就是操作数栈和下一个栈帧的参数列表是可以复用的，不然我们在HSDB调试操作数栈的时候看起来会比较迷惑</li>
-</ul>
-<p>异常表<br>为了处理Java方法中的异常情况，帧数据区还必须保存一个对此方法异常表的引用，当异常抛出时，JVM给catch块中的代码<br>如果没发现，方法立即终止，然后JVM用帧区数据的信息回复发起调用的方法的帧，然后再发起调用方法的上下文重新抛出同样的异常</p>
-<p>Hotspot解释器执行引擎在执行字节码时，实际上是执行一段已经被编译成本地机器直接运行的指令<br>在JVM启动期间，解释器模块就会将每个字节码转换成与之等价的机器指令，放在Code Cache中<br>所以HotSpot充分利用了计算机的资源，包括寄存器</p>
-<h2 id="JavaCalls"><a href="#JavaCalls" class="headerlink" title="JavaCalls"></a>JavaCalls</h2><p>JavaCalls，说白了就是JVM调用Java方法</p>
-<p>然后CallStub，是一个函数指针，在调用Java程序的Main函数时，需要使用这个函数指针</p>
-<p>但是CallStub指向的函数是一个entry_point，是一个例程</p>
-<p>当然这里其实是有歧义的例程在JVM的概念就是提前用机器码写好的函数，而entry_point虽然也是例程，然后它主要突出entry这个词，主要是在方法调用切换时进行调用的例程</p>
-<p>再说回CallStub，它指向的例程，就是为所有Java程序的唯一一个Main方法构造他的前一个栈帧</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;&#125;</span><br></pre></td></tr></table></figure>
-<p>最直接的就是参数args，在栈中需要使用CallStub指向的例程构建好，然后CallStub的函数指针的函数中，还需要传入一个entry_point，这个就是在进行Java函数调用的时候，需要进行寄存器的保存等之类的操作，而这些操作由不同的entry_point来操作。</p>
-<p>//fix me</p>
-<p>个人理解就是在各种invoke的字节码指令中，会频繁的调用这些不同的entry_point。</p>
-<h2 id="常量池"><a href="#常量池" class="headerlink" title="常量池"></a>常量池</h2><p>其实JVM中常量池有两种不同的概念<br>第一种是Class文件的常量池<br>虚拟机在创建一个类或者接口时候，按照Class文件的定义创建相应的常量池，也就是Class文件中的constant_pool表。<br>第二种是方法区中的常量池，虚拟机在对类进行解析和连接之后，将在内存中为该类生成一套运行时常量池，常量池在运行时动态分配<br>第三种是代码中我们提到的常量池，也就是String常量池，JVM中创建了一个String的Table</p>
-<p>参考<a href="https://blog.csdn.net/zm13007310400/article/details/77534349" target="_blank" rel="noopener">https://blog.csdn.net/zm13007310400/article/details/77534349</a></p>
-<p>那么为什么要有常量池呢<br>Answer：</p>
-<blockquote>
-<p>常量池的出现，解决了JVM定位字段和方法的问题，它在不破坏指令集的简洁性的前提下，仅仅通过少量字节就能定位到目标。<br>更详细的说，以字符串数据aVeryLongFunctionName为例，如果在编译时每次都要重新避免这个字符串的话，那么字节码就谈不上压缩了</p>
-</blockquote>
-<p>但是每次字段或者方法的访问都需要解析常量池项的话，将不可避免的造成性能下降<br>对于类文件的运行时常量池，JVM内还会有它的高速缓冲ConstantPoolCache</p>
-<h2 id="解释器"><a href="#解释器" class="headerlink" title="解释器"></a>解释器</h2><p>HotSpot的解释器分为了两种<br>一种是CPP解释器，也就是最原始的解释器，类似于Case，Case这种形式，文件是intercepter/bytecodeIntercepter.cpp<br>一种是模板解释器，现在默认是这样，这种是在JVM启动时对每一个字节码都进行了当前平台的机器码转换，具体的是维护了一个平台相关TemplateTable，可以在cpu/x86/vm中的templateTable_XX.cpp中找到，相对于CPP解释器，其实这也是一种解释的方法，虽然第一种最终执行的也是C++编译成的机器码，但是模板解释器相对于CPP解释器，机器码是手动写的，可以进行一些优化，比如TOS，还有就是对于取出下一个执行进行运行，也可以直接插入到当前字节码的机器码中</p>
-<p>对于模板解释器的取指令的操作，其实在写在每一个字节码指令的最后。<br>HotSpot在为每一个字节码指令生成其机器逻辑指令时，会同时为该字节码指令生成其取址逻辑</p>
-<p>PC计数器，在x86平台上就是esi寄存器，所以在JVM中并不是完全不使用CPU的寄存器</p>
-<p>面向栈式的指令，可以省去很多的操作数，所以一定程度上也减少了代码体积<br>这话其实不对，因为相对于寄存器式的指令，寄存器式的一个指令就能完成的事，其实栈式需要多个指令</p>
-<p>栈帧重叠<br>就是前面提到的上一个方法的操作数栈可以直接成为下一个方法的参数表</p>
-<p>栈上替换 OSR<br>个人理解就是在一个方法里遇到了Loop非常久的情况，对方法进行了JIT编译，但是由于这个Loop非常长，JIT编译完还未结束，所以为了将当前方法替换到新的栈帧，使用栈上替换<br>具体的解释在R大这儿<br><a href="https://www.zhihu.com/question/45910849" target="_blank" rel="noopener">OSR（On-Stack Replacement）是怎样的机制？</a><br>JRockit没有实现OSR，因为太复杂了</p>
-<p>JIT编译器<br>为什么不直接全部aot编译一下，而是选择了解释+JIT的方式<br>R大这里也回答了[<a href="https://www.zhihu.com/question/37389356)(https://www.zhihu.com/question/37389356" target="_blank" rel="noopener">https://www.zhihu.com/question/37389356)(https://www.zhihu.com/question/37389356</a>)<br>我总结一下</p>
-<ul>
-<li>时间开销，aot的启动时间肯定很慢</li>
-<li>空间开销，字节码到机器码会代码膨胀</li>
-<li>编译时机，一些profile的收集对编译有很大的影响<blockquote>
-<p>JIT是一个充满希望的方向，因为它可以搜集到程序在AOT编译时得不到的runtime数据，在优化时，有更多的上下文可以依靠，理论上应该有更好的优化特性</p>
-</blockquote>
-</li>
-</ul>
-<p>在JRockit中，讲了aot其实在90年代就已经出现了，但是这种方式虽然快了很多，但是抛弃了很多Java的动态特性，提到了一个很重要的场景，就是在JSP的应用中，我们知道JSP其实就是b被编译成class文件，做的事也仅仅是疯狂的sout，如果aot一下，效率不会提高太多，但是代码体积会提高很多</p>
-<p>其实aot与全部JIT编译并不是一个概念，一个好的办法是，给JIT的编译加上不同层级的编译，一开始可能是优化不高的，后面收集到profile后再进行深层次的profile</p>
-<p>判断热方法</p>
-<ul>
-<li>counter，但是会降低效率</li>
-<li>基于软件的线程采样，周期性的获取活动线程的上下文</li>
-</ul>
-<p>JVM字节码的表现力其实比Java语言强，所以需要对字节码进行校验，防止一些恶意的技巧</p>
-<h2 id="TOS"><a href="#TOS" class="headerlink" title="TOS"></a>TOS</h2><p>TosState的取值范围为0-8，共计9种</p>
-<ul>
-<li>byte，bool</li>
-<li>char</li>
-<li>short</li>
-<li>int</li>
-<li>long</li>
-<li>float</li>
-<li>double</li>
-<li>object</li>
-<li>void</li>
-</ul>
-<p>最后一种其实就是空，参见R大的笔记，HotSpot实战中写的是tos类型，我还去百度了tos类型是啥类型😓 </p>
-<h2 id="VM选项"><a href="#VM选项" class="headerlink" title="VM选项"></a>VM选项</h2><table>
-<thead>
-<tr>
-<th>配置</th>
-<th>解释</th>
-<th>备注</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>-XX:UseG1GC</td>
-<td>配置G1收集器</td>
-<td></td>
-</tr>
-<tr>
-<td>-Xint</td>
-<td>配置虚拟机以纯解释方式运行</td>
-<td></td>
-</tr>
-<tr>
-<td>-XX:+MaxFDLimit</td>
-<td>最大文件描述符数量</td>
-<td></td>
-</tr>
-<tr>
-<td>-XX:DisableExplicitGC</td>
-<td>Parallel Scanvenge收集器的配置，屏蔽System.gc()</td>
-</tr>
-</tbody>
-</table>
-<h2 id="Tools"><a href="#Tools" class="headerlink" title="Tools"></a>Tools</h2><p>实际的性能分析可以查看《HotSpot实战》的5.3小节，讲的很详细</p>
-<ul>
-<li>HSDB：可以用来看JVM的运行时数据，查看线程栈，对象的数据</li>
-<li>jps：查看Java进程信息</li>
-<li>jinfo：</li>
-<li>jmap：</li>
-<li>jhat：</li>
-<li>jstat：</li>
-<li>jstack：</li>
-</ul>
-<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a href="https://book.douban.com/people/RednaxelaFX/annotation/25847620/?start=0" target="_blank" rel="noopener">RednaxelaFX对《HotSpot实战》的笔记</a><br><a href="https://book.douban.com/subject/25847620/" target="_blank" rel="noopener">HotSpot实战</a><br><a href="https://book.douban.com/subject/30394745/" target="_blank" rel="noopener">JRockit权威指南：深入理解JVM</a><br><a href="https://book.douban.com/subject/27086821/" target="_blank" rel="noopener">https://book.douban.com/subject/27086821/</a></p>
-
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2019/07/26/JVM杂记/#more" rel="contents">
+                Read more &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
       
     </div>
 
@@ -2254,10 +1405,16 @@
                 <i class="fa fa-calendar-o"></i>
               </span>
               <span class="post-meta-item-text">Posted on</span>
-              
 
-              <time title="Created: 2019-03-29 00:00:00 / Modified: 16:35:34" itemprop="dateCreated datePublished" datetime="2019-03-29T00:00:00+08:00">2019-03-29</time>
+              <time title="Created: 2019-03-29 00:00:00" itemprop="dateCreated datePublished" datetime="2019-03-29T00:00:00+08:00">2019-03-29</time>
             </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">Edited on</span>
+                <time title="Modified: 2020-02-23 18:30:12" itemprop="dateModified" datetime="2020-02-23T18:30:12+08:00">2020-02-23</time>
+              </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
                 <i class="fa fa-folder-o"></i>
@@ -2300,17 +1457,14 @@
 <figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// <span class="doctag">NOTE:</span> we don't validate, as unlike SimpleFSLockFactory, we can't break others locks</span></span><br></pre></td></tr></table></figure>
 <p>我从网上找到了当初的Bug的讨论帖<br><a href="https://issues.apache.org/jira/browse/LUCENE-6507" target="_blank" rel="noopener">https://issues.apache.org/jira/browse/LUCENE-6507</a>  </p>
 <p>从里面讨论了NativeFSLock了一些关于这个文件锁的实现的问题</p>
-<h2 id="JDK的BUG"><a href="#JDK的BUG" class="headerlink" title="JDK的BUG"></a>JDK的BUG</h2><blockquote>
-<p>On some systems, closing a channel releases all locks held by the Java virtual machine on the underlying file regardless of whether the locks were acquired via that channel or via another channel open on the same file. It is strongly recommended that, within a program, a unique channel be used to acquire all locks on any given file. </p>
-</blockquote>
-<p>这个JDK的文档中写的就是这么一种场景，在某些操作系统上，如果我们把channel直接关闭，那么其他的在这个文件上的Lock会直接失效，当然前提是在同一个JVM进程中</p>
-<p>如果没有这个BUG，我们会怎么写这个LOCK的获取代码呢<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">FileChannel channel = <span class="keyword">null</span>;</span><br><span class="line">FileLock lock = <span class="keyword">null</span>;</span><br><span class="line"><span class="keyword">try</span> &#123;</span><br><span class="line">    channel = FileChannel.open(realPath, StandardOpenOption.CREATE, StandardOpenOption.WRITE);</span><br><span class="line">    lock = channel.tryLock();</span><br><span class="line">    <span class="keyword">if</span> (lock != <span class="keyword">null</span>) &#123;</span><br><span class="line">      <span class="keyword">return</span> <span class="keyword">new</span> NativeFSLock(lock, channel, realPath, creationTime);</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">      <span class="keyword">throw</span> <span class="keyword">new</span> LockObtainFailedException(<span class="string">"Lock held by another program: "</span> + realPath);</span><br><span class="line">    &#125;</span><br><span class="line">&#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">    <span class="keyword">if</span> (lock == <span class="keyword">null</span>) &#123; <span class="comment">// not successful - clear up and move out</span></span><br><span class="line">      IOUtils.closeWhileHandlingException(channel); <span class="comment">// <span class="doctag">TODO:</span> addSuppressed</span></span><br><span class="line">      clearLockHeld(realPath);  <span class="comment">// clear LOCK_HELD last </span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
-<p>很简单的，就是先拿channel，然后tryLock，如果失败，就是记得关闭channel就行了。</p>
-<p>但是有个JDK的这个问题，还能直接关闭吗？<br>显然是不能的，你关闭channel，会把其他在这个channel的锁给invalid掉。</p>
-<h2 id="Lucene的实现"><a href="#Lucene的实现" class="headerlink" title="Lucene的实现"></a>Lucene的实现</h2><p>这个帖子最后的解决方案，就是加了一个类似于双重校验锁的东西。<br>在同一个进程中，设置一个<br><code>Set&lt;String&gt; LOCK_HELD</code></p>
-<p>要想获取文件锁，首先得成功把LockName加个Lock_HELD中。</p>
-<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a href="https://github.com/frohoff/jdk8u-dev-jdk/blob/master/src/share/classes/java/nio/channels/FileLock.java" target="_blank" rel="noopener"><code>java.nio.channel.FileLock</code>注释</a></p>
-
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2019/03/29/Java中FileLock的实现细节/#more" rel="contents">
+                Read more &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
       
     </div>
 
@@ -2632,10 +1786,16 @@
                 <i class="fa fa-calendar-o"></i>
               </span>
               <span class="post-meta-item-text">Posted on</span>
-              
 
-              <time title="Created: 2019-01-05 00:00:00 / Modified: 15:11:04" itemprop="dateCreated datePublished" datetime="2019-01-05T00:00:00+08:00">2019-01-05</time>
+              <time title="Created: 2019-01-05 00:00:00" itemprop="dateCreated datePublished" datetime="2019-01-05T00:00:00+08:00">2019-01-05</time>
             </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">Edited on</span>
+                <time title="Modified: 2020-02-23 18:28:21" itemprop="dateModified" datetime="2020-02-23T18:28:21+08:00">2020-02-23</time>
+              </span>
 
           
   
@@ -2663,22 +1823,14 @@
 
       
           <h1 id="十万嬉皮-万能青年旅店"><a href="#十万嬉皮-万能青年旅店" class="headerlink" title="十万嬉皮 - 万能青年旅店"></a><strong>十万嬉皮 - 万能青年旅店</strong></h1><p>大梦一场的董二千先生</p>
-<p>推开窗户，举起望远镜</p>
-<p>眼底映出，一阵浓烟</p>
-<p>前已无通路，后不见归途</p>
-<p>敌视现实，虚构远方</p>
-<p>东张西望，一无所长</p>
-<p>四体不勤，五谷不分</p>
-<p>文不能测字，武不能防身</p>
-<p>喜欢养狗，不爱洗头</p>
-<p>不事劳作，一无所获</p>
-<p>厌恶争执，不善言说</p>
-<p>终于沦为沉默的帮凶</p>
-<p>借酒浇愁，不太能喝</p>
-<p>蛊惑他人，麻醉内心</p>
-<p>浇上汽油，舒展眉头</p>
-<p>纵火的青年，迫近的时间</p>
-
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2019/01/05/十万嬉皮/#more" rel="contents">
+                Read more &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
       
     </div>
 
@@ -2922,7 +2074,7 @@
                   <i class="fa fa-calendar-check-o"></i>
                 </span>
                 <span class="post-meta-item-text">Edited on</span>
-                <time title="Modified: 2019-11-15 23:04:00" itemprop="dateModified" datetime="2019-11-15T23:04:00+08:00">2019-11-15</time>
+                <time title="Modified: 2020-02-23 18:28:32" itemprop="dateModified" datetime="2020-02-23T18:28:32+08:00">2020-02-23</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -2962,65 +2114,14 @@
 
       
           <p>总结我的2018</p>
-<h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>一路坎坷的2018年终于过去了，一年12个月，我有9个月都在外面实习  </p>
-<ul>
-<li>2 - 4：美团实习</li>
-<li>6 - 8：阿里实习</li>
-<li>11 - ~：网易实习</li>
-</ul>
-<p>虽然其实自己感觉也没啥，但是回顾起来还是觉得满坎坷的  </p>
-<h2 id="美团实习"><a href="#美团实习" class="headerlink" title="美团实习"></a>美团实习</h2><p>去美团实习的时候，真的是一张白纸<br>最开始去之前还是觉得很开心很激动，因为美团也算是一个大公司了，而我一个双非本科的学生，能得到这样的机会，实在是难得。 当时HR告诉我的工资，足够我在上海活下去，也终于不需要向爸妈拿钱了。<br>但是由于发生了一些事，导致这段实习其实并不是很愉快   </p>
-<p>由于HR的原因，导致我的工资入职后才知道其实很低很低，因为HR不仅仅告诉错了我的工资，还没说日常是实习生是没有房补的。 每个月不仅仅仅靠自己的工资完全活不下去，还需要向爸妈拿钱  这个是我当时最伤心的地方   </p>
-<p>房子租的很远，每天上班大概需要一个半小时的时间 其中走路大概需要45分钟   </p>
-<p>由于当时春招并未开始，所以我知道自己的不足，还是在每天疯狂的学习到很晚，压力很大    </p>
-<p>虽然有点骄傲，进去后发现其实我的水平完全够得上，并没有感觉到不能胜任的地方，但是Leader还是只给我一些小任务去做 我的意思是，我并不能学到什么新的东西 完全是自己自学   </p>
-<p>春招正式开始后，主管以部门HC紧张为理由，拒绝给我转为暑假实习生(有房补)，让我继续保持日常实习生，然后八月份一起参加转正答辩，意味着如果我留下来，到八月份还是没有房补  </p>
-<p>住的很偏，周围并没有什么吃的 但是爸妈一直在问我吃的好不好，让我不要省，但是我还是不好意思和他们要钱，但是我还是得吃饭，外卖又很贵。于是很多个周末我都是早饭不吃，午饭点外卖顺便把晚饭也买下来，可以最大限度的参加满减和省一次运费  </p>
-<h2 id="春招"><a href="#春招" class="headerlink" title="春招"></a>春招</h2><p>大概3 - 4月份两个月都在不停地面试，写笔试，投简历<br>由于还是在美团上班，所以只能每次都约晚上的实习<br>好几次都顶着压力提前下班回去面试  </p>
-<p>最狠的一次是晚上7：30到11点，面了三个公司  </p>
-<p>第一个Offer是酷家乐的，面的其实还挺多的，最后一面是让我远程写代码，写一个命令行的管理系统，大概是一个小时的时间，我当时虽然没吃饭，但是状态不错，顺畅的写完了<br><img src="/images/2018/酷家乐.png" alt=""><br>收到Offer的时间是4.2号，那周我去虹桥的一个电影院看了<strong>玩家一号</strong>的IMAX版本  </p>
-<p>第二个Offer来自饿了么，让我去现场面，我去了之后发现其实面试挺简单的，简单面了两面之后就发了Offer给我<br><img src="/images/2018/饿了么.png" alt="">  </p>
-<p>第三个Offer，也就是最后一个Offer就是来自阿里<br>说来奇怪，阿里是我最早面完的，但是是发的最晚的，大概是在5.10号才发的<br>流程也是比较坎坷</p>
-<p>期间还面了有赞，华为，腾讯等<br>有赞还去了次杭州<br>华为是乘机回了次学校<br>腾讯电话面试挂了一次，然后笔试过了，现场面试又挂了</p>
-<h2 id="5月份"><a href="#5月份" class="headerlink" title="5月份"></a>5月份</h2><p>我在4.23号的时候，离职了美团，终于脱离了让我当时痛苦不堪的地方<br>在家短暂的呆了一段时间，然后去了学校<br>在学校玩的很开心<br>决定去阿里实习之后，按照内推人的建议开始学习Hadoop，Hive之类的一些东西 </p>
-<h2 id="阿里实习"><a href="#阿里实习" class="headerlink" title="阿里实习"></a>阿里实习</h2><p>5.31号入职的阿里，8.25号离职的<br>学到了很多，也很感谢这一段的时光  </p>
-<h2 id="秋招"><a href="#秋招" class="headerlink" title="秋招"></a>秋招</h2><p>秋招其实我参加的不多  </p>
-<p>网易是当时我比较中意的公司，在8月中旬的时候，特地请假去参加了提前批，感觉面试也比较简单，和想象中的不太一样，我当时以为会问的很难。</p>
-<p>中旬的时候回了一次学校，正好也参加了华为的优招，华为的优招投的部门是华为云，问的也比较一般。</p>
-<p>提前批除了这两个公司，我几乎没有参加其他的，一方面是阿里实在是加班太晚了，怕自己没有时间面试，另一方面也是没有时间去做笔试题。</p>
-<p>离职了阿里之后，那一段时间还是比较慌的，就开始疯狂投简历，但是那段时间其实很多的提前批都已经结束了，比如腾讯，百度等。</p>
-<p>当时网易迟迟不出消息，自己都有点想考研的打算了。</p>
-<p>在9.4号的时候，网易终于来了消息，发的offer。</p>
-<p>这也是我秋招的第一个offer。</p>
-<p><img src="/images/2018/网易.png" alt="">  </p>
-<p>其实当时网易是我比较满意的offer了，一方面觉得自己是SP，不知道哪里来的自信，一方面部门是杭研，传说中的养老部门。</p>
-<p>后面的秋招我就没怎么面试了，面了360企业安全，小米等。</p>
-<p>最终收获了4个offer。</p>
-<ul>
-<li>360企业安全</li>
-<li>小米</li>
-<li>华为</li>
-<li>网易</li>
-</ul>
-<p>选择了网易。</p>
-<h1 id="再次实习"><a href="#再次实习" class="headerlink" title="再次实习"></a>再次实习</h1><p>在10月底的时候，我再次踏上了实习的旅程。<br>其实我不是很想去实习的，但是我妈坚持让我去，原因是提前去可以熟悉环境，和同事领导更熟悉，这样在正式工作的时候会有些优势。<br>同时网易的HR们也很推荐我们去实习，实习超过3个月可以抵两个月的试用期。</p>
-<p>匆匆在杭州租了房子</p>
-<p>开始了3个月的实习生涯</p>
-<p>其实是希望破灭的开始</p>
-<p>我对网易的向往其实是之前我在阿里的时候，一个在网易实习的同学告诉我的，网易叫猪场，食堂很好吃，而且不要钱。<br>下班也很早，不怎么加班。</p>
-<p>然而事实上，网易上班是打卡的，而且是9.30打开。回过头看，比小米和阿里的都早。</p>
-<p>还有个事其实可以小声哔哔下，当时部门结果刚出来的时候，我是很惊讶的，因为部门叫推荐技术部，我们都没有听过这个部门，在HR面试的时候，HR还问我对网易的时序数据库敢不敢兴趣，我以为我要去做数据库相关的东西了。<br>推荐技术部，我网上都搜不到这个部门，让我感觉很恐惧。<br>我于是和HR要了主管的微信，想要了解一下，加了之后，主管其实态度并不很热情，只是匆匆介绍了下部门是做什么的<br>然后我问我去大概是做什么，主管说都是先从运营后台做起。</p>
-<p>万分纠结，其实我当时还挺想去小米的，但是最终还是决定去网易。<br>这个决定让我现在都后悔万分。</p>
-<p>去实习了不久，不出我的所望，做的是一个连产品经理都看不见希望的产品。<br>实习了一半的时候，主管非常激动的说要做类似于一元抽奖的东西，并且说”这个才是拉新的重头“。</p>
-<p>KPI项目，做出来了，当时后端就两个，我和一个同事一起做的。<br>其中也遇到了大的麻烦，Redis中间内存满了一次，导致开始随机删Key。<br>其实最奇怪的一点，让我很怀疑这个主管的能力。<br>他说，“能不能切掉Redis，让数据库抗压力”。<br>现在Redis的定位还仅仅是数据库的缓存吗？</p>
-<p>敢问，现在哪个公司的业务Redis挂了还能正常跑的？</p>
-<p>12月底的时候，网易开始裁员。我在这种基本凉凉的产品组当然瑟瑟发抖。<br>于是我问HR，我们会不会裁员，她信誓旦旦的说，不会的，安心干活儿。</p>
-<p>然后过了几天她就调岗了。换了新的HR。</p>
-<p>我在1.8号的时候离职，回学校做毕设。</p>
-<p>到了大概过完年，组里一个和我玩的很好的产品告诉我，整个部门都要裁了。</p>
-<p>于是我就又开始了找工作生涯。</p>
-<p>其实写到这儿，我的2018已经结束了，下面是2019年的事了，那就等2019年再说吧。</p>
-
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2019/01/01/我的2018/#more" rel="contents">
+                Read more &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
       
     </div>
 

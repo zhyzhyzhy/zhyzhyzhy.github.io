@@ -46,18 +46,18 @@
   };
 </script>
 
-  <meta name="description" content="前言ConcurrentHashMap的源码长的让人惊叹。我在idea打开的1.8版本达到了6000多行。 ConcurrentHashMap是多线程安全的HashMap，但是和HashTable的简单的加上同步的方法不同，他运用了很多高级复杂的方法来进行同步，很多都是避免的昂贵的锁操作。 底层其实有很多和HashMap相同的地方，比如处理Hash冲突都是链表和红黑树。树化和链表化的阈值都是一样的">
+  <meta name="description" content="前言ConcurrentHashMap的源码长的让人惊叹。我在idea打开的1.8版本达到了6000多行。">
 <meta name="keywords" content="Java">
 <meta property="og:type" content="article">
 <meta property="og:title" content="ConcurrentHashMap源码分析">
 <meta property="og:url" content="http://zhyzhyzhy.github.io/2017/12/18/ConcurrentHashMap源码分析/index.html">
 <meta property="og:site_name" content="LoveZhy">
-<meta property="og:description" content="前言ConcurrentHashMap的源码长的让人惊叹。我在idea打开的1.8版本达到了6000多行。 ConcurrentHashMap是多线程安全的HashMap，但是和HashTable的简单的加上同步的方法不同，他运用了很多高级复杂的方法来进行同步，很多都是避免的昂贵的锁操作。 底层其实有很多和HashMap相同的地方，比如处理Hash冲突都是链表和红黑树。树化和链表化的阈值都是一样的">
+<meta property="og:description" content="前言ConcurrentHashMap的源码长的让人惊叹。我在idea打开的1.8版本达到了6000多行。">
 <meta property="og:locale" content="zh-cn">
-<meta property="og:updated_time" content="2018-12-10T03:12:10.000Z">
+<meta property="og:updated_time" content="2020-02-23T10:29:08.705Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="ConcurrentHashMap源码分析">
-<meta name="twitter:description" content="前言ConcurrentHashMap的源码长的让人惊叹。我在idea打开的1.8版本达到了6000多行。 ConcurrentHashMap是多线程安全的HashMap，但是和HashTable的简单的加上同步的方法不同，他运用了很多高级复杂的方法来进行同步，很多都是避免的昂贵的锁操作。 底层其实有很多和HashMap相同的地方，比如处理Hash冲突都是链表和红黑树。树化和链表化的阈值都是一样的">
+<meta name="twitter:description" content="前言ConcurrentHashMap的源码长的让人惊叹。我在idea打开的1.8版本达到了6000多行。">
 
 <link rel="canonical" href="http://zhyzhyzhy.github.io/2017/12/18/ConcurrentHashMap源码分析/">
 
@@ -233,7 +233,7 @@
                   <i class="fa fa-calendar-check-o"></i>
                 </span>
                 <span class="post-meta-item-text">Edited on</span>
-                <time title="Modified: 2018-12-10 11:12:10" itemprop="dateModified" datetime="2018-12-10T11:12:10+08:00">2018-12-10</time>
+                <time title="Modified: 2020-02-23 18:29:08" itemprop="dateModified" datetime="2020-02-23T18:29:08+08:00">2020-02-23</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -273,6 +273,7 @@
 
       
         <h1 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h1><p><code>ConcurrentHashMap</code>的源码长的让人惊叹。<br>我在<code>idea</code>打开的1.8版本达到了6000多行。</p>
+<a id="more"></a>
 <p><code>ConcurrentHashMap</code>是多线程安全的<code>HashMap</code>，但是和<code>HashTable</code>的简单的加上同步的方法不同，他运用了很多高级复杂的方法来进行同步，很多都是避免的昂贵的锁操作。</p>
 <p>底层其实有很多和<code>HashMap</code>相同的地方，比如处理<code>Hash</code>冲突都是链表和红黑树。<br>树化和链表化的阈值都是一样的。</p>
 <p>简单的说有下面几个重点：</p>

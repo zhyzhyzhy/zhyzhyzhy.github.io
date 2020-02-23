@@ -46,21 +46,21 @@
   };
 </script>
 
-  <meta name="description" content="前言内联是编程语言编译器中常规的优化操作，几乎所有的语言在编译时或者在执行时都会有内联操作。 内联的本质是把几个方法合并成一个方法 从一方面讲，内联减少了函数调用的栈帧创建和销毁的时间消耗 从另一方面讲，内联为很多其他的优化方法提供了更多的可能，比如逃逸分析，无用代码消除，虚函数优化等，这也是内联被叫做优化之母（The Mother Of All Optimization）的原因。 HotSpot">
+  <meta name="description" content="前言内联是编程语言编译器中常规的优化操作，几乎所有的语言在编译时或者在执行时都会有内联操作。 内联的本质是把几个方法合并成一个方法 从一方面讲，内联减少了函数调用的栈帧创建和销毁的时间消耗 从另一方面讲，内联为很多其他的优化方法提供了更多的可能，比如逃逸分析，无用代码消除，虚函数优化等，这也是内联被叫做优化之母（The Mother Of All Optimization）的原因。">
 <meta name="keywords" content="HotSpot">
 <meta property="og:type" content="article">
 <meta property="og:title" content="HotSpot原理指南-内联">
 <meta property="og:url" content="http://zhyzhyzhy.github.io/2019/11/28/HotSpot原理指南-内联/index.html">
 <meta property="og:site_name" content="LoveZhy">
-<meta property="og:description" content="前言内联是编程语言编译器中常规的优化操作，几乎所有的语言在编译时或者在执行时都会有内联操作。 内联的本质是把几个方法合并成一个方法 从一方面讲，内联减少了函数调用的栈帧创建和销毁的时间消耗 从另一方面讲，内联为很多其他的优化方法提供了更多的可能，比如逃逸分析，无用代码消除，虚函数优化等，这也是内联被叫做优化之母（The Mother Of All Optimization）的原因。 HotSpot">
+<meta property="og:description" content="前言内联是编程语言编译器中常规的优化操作，几乎所有的语言在编译时或者在执行时都会有内联操作。 内联的本质是把几个方法合并成一个方法 从一方面讲，内联减少了函数调用的栈帧创建和销毁的时间消耗 从另一方面讲，内联为很多其他的优化方法提供了更多的可能，比如逃逸分析，无用代码消除，虚函数优化等，这也是内联被叫做优化之母（The Mother Of All Optimization）的原因。">
 <meta property="og:locale" content="zh-cn">
 <meta property="og:image" content="http://zhyzhyzhy.github.io/images/HotSpot原理指南-内联/inline.png">
 <meta property="og:image" content="http://zhyzhyzhy.github.io/images/HotSpot原理指南-内联/内联参数.png">
 <meta property="og:image" content="http://zhyzhyzhy.github.io/images/HotSpot原理指南-内联/内联输出结果.png">
-<meta property="og:updated_time" content="2019-11-20T12:06:06.037Z">
+<meta property="og:updated_time" content="2020-02-23T10:29:35.212Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="HotSpot原理指南-内联">
-<meta name="twitter:description" content="前言内联是编程语言编译器中常规的优化操作，几乎所有的语言在编译时或者在执行时都会有内联操作。 内联的本质是把几个方法合并成一个方法 从一方面讲，内联减少了函数调用的栈帧创建和销毁的时间消耗 从另一方面讲，内联为很多其他的优化方法提供了更多的可能，比如逃逸分析，无用代码消除，虚函数优化等，这也是内联被叫做优化之母（The Mother Of All Optimization）的原因。 HotSpot">
+<meta name="twitter:description" content="前言内联是编程语言编译器中常规的优化操作，几乎所有的语言在编译时或者在执行时都会有内联操作。 内联的本质是把几个方法合并成一个方法 从一方面讲，内联减少了函数调用的栈帧创建和销毁的时间消耗 从另一方面讲，内联为很多其他的优化方法提供了更多的可能，比如逃逸分析，无用代码消除，虚函数优化等，这也是内联被叫做优化之母（The Mother Of All Optimization）的原因。">
 <meta name="twitter:image" content="http://zhyzhyzhy.github.io/images/HotSpot原理指南-内联/inline.png">
 
 <link rel="canonical" href="http://zhyzhyzhy.github.io/2019/11/28/HotSpot原理指南-内联/">
@@ -237,7 +237,7 @@
                   <i class="fa fa-calendar-check-o"></i>
                 </span>
                 <span class="post-meta-item-text">Edited on</span>
-                <time title="Modified: 2019-11-20 20:06:06" itemprop="dateModified" datetime="2019-11-20T20:06:06+08:00">2019-11-20</time>
+                <time title="Modified: 2020-02-23 18:29:35" itemprop="dateModified" datetime="2020-02-23T18:29:35+08:00">2020-02-23</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -280,6 +280,7 @@
 <p>内联的本质是把几个方法合并成一个方法</p>
 <p>从一方面讲，内联减少了函数调用的栈帧创建和销毁的时间消耗</p>
 <p>从另一方面讲，内联为很多其他的优化方法提供了更多的可能，比如逃逸分析，无用代码消除，虚函数优化等，这也是内联被叫做<strong>优化之母</strong>（The Mother Of All Optimization）的原因。</p>
+<a id="more"></a>
 <h2 id="HotSpot-JIT"><a href="#HotSpot-JIT" class="headerlink" title="HotSpot-JIT"></a>HotSpot-JIT</h2><h3 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h3><p>对于HotSpot的JIT而言，内联是一个渐进的过程，这个渐进表现在两方面</p>
 <ul>
 <li>C1和C2两个JIT编译器的内联策略不同，C2可能更加激进一些</li>
