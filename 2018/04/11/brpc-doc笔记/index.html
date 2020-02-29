@@ -56,7 +56,7 @@
 <meta property="og:site_name" content="LoveZhy">
 <meta property="og:description" content="原子指令在涉及到多线程时一般会用到锁。 但是重量级锁带来的race condition又会大量的消耗性能。 于是有了乐观锁，典型的就是借助原子指令，CAS来进行操作。这个还依赖的是硬件的发展。">
 <meta property="og:locale" content="zh-cn">
-<meta property="og:updated_time" content="2018-09-20T13:32:36.000Z">
+<meta property="og:updated_time" content="2020-02-29T14:45:17.377Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="brpc-doc笔记">
 <meta name="twitter:description" content="原子指令在涉及到多线程时一般会用到锁。 但是重量级锁带来的race condition又会大量的消耗性能。 于是有了乐观锁，典型的就是借助原子指令，CAS来进行操作。这个还依赖的是硬件的发展。">
@@ -274,8 +274,19 @@
                   <i class="fa fa-calendar-check-o"></i>
                 </span>
                 <span class="post-meta-item-text">Edited on</span>
-                <time title="Modified: 2018-09-20 21:32:36" itemprop="dateModified" datetime="2018-09-20T21:32:36+08:00">2018-09-20</time>
+                <time title="Modified: 2020-02-29 22:45:17" itemprop="dateModified" datetime="2020-02-29T22:45:17+08:00">2020-02-29</time>
               </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
+                  <a href="/categories/文档笔记/" itemprop="url" rel="index">
+                    <span itemprop="name">文档笔记</span>
+                  </a>
+                </span>
+            </span>
 
           
   
@@ -347,11 +358,12 @@
 <p>cpu不直接和主存通信，那么修改了变量之后，什么时候把修改过得值写到主存中呢？</p>
 <p>一般有两种方式</p>
 <ul>
-<li><p>直写</p>
+<li>直写</li>
+</ul>
 <blockquote>
 <p>我们透过本级缓存，直接把数据写到下一级缓存（或直接到内存）中，如果对应的段被缓存了，我们同时更新缓存中的内容（甚至直接丢弃）</p>
 </blockquote>
-</li>
+<ul>
 <li><p>回写</p>
 <blockquote>
 <p><strong>回写定律</strong>：当所有的脏段被回写后，任意级别缓存中的缓存段的内容，等同于它对应的内存中的内容。</p>
@@ -731,13 +743,13 @@
       <div class="site-state-item site-state-categories">
             <a href="/categories/">
           
-        <span class="site-state-item-count">27</span>
+        <span class="site-state-item-count">28</span>
         <span class="site-state-item-name">categories</span></a>
       </div>
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">48</span>
+        <span class="site-state-item-count">49</span>
         <span class="site-state-item-name">tags</span></a>
       </div>
   </nav>
