@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 3.8.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+  <meta name="google-site-verification" content="wE7ISC42t3QOT-S-gdbdy_XsP3NB23Xi3alKNWXd0dA">
+  <meta name="baidu-site-verification" content="keFN8E7jd3">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="//fonts.googleapis.com/css?family=Operator Mono:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    hostname: new URL('https://blog.lovezhy.cc').hostname,
+    root: '/',
+    scheme: 'Gemini',
+    version: '7.7.1',
+    exturl: false,
+    sidebar: {"position":"right","display":"always","padding":18,"offset":12,"onmobile":false},
+    copycode: {"enable":true,"show_result":true,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    comments: {"style":"tabs","active":"disqus","storage":true,"lazyload":false,"nav":null,"activeClass":"disqus"},
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: 'search.xml',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}
+  };
+</script>
+
+  <meta name="description" content="《NoSQL精粹》读书笔记">
+<meta name="keywords" content="NoSQL">
+<meta property="og:type" content="article">
+<meta property="og:title" content="读书笔记 - NoSQL精粹">
+<meta property="og:url" content="https://blog.lovezhy.cc/2018/11/09/读书笔记 - NoSQL精粹/index.html">
+<meta property="og:site_name" content="LoveZhy">
+<meta property="og:description" content="《NoSQL精粹》读书笔记">
+<meta property="og:locale" content="zh-cn">
+<meta property="og:image" content="https://blog.lovezhy.cc/images/nosql精粹/1.png">
+<meta property="og:image" content="https://blog.lovezhy.cc/images/nosql精粹/2.png">
+<meta property="og:image" content="https://blog.lovezhy.cc/images/nosql精粹/3.png">
+<meta property="og:updated_time" content="2020-02-29T14:39:23.418Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="读书笔记 - NoSQL精粹">
+<meta name="twitter:description" content="《NoSQL精粹》读书笔记">
+<meta name="twitter:image" content="https://blog.lovezhy.cc/images/nosql精粹/1.png">
+
+<link rel="canonical" href="https://blog.lovezhy.cc/2018/11/09/读书笔记 - NoSQL精粹/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true
+  };
+</script>
+
+  <title>读书笔记 - NoSQL精粹 | LoveZhy</title>
+  
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-125642214-1"></script>
+    <script>
+      if (CONFIG.hostname === location.hostname) {
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'UA-125642214-1');
+      }
+    </script>
+
+
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?c1f963571cb3d8a4a5dc82346dc65842";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+<link rel="alternate" href="/atom.xml" title="LoveZhy" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">LoveZhy</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+  </div>
+
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-fw fa-user"></i>About</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>Tags</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>Categories</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>Archives</a>
+
+  </li>
+        <li class="menu-item menu-item-sitemap">
+
+    <a href="/sitemap.xml" rel="section"><i class="fa fa-fw fa-sitemap"></i>Sitemap</a>
+
+  </li>
+        <li class="menu-item menu-item-movie">
+
+    <a href="/movies/index.html" rel="section"><i class="fa fa-fw fa-film"></i>movie</a>
+
+  </li>
+        <li class="menu-item menu-item-books">
+
+    <a href="/books/index.html" rel="section"><i class="fa fa-fw fa-book"></i>books</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+
+</nav>
+  <div class="site-search">
+    <div class="popup search-popup">
+    <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocorrect="off" autocapitalize="none" placeholder="Searching..." spellcheck="false" type="text" id="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result"></div>
+
+</div>
+<div class="search-pop-overlay"></div>
+
+  </div>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope="" itemtype="http://schema.org/Article" class="post-block " lang="zh-cn">
+    <link itemprop="mainEntityOfPage" href="https://blog.lovezhy.cc/2018/11/09/读书笔记 - NoSQL精粹/">
+
+    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="zhy">
+      <meta itemprop="description" content="敌视现实">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="LoveZhy">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          读书笔记 - NoSQL精粹
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2018-11-09 00:00:00" itemprop="dateCreated datePublished" datetime="2018-11-09T00:00:00+08:00">2018-11-09</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">Edited on</span>
+                <time title="Modified: 2020-02-29 22:39:23" itemprop="dateModified" datetime="2020-02-29T22:39:23+08:00">2020-02-29</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
+                  <a href="/categories/读书笔记/" itemprop="url" rel="index">
+                    <span itemprop="name">读书笔记</span>
+                  </a>
+                </span>
+            </span>
+
+          
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="fa fa-comment-o"></i>
+      </span>
+      <span class="post-meta-item-text">Disqus: </span>
+    
+    <a title="disqus" href="/2018/11/09/读书笔记 - NoSQL精粹/#disqus_thread" itemprop="discussionUrl">
+      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2018/11/09/读书笔记 - NoSQL精粹/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>《NoSQL精粹》读书笔记<br><a id="more"></a></p>
+<h1 id="特性"><a href="#特性" class="headerlink" title="特性"></a>特性</h1><p>主张无模式的数据 模式就是<strong>需要预先定义结构</strong><br>可以运行在集群环境中<br>牺牲传统数据库的一致性</p>
+<h1 id="优势"><a href="#优势" class="headerlink" title="优势"></a>优势</h1><p>开发效率更快 无需太多的关心数据结构和关系型数据库之间的映射 -&gt; 无模式<br>适合大数据量场景 关系型数据库是为独立运行的计算机而设计 NoSQL为集群设计</p>
+<h1 id="模式"><a href="#模式" class="headerlink" title="模式"></a>模式</h1><p>虽然NoSQL没有模式，但是数据在运用的过程中隐含了一种模式<br>在实现数据结构变更的时候，也必须修改其规则</p>
+<h1 id="关系型数据库的价值"><a href="#关系型数据库的价值" class="headerlink" title="关系型数据库的价值"></a>关系型数据库的价值</h1><ul>
+<li>持久化数据</li>
+<li>并发安全 指的是事务</li>
+<li>集成 多个应用程序可以共享数据（那时候还没有Http来交换数据)</li>
+<li>标准化</li>
+</ul>
+<h1 id="关系型数据库的问题"><a href="#关系型数据库的问题" class="headerlink" title="关系型数据库的问题"></a>关系型数据库的问题</h1><p>元组中的值必须很简单 如果需要List，则必须再建立一个关系<br>ORM(object relation mapping)在一定程度上缓解了这个问题</p>
+<h1 id="NoSQL广泛使用的模型"><a href="#NoSQL广泛使用的模型" class="headerlink" title="NoSQL广泛使用的模型"></a>NoSQL广泛使用的模型</h1><ul>
+<li>键值</li>
+<li>文档</li>
+<li>列族</li>
+<li>图</li>
+</ul>
+<p>其中前三种是面向聚合</p>
+<h1 id="面向聚合"><a href="#面向聚合" class="headerlink" title="面向聚合"></a>面向聚合</h1><p>在领域驱动设计中，把一组相互关联的对象视为一个整体单元来操作，这个单元就叫聚合<br>比如学生选多门课<br>面向关系需要学生表记录学生，课表记录课，学生和课的映射表记录学生选了哪些课<br>面向聚合可能就直接一个JSON描述干净</p>
+<p>面向关系的更像是(标记聚合 + 面向组合)的方式</p>
+<p>因为集群的关系，面向聚合的数据库确实不支持跨越多个聚合的ACID事务<br>它每次只能在一个聚合结构上执行原子操作  </p>
+<p>聚合的有用之处在于它可以把经常访问的数据存放在一起</p>
+<h1 id="键值数据库和文档数据库"><a href="#键值数据库和文档数据库" class="headerlink" title="键值数据库和文档数据库"></a>键值数据库和文档数据库</h1><p>两类数据库都是面向聚合的<br>区别<br>键值数据库的聚合不透明<br>可以存储任意数据<br>访问聚合内容，必须通过Key来进行查找</p>
+<p>文档数据库的聚合中可以看到其结构<br>限制存放的内容 定义了其允许的结构和数据类型<br>可以更加灵活的访问数据<br>用聚合中的字段查询，只获取聚合的一部分<br>按照聚合内容创建索引</p>
+<h1 id="列族存储"><a href="#列族存储" class="headerlink" title="列族存储"></a>列族存储</h1><p>读多写少的场景<br>两级聚合结构<br>以一组列来存储<br><img src="/images/nosql精粹/1.png" alt="IMAGE"><br>上图的info和events就是列族<br>由<code>rowkey + (colomn family:colomn qualifier) + version</code>来唯一的标志一个Cell  </p>
+<p>为什么叫列族呢<br>我个人理解的话<br>就是列是从关系型数据库去讲的，数据库的第一范式就规定了列必须是不可再分的<br>但是列族的话表示这是可再分的<br>一个列族包含了很多的列<br>列族中可以随意添加列</p>
+<p>这样设计的理念是<strong>某个列族的数据经常要一起访问</strong></p>
+<h1 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h1><p>面向聚合数据库，都使用了聚合这个概念<br>而且聚合中都有一个可以查找其内容的索引键<br>聚合还是更新操作的最小数据单位  </p>
+<h1 id="图数据库"><a href="#图数据库" class="headerlink" title="图数据库"></a>图数据库</h1><p>如果两个聚合之间产生了关系，一个难点就是如何更新其数据</p>
+<p>面向聚合的数据库，在操作多个聚合的时候显得相当笨拙  </p>
+<p>如果待处理的数据中包含了大量的关系<br>这意味了关系型数据库可能是更好地选择<br>虽然关系型数据库在这里这种情况的性能也很糟糕，但是至少能保证ACID</p>
+<p>或者我们使用图数据库<br>图数据库特别擅长处理关系特别多的场景  </p>
+<p>图数据库和面向聚合的数据的明显的差异就是<br>它尤其的注重数据间的关系  </p>
+<h1 id="再谈无模式"><a href="#再谈无模式" class="headerlink" title="再谈无模式"></a>再谈无模式</h1><p>无模式数据库感知不到模式<br>所以它无法用模式来提升存储与获取数据的效率<br>也无法自行验证数据<br>带来的是使用的自由和灵活<br>所以NoSQL弃用模式，确实让人惊叹</p>
+<h1 id="隐含模式"><a href="#隐含模式" class="headerlink" title="隐含模式"></a>隐含模式</h1><p>不管数据库无模式到什么程度<br>总会存在隐含模式<br>指的是在编写数据操作代码时，对数据结构做的一系列假设  </p>
+<p>所以说隐含模式是在应用代码中  </p>
+<p>所以如果多个应用公用一个数据库<br>那么可能会出现问题<br>解决方法是在聚合中为不同的应用程序划分出不同的区域  </p>
+<h1 id="物化视图"><a href="#物化视图" class="headerlink" title="物化视图"></a>物化视图</h1><p>关系型数据库因为不存在聚合结构<br>所以可以用不同的方式访问数据  </p>
+<p>此外，还提供了视图的机制</p>
+<h1 id="数据分布"><a href="#数据分布" class="headerlink" title="数据分布"></a>数据分布</h1><p>数据分布有两种途径</p>
+<ul>
+<li>复制 将同一份数据拷贝到多个节点</li>
+<li>分片 将不同的数据分放在不同的节点中</li>
+</ul>
+<p>复制有两种形式</p>
+<ul>
+<li>主从式</li>
+<li>对等式</li>
+</ul>
+<h1 id="分片"><a href="#分片" class="headerlink" title="分片"></a>分片</h1><p>因为NoSQL的面向聚合的特性<br>所以对于分片非常的适合<br>我们进行分片的时候，将聚合作为分布数据的单元<br>这样可以保证查询的时候只需要查询一个节点  </p>
+<p>分片工作可以</p>
+<ul>
+<li>在客户端</li>
+<li>自动分片</li>
+</ul>
+<p>客户端的话，体验非常不好</p>
+<ul>
+<li>若要调整分片，既要修改代码，又要迁移数据</li>
+</ul>
+<p>分片对于读写性能的提升都是巨大的  </p>
+<h1 id="主从复制"><a href="#主从复制" class="headerlink" title="主从复制"></a>主从复制</h1><p>提升读性能，对写性能帮助不大<br>增强读取操作的故障恢复能力 （指的是不会自动选主的情况）</p>
+<p>问题<br>保证数据不一致性<br>写读不一致，读读不一致</p>
+<h1 id="对等复制"><a href="#对等复制" class="headerlink" title="对等复制"></a>对等复制</h1><p>没有主节点的概念<br>所有副本地位相同<br>都可以接收写入操作</p>
+<p>还是一致性，顺序不一致<br>（加分布式锁？那性能咋办）<br>而且更难解决</p>
+<h1 id="结合分片与复制"><a href="#结合分片与复制" class="headerlink" title="结合分片与复制"></a>结合分片与复制</h1><p>就是Redis Cluster的方案<br>多主多从</p>
+<h1 id="一致性"><a href="#一致性" class="headerlink" title="一致性"></a>一致性</h1><p>关系型数据库中的强一致性<br>而在NoSQL中，则一般采用CAP与最终一致性</p>
+<p>并发环境下维护数据一致性</p>
+<ul>
+<li>悲观方式 避免发生冲突</li>
+<li>乐观方式 先让冲突发生，然后检测冲突并对发生冲突的操作排序</li>
+</ul>
+<p>悲观方式一般是加锁</p>
+<p>乐观方式一般是“条件更新”<br>任意客户在执行更新操作之前<br>都要先测试数据和当前值和其上一次读入的值是否相同<br>测试和更新得是一个原子操作  </p>
+<p>顺序一致性</p>
+<ul>
+<li>所有节点都要保证以相同次序执行操作</li>
+</ul>
+<p>逻辑一致性</p>
+<ul>
+<li>就是脏读的问题</li>
+</ul>
+<p>逻辑一致性的解决依赖事务功能<br>NoSQL支持不支持事务还是得具体看的<br>如果不支持，那么就会出现问题<br>但是图数据库一般都是支持的  </p>
+<p>NoSQL的不一致窗口时间很短暂</p>
+<p>复制不一致</p>
+<ul>
+<li>主节点的更新向从节点复制的时候存在时间空隙</li>
+</ul>
+<p>最终一致性</p>
+<ul>
+<li>会话一致性  在用户会话内部保持“照原样读出所写内容的一致性”<br>方法：<ul>
+<li>黏性会话：绑定到某个节点的会话 缺点：降低负载均衡器的效能</li>
+<li>版本戳</li>
+</ul>
+</li>
+</ul>
+<p>CAP中的可用性是值<br>系统中某个无故障节点所接收的每一条请求<br>无论成功还是失败<br>都能得到响应</p>
+<p>现在不是完全的CAP二选一<br>都是BASE理论<br>首先分布容忍性肯定要有<br>然后一致性和可用性要有，但是既不具备完美的一致性，也不具备完美的可用性  </p>
+<p>BASE和ACID不是非非此即彼的关系<br>两者之间存在着多个逐渐过渡的权衡方案</p>
+<h1 id="放宽持久性"><a href="#放宽持久性" class="headerlink" title="放宽持久性"></a>放宽持久性</h1><p>放宽持久性可以换取更好的性能<br>大大提高请求响应的时间</p>
+<h1 id="复制持久性"><a href="#复制持久性" class="headerlink" title="复制持久性"></a>复制持久性</h1><p>确保主节点收到某些副本对更新数据的确认之后，再告知用户它已经接纳此更新</p>
+<h1 id="仲裁"><a href="#仲裁" class="headerlink" title="仲裁"></a>仲裁</h1><p>一致性和持久性之间的问题<br>不是非此即彼的问题<br>处理请求所用的节点越多，避免不一致问题的能力就越强<br>但是延迟也就越高</p>
+<p>写入仲裁<br>就是Paxos中的超过半数投票才能通过该议案</p>
+<p>读取仲裁<br>想要保证能够读取到最新的数据<br>必须要多少个节点联系才行</p>
+<p>假设一个写入操作沟通了K个节点<br>那么想要读取到最新的数据，至少要和K+1个节点沟通</p>
+<h1 id="版本戳"><a href="#版本戳" class="headerlink" title="版本戳"></a>版本戳</h1><p>事务分为商业事务和系统事务</p>
+<p>商业事务<br>类似于锁库存，开始填写订单信息</p>
+<p>系统事务<br>填写完订单信息，提交表单</p>
+<p>商业事务的问题就是在需要计算和决策的时候<br>数据有可能已经发生了改动</p>
+<p>这种问题可以采用离线并发的技术<br>乐观离线锁，也就是条件更新<br>也就是版本戳</p>
+<p>比如http中的Etag</p>
+<p>创建版本戳的方法</p>
+<ul>
+<li>计数器，每次+1</li>
+<li>GUID，GUID是微软对UUID这个标准的实现</li>
+<li>根据资源内容生成Hash</li>
+<li>使用上次更新的时间戳 不需要主节点来生成 但是所有节点的时钟必须同步 同时精度要高</li>
+</ul>
+<p>主从复制，更新不一致的情况<br>节点每次复制的时候，带上版本戳<br>这样从从节点中读的话，版本低的那个就说明数据较旧</p>
+<p>万一是对等式NoSQL系统<br>最常用的版本戳形式 叫 数组式版本戳<br>就是每个进程都维护一个进程版本戳的数组<br>[server1:12, server2:32, server3:64]<br>这是三台主服务器的情况<br>如果两个版本戳中都有一个比对方大，那么就是发生了写入冲突<br>但是无法解决这个问题  </p>
+<h1 id="MapReduce"><a href="#MapReduce" class="headerlink" title="MapReduce"></a>MapReduce</h1><p>Hadoop<br>在集群上运行，执行并发操作</p>
+<p>Map从聚合中读取数据，缩减为相关的键值对<br>Map会产生很多具备同一关键词的值，而化简任务将他们简化为单一的输出值<br>流式处理<br>增量式的MapReduce</p>
+<h1 id="KV"><a href="#KV" class="headerlink" title="KV"></a>KV</h1><p>适用场景</p>
+<ul>
+<li>会话信息</li>
+<li>用户配置信息</li>
+<li>购物车</li>
+</ul>
+<p>不适用场景</p>
+<ul>
+<li>数据间关系</li>
+<li>含有多项操作的事务</li>
+<li>查询value</li>
+</ul>
+<h1 id="文档数据库"><a href="#文档数据库" class="headerlink" title="文档数据库"></a>文档数据库</h1><p><img src="/images/nosql精粹/2.png" alt="IMAGE"><br>感觉格式就是JSON啊</p>
+<p>也支持主从复制<br>副本集通过内部选举得到主节点，但是可以人工干预</p>
+<p>和KV不同的是<br>文档数据库可以查询文档中的数据</p>
+<p>可扩展性<br>就是弹性伸缩<br>动态加机器，减机器<br>和Redis差不多啊</p>
+<h1 id="列族数据库"><a href="#列族数据库" class="headerlink" title="列族数据库"></a>列族数据库</h1><p><img src="/images/nosql精粹/3.png" alt="IMAGE"></p>
+<p>Cassandra能快速执行跨集群写入操作并易于对此扩展的数据库<br>集群中没有主节点，每个节点均可以处理读取和写入请求</p>
+<p>每个列族都可以与关系型数据库的“行容器”相对照<br>两者都用关键字标识行<br>并且每一行都由多个列组成<br>区别在于列族数据库的各行不一定要具备完全相同的列</p>
+<p>还拥有超列族</p>
+<p>Cassandra没有传统意义上的事务<br>写入操作在行级别是原子的  </p>
+<p>Cassandra的可用性极佳</p>
+<p>当<code>W + R &gt; N</code>的时候<br>一致性极佳</p>
+<p>Cassandra和Redis的对比<br>看的网上的，自己简单总结下</p>
+<ul>
+<li>Redis的数据总体还是面向聚合的，适用于快速，数据量小的情况</li>
+<li>Cassandra所支持的数据量可以非常大，同时在灵活性上确实比Redis高一点</li>
+</ul>
+<h1 id="图数据库-1"><a href="#图数据库-1" class="headerlink" title="图数据库"></a>图数据库</h1><p>有大量互相关联的节点</p>
+<p>用节点和边建立好图之后，可用多种方式查询它<br>查询图也叫遍历<br>图数据库的一个好处就是，无需改变节点和边，即可应对新的遍历需求</p>
+<p>一般不支持集群部署<br>Neo4J是兼容ACID事务的数据库</p>
+<p>可用性<br>主从复制</p>
+<p>分片困难<br>因为不是面向聚合的  </p>
+<p>适用场景<br>社交网络关系</p>
+
+    </div>
+
+    
+    
+    
+        
+
+<div>
+<ul class="post-copyright">
+  <li class="post-copyright-author">
+    <strong>Post author:  </strong>zhy
+  </li>
+  <li class="post-copyright-link">
+    <strong>Post link: </strong>
+    <a href="https://blog.lovezhy.cc/2018/11/09/读书笔记 - NoSQL精粹/" title="读书笔记 - NoSQL精粹">https://blog.lovezhy.cc/2018/11/09/读书笔记 - NoSQL精粹/</a>
+  </li>
+  <li class="post-copyright-license">
+    <strong>Copyright Notice:  </strong>All articles in this blog are licensed under <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" rel="noopener" target="_blank"><i class="fa fa-fw fa-creative-commons"></i>BY-NC-SA</a> unless stating additionally.
+  </li>
+</ul>
+</div>
+
+        
+
+  <div class="followme">
+    <p>Welcome to my other publishing channels</p>
+
+    <div class="social-list">
+
+            <div class="social-item">
+              <a target="_blank" class="social-link" href="/atom.xml">
+                <span class="icon">
+                  <i class="fa fa-rss"></i>
+                </span>
+
+                <span class="label">RSS</span>
+              </a>
+            </div>
+    </div>
+  </div>
+
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/NoSQL/" rel="tag"># NoSQL</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2018/11/02/从Netty看对象池实现/" rel="prev" title="从Netty看对象池实现">
+      <i class="fa fa-chevron-left"></i> 从Netty看对象池实现
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2018/11/12/SDS实现从1.0到2.0/" rel="next" title="SDS实现从1.0到2.0">
+      SDS实现从1.0到2.0 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+    
+  <div class="comments">
+    <div id="disqus_thread">
+      <noscript>Please enable JavaScript to view the comments powered by Disqus.</noscript>
+    </div>
+  </div>
+  
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let activeClass = CONFIG.comments.activeClass;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#特性"><span class="nav-number">1.</span> <span class="nav-text">特性</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#优势"><span class="nav-number">2.</span> <span class="nav-text">优势</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#模式"><span class="nav-number">3.</span> <span class="nav-text">模式</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#关系型数据库的价值"><span class="nav-number">4.</span> <span class="nav-text">关系型数据库的价值</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#关系型数据库的问题"><span class="nav-number">5.</span> <span class="nav-text">关系型数据库的问题</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#NoSQL广泛使用的模型"><span class="nav-number">6.</span> <span class="nav-text">NoSQL广泛使用的模型</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#面向聚合"><span class="nav-number">7.</span> <span class="nav-text">面向聚合</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#键值数据库和文档数据库"><span class="nav-number">8.</span> <span class="nav-text">键值数据库和文档数据库</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#列族存储"><span class="nav-number">9.</span> <span class="nav-text">列族存储</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#总结"><span class="nav-number">10.</span> <span class="nav-text">总结</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#图数据库"><span class="nav-number">11.</span> <span class="nav-text">图数据库</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#再谈无模式"><span class="nav-number">12.</span> <span class="nav-text">再谈无模式</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#隐含模式"><span class="nav-number">13.</span> <span class="nav-text">隐含模式</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#物化视图"><span class="nav-number">14.</span> <span class="nav-text">物化视图</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#数据分布"><span class="nav-number">15.</span> <span class="nav-text">数据分布</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#分片"><span class="nav-number">16.</span> <span class="nav-text">分片</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#主从复制"><span class="nav-number">17.</span> <span class="nav-text">主从复制</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#对等复制"><span class="nav-number">18.</span> <span class="nav-text">对等复制</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#结合分片与复制"><span class="nav-number">19.</span> <span class="nav-text">结合分片与复制</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#一致性"><span class="nav-number">20.</span> <span class="nav-text">一致性</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#放宽持久性"><span class="nav-number">21.</span> <span class="nav-text">放宽持久性</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#复制持久性"><span class="nav-number">22.</span> <span class="nav-text">复制持久性</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#仲裁"><span class="nav-number">23.</span> <span class="nav-text">仲裁</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#版本戳"><span class="nav-number">24.</span> <span class="nav-text">版本戳</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#MapReduce"><span class="nav-number">25.</span> <span class="nav-text">MapReduce</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#KV"><span class="nav-number">26.</span> <span class="nav-text">KV</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#文档数据库"><span class="nav-number">27.</span> <span class="nav-text">文档数据库</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#列族数据库"><span class="nav-number">28.</span> <span class="nav-text">列族数据库</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#图数据库-1"><span class="nav-number">29.</span> <span class="nav-text">图数据库</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">zhy</p>
+  <div class="site-description" itemprop="description">敌视现实</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">70</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">27</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">48</span>
+        <span class="site-state-item-name">tags</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/zhyzhyzhy" title="GitHub → https://github.com/zhyzhyzhy" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:zhuyichen1017@outlook.com" title="E-Mail → mailto:zhuyichen1017@outlook.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+  <div class="beian"><a href="http://www.beian.miit.gov.cn" rel="noopener" target="_blank">苏ICP备15058469号 </a>
+  </div>
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">zhy</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> v3.8.0
+  </div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">Theme – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> v7.7.1
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+<script src="/js/utils.js"></script><script src="/js/motion.js"></script>
+<script src="/js/schemes/pisces.js"></script>
+<script src="/js/next-boot.js"></script>
+
+
+
+  
+
+
+
+
+  <script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+<script>
+  function loadCount() {
+    var d = document, s = d.createElement('script');
+    s.src = 'https://blog-lovezhy-cc-1.disqus.com/count.js';
+    s.id = 'dsq-count-scr';
+    (d.head || d.body).appendChild(s);
+  }
+  // defer loading until the whole page loading is completed
+  window.addEventListener('load', loadCount, false);
+</script>
+<script>
+  var disqus_config = function() {
+    this.page.url = "https://blog.lovezhy.cc/2018/11/09/读书笔记 - NoSQL精粹/";
+    this.page.identifier = "2018/11/09/读书笔记 - NoSQL精粹/";
+    this.page.title = "读书笔记 - NoSQL精粹";
+    };
+  NexT.utils.loadComments(document.querySelector('#disqus_thread'), () => {
+    if (window.DISQUS) {
+      DISQUS.reset({
+        reload: true,
+        config: disqus_config
+      });
+    } else {
+      var d = document, s = d.createElement('script');
+      s.src = 'https://blog-lovezhy-cc-1.disqus.com/embed.js';
+      s.setAttribute('data-timestamp', '' + +new Date());
+      (d.head || d.body).appendChild(s);
+    }
+  });
+</script>
+
+</body>
+</html>

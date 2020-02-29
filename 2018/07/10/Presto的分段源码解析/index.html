@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 3.8.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+  <meta name="google-site-verification" content="wE7ISC42t3QOT-S-gdbdy_XsP3NB23Xi3alKNWXd0dA">
+  <meta name="baidu-site-verification" content="keFN8E7jd3">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="//fonts.googleapis.com/css?family=Operator Mono:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    hostname: new URL('https://blog.lovezhy.cc').hostname,
+    root: '/',
+    scheme: 'Gemini',
+    version: '7.7.1',
+    exturl: false,
+    sidebar: {"position":"right","display":"always","padding":18,"offset":12,"onmobile":false},
+    copycode: {"enable":true,"show_result":true,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    comments: {"style":"tabs","active":"disqus","storage":true,"lazyload":false,"nav":null,"activeClass":"disqus"},
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: 'search.xml',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}
+  };
+</script>
+
+  <meta name="description" content="先行流程在进行分段之前，已经建立好计划数PlanNode，并且已经进行了所有的planOptimizers进行优化。最后在SqlQueryExecution#doAnalyzeQuery()的PlanFragmenter中进行分段。">
+<meta name="keywords" content="Presto">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Presto的分段源码解析">
+<meta property="og:url" content="https://blog.lovezhy.cc/2018/07/10/Presto的分段源码解析/index.html">
+<meta property="og:site_name" content="LoveZhy">
+<meta property="og:description" content="先行流程在进行分段之前，已经建立好计划数PlanNode，并且已经进行了所有的planOptimizers进行优化。最后在SqlQueryExecution#doAnalyzeQuery()的PlanFragmenter中进行分段。">
+<meta property="og:locale" content="zh-cn">
+<meta property="og:image" content="https://blog.lovezhy.cc/images/presto-stage/JoinStage1.png">
+<meta property="og:image" content="https://blog.lovezhy.cc/images/presto-stage/JoinStage2.png">
+<meta property="og:updated_time" content="2020-02-29T14:37:03.123Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Presto的分段源码解析">
+<meta name="twitter:description" content="先行流程在进行分段之前，已经建立好计划数PlanNode，并且已经进行了所有的planOptimizers进行优化。最后在SqlQueryExecution#doAnalyzeQuery()的PlanFragmenter中进行分段。">
+<meta name="twitter:image" content="https://blog.lovezhy.cc/images/presto-stage/JoinStage1.png">
+
+<link rel="canonical" href="https://blog.lovezhy.cc/2018/07/10/Presto的分段源码解析/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true
+  };
+</script>
+
+  <title>Presto的分段源码解析 | LoveZhy</title>
+  
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-125642214-1"></script>
+    <script>
+      if (CONFIG.hostname === location.hostname) {
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'UA-125642214-1');
+      }
+    </script>
+
+
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?c1f963571cb3d8a4a5dc82346dc65842";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+<link rel="alternate" href="/atom.xml" title="LoveZhy" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">LoveZhy</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+  </div>
+
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-fw fa-user"></i>About</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>Tags</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>Categories</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>Archives</a>
+
+  </li>
+        <li class="menu-item menu-item-sitemap">
+
+    <a href="/sitemap.xml" rel="section"><i class="fa fa-fw fa-sitemap"></i>Sitemap</a>
+
+  </li>
+        <li class="menu-item menu-item-movie">
+
+    <a href="/movies/index.html" rel="section"><i class="fa fa-fw fa-film"></i>movie</a>
+
+  </li>
+        <li class="menu-item menu-item-books">
+
+    <a href="/books/index.html" rel="section"><i class="fa fa-fw fa-book"></i>books</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+
+</nav>
+  <div class="site-search">
+    <div class="popup search-popup">
+    <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocorrect="off" autocapitalize="none" placeholder="Searching..." spellcheck="false" type="text" id="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result"></div>
+
+</div>
+<div class="search-pop-overlay"></div>
+
+  </div>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope="" itemtype="http://schema.org/Article" class="post-block " lang="zh-cn">
+    <link itemprop="mainEntityOfPage" href="https://blog.lovezhy.cc/2018/07/10/Presto的分段源码解析/">
+
+    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="zhy">
+      <meta itemprop="description" content="敌视现实">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="LoveZhy">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Presto的分段源码解析
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2018-07-10 00:00:00" itemprop="dateCreated datePublished" datetime="2018-07-10T00:00:00+08:00">2018-07-10</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">Edited on</span>
+                <time title="Modified: 2020-02-29 22:37:03" itemprop="dateModified" datetime="2020-02-29T22:37:03+08:00">2020-02-29</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
+                  <a href="/categories/Presto/" itemprop="url" rel="index">
+                    <span itemprop="name">Presto</span>
+                  </a>
+                </span>
+            </span>
+
+          
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="fa fa-comment-o"></i>
+      </span>
+      <span class="post-meta-item-text">Disqus: </span>
+    
+    <a title="disqus" href="/2018/07/10/Presto的分段源码解析/#disqus_thread" itemprop="discussionUrl">
+      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2018/07/10/Presto的分段源码解析/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h2 id="先行流程"><a href="#先行流程" class="headerlink" title="先行流程"></a>先行流程</h2><p>在进行分段之前，已经建立好计划数PlanNode，并且已经进行了所有的planOptimizers进行优化。<br>最后在SqlQueryExecution#doAnalyzeQuery()的PlanFragmenter中进行分段。</p>
+<a id="more"></a>
+<h2 id="Stage抽象"><a href="#Stage抽象" class="headerlink" title="Stage抽象"></a>Stage抽象</h2><blockquote>
+<p>Stage：unit of work that does not require shuffling  </p>
+</blockquote>
+<p>这个定义是抄的某个PPT上面的，虽然有点抽象，但是也算是个通俗的原则。</p>
+<h2 id="PlanFragmenter"><a href="#PlanFragmenter" class="headerlink" title="PlanFragmenter"></a>PlanFragmenter</h2><p>在进行分段的流程同样是Visit模式，这里的Visit类是PlanFragmenter的内部类Fragmenter。</p>
+<p>每一段之间的分段标记符是RemoteSourceNode</p>
+<p>在看Fragmenter源码时，我们会发现每遇到一个Remote的ExchangeNode，都会创建一个RemoteSourceNode。在其他的地方都不会创建。<br>所以核心在ExchangeNode上。</p>
+<h2 id="AddExchanges"><a href="#AddExchanges" class="headerlink" title="AddExchanges"></a>AddExchanges</h2><p>既然是Remote的ExchangeNode决定了分段，那么这些ExchangeNode是什么时候添加进去的呢。</p>
+<p>经过查找发现是在AddExchanges的Optimizer类中。</p>
+<p>他在进行优化的时候，也是运用的Visit模式。</p>
+<p><strong>聚合数据节点</strong><br>首先在OutputNode的时候，如果Child计划不是运行在一个Node上的，就会加上一个Remote的ExchangeNode，同时Type是GATHER，意思就是Child节点的数据远程传输集中到这个OutPutNode上来。</p>
+<p>在SortNode上，如果底层的Child计划不是SingleNode运行的，那么就会加上Remote的ExchangeNode，同时Type是GATHER</p>
+<p>在TopNNode上，同样的，如果是FINAL级别的TopN(因为TopN是可以先进行Partition的)，并且Child不是在一个节点上，那么就会创建一个Remote的ExchangeNode，同时Type是GATHER。</p>
+<p>同时在LimitNode节点上也是如此。</p>
+<p><strong>总结：</strong><br>在进行OutputNode，SortNode，TopNNode，或者是LimitNode这种需要聚合所有节点的数据来进行操作的，如果Child的执行计划是在多个节点上运行，那么就会加上RemoteExchangeNode来进行分段。</p>
+<p><strong>Join节点</strong><br>和上面的聚合数据的节点不同，Join节点的处理方式较为复杂。<br><code>select * from video v join user u on v.user_id = u.user_id</code><br>想象这么一句话。<br>如果不考虑数据分布的情况，正常的处理就是</p>
+<ul>
+<li>随机选择Fixed阶段处理节点</li>
+<li>从Source把数据读出</li>
+<li>video的数据按照user_id的Hash进行shuffle到Fixed节点</li>
+<li>user的数据按照user_id的Hash进行shuffle到Fixed节点</li>
+</ul>
+<p>但是如果video的原先数据分布就是按照user_id进行分布的呢。<br>那我们这时候，把user的数据按照user_id分到video的节点上。<br>是不是更好呢。</p>
+<p>那么这样的话，原先是这样的结构。<br><img src="/images/presto-stage/JoinStage1.png" alt=""></p>
+<p>那么就可以变成这样的结构<br><img src="/images/presto-stage/JoinStage2.png" alt=""><br>如果左表特别大的话，那么就省去了很多的shuffle时间。</p>
+
+    </div>
+
+    
+    
+    
+        
+
+<div>
+<ul class="post-copyright">
+  <li class="post-copyright-author">
+    <strong>Post author:  </strong>zhy
+  </li>
+  <li class="post-copyright-link">
+    <strong>Post link: </strong>
+    <a href="https://blog.lovezhy.cc/2018/07/10/Presto的分段源码解析/" title="Presto的分段源码解析">https://blog.lovezhy.cc/2018/07/10/Presto的分段源码解析/</a>
+  </li>
+  <li class="post-copyright-license">
+    <strong>Copyright Notice:  </strong>All articles in this blog are licensed under <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" rel="noopener" target="_blank"><i class="fa fa-fw fa-creative-commons"></i>BY-NC-SA</a> unless stating additionally.
+  </li>
+</ul>
+</div>
+
+        
+
+  <div class="followme">
+    <p>Welcome to my other publishing channels</p>
+
+    <div class="social-list">
+
+            <div class="social-item">
+              <a target="_blank" class="social-link" href="/atom.xml">
+                <span class="icon">
+                  <i class="fa fa-rss"></i>
+                </span>
+
+                <span class="label">RSS</span>
+              </a>
+            </div>
+    </div>
+  </div>
+
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/Presto/" rel="tag"># Presto</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2018/06/05/行列存储的区别/" rel="prev" title="行列存储的区别">
+      <i class="fa fa-chevron-left"></i> 行列存储的区别
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2018/07/19/Presto源码解析-Slice实现/" rel="next" title="Presto源码解析 - Slice实现">
+      Presto源码解析 - Slice实现 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+    
+  <div class="comments">
+    <div id="disqus_thread">
+      <noscript>Please enable JavaScript to view the comments powered by Disqus.</noscript>
+    </div>
+  </div>
+  
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let activeClass = CONFIG.comments.activeClass;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#先行流程"><span class="nav-number">1.</span> <span class="nav-text">先行流程</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Stage抽象"><span class="nav-number">2.</span> <span class="nav-text">Stage抽象</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#PlanFragmenter"><span class="nav-number">3.</span> <span class="nav-text">PlanFragmenter</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#AddExchanges"><span class="nav-number">4.</span> <span class="nav-text">AddExchanges</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">zhy</p>
+  <div class="site-description" itemprop="description">敌视现实</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">70</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">27</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">48</span>
+        <span class="site-state-item-name">tags</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/zhyzhyzhy" title="GitHub → https://github.com/zhyzhyzhy" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:zhuyichen1017@outlook.com" title="E-Mail → mailto:zhuyichen1017@outlook.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+  <div class="beian"><a href="http://www.beian.miit.gov.cn" rel="noopener" target="_blank">苏ICP备15058469号 </a>
+  </div>
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">zhy</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> v3.8.0
+  </div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">Theme – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> v7.7.1
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+<script src="/js/utils.js"></script><script src="/js/motion.js"></script>
+<script src="/js/schemes/pisces.js"></script>
+<script src="/js/next-boot.js"></script>
+
+
+
+  
+
+
+
+
+  <script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+<script>
+  function loadCount() {
+    var d = document, s = d.createElement('script');
+    s.src = 'https://blog-lovezhy-cc-1.disqus.com/count.js';
+    s.id = 'dsq-count-scr';
+    (d.head || d.body).appendChild(s);
+  }
+  // defer loading until the whole page loading is completed
+  window.addEventListener('load', loadCount, false);
+</script>
+<script>
+  var disqus_config = function() {
+    this.page.url = "https://blog.lovezhy.cc/2018/07/10/Presto的分段源码解析/";
+    this.page.identifier = "2018/07/10/Presto的分段源码解析/";
+    this.page.title = "Presto的分段源码解析";
+    };
+  NexT.utils.loadComments(document.querySelector('#disqus_thread'), () => {
+    if (window.DISQUS) {
+      DISQUS.reset({
+        reload: true,
+        config: disqus_config
+      });
+    } else {
+      var d = document, s = d.createElement('script');
+      s.src = 'https://blog-lovezhy-cc-1.disqus.com/embed.js';
+      s.setAttribute('data-timestamp', '' + +new Date());
+      (d.head || d.body).appendChild(s);
+    }
+  });
+</script>
+
+</body>
+</html>

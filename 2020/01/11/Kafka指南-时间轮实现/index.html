@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 3.8.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+  <meta name="google-site-verification" content="wE7ISC42t3QOT-S-gdbdy_XsP3NB23Xi3alKNWXd0dA">
+  <meta name="baidu-site-verification" content="keFN8E7jd3">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="//fonts.googleapis.com/css?family=Operator Mono:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    hostname: new URL('https://blog.lovezhy.cc').hostname,
+    root: '/',
+    scheme: 'Gemini',
+    version: '7.7.1',
+    exturl: false,
+    sidebar: {"position":"right","display":"always","padding":18,"offset":12,"onmobile":false},
+    copycode: {"enable":true,"show_result":true,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    comments: {"style":"tabs","active":"disqus","storage":true,"lazyload":false,"nav":null,"activeClass":"disqus"},
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: 'search.xml',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}
+  };
+</script>
+
+  <meta name="description" content="前言Kafka延迟任务的实现">
+<meta name="keywords" content="kafka,TimeWheel,时间轮">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Kafka指南-时间轮实现">
+<meta property="og:url" content="https://blog.lovezhy.cc/2020/01/11/Kafka指南-时间轮实现/index.html">
+<meta property="og:site_name" content="LoveZhy">
+<meta property="og:description" content="前言Kafka延迟任务的实现">
+<meta property="og:locale" content="zh-cn">
+<meta property="og:image" content="https://blog.lovezhy.cc/images/Kafka时间轮/TimerTaskList.png">
+<meta property="og:image" content="https://blog.lovezhy.cc/images/Kafka时间轮/TimerWheel.png">
+<meta property="og:image" content="https://blog.lovezhy.cc/images/Kafka时间轮/tick.png">
+<meta property="og:updated_time" content="2020-02-29T14:26:48.032Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Kafka指南-时间轮实现">
+<meta name="twitter:description" content="前言Kafka延迟任务的实现">
+<meta name="twitter:image" content="https://blog.lovezhy.cc/images/Kafka时间轮/TimerTaskList.png">
+
+<link rel="canonical" href="https://blog.lovezhy.cc/2020/01/11/Kafka指南-时间轮实现/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true
+  };
+</script>
+
+  <title>Kafka指南-时间轮实现 | LoveZhy</title>
+  
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-125642214-1"></script>
+    <script>
+      if (CONFIG.hostname === location.hostname) {
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'UA-125642214-1');
+      }
+    </script>
+
+
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?c1f963571cb3d8a4a5dc82346dc65842";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+<link rel="alternate" href="/atom.xml" title="LoveZhy" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">LoveZhy</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+  </div>
+
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-fw fa-user"></i>About</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>Tags</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>Categories</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>Archives</a>
+
+  </li>
+        <li class="menu-item menu-item-sitemap">
+
+    <a href="/sitemap.xml" rel="section"><i class="fa fa-fw fa-sitemap"></i>Sitemap</a>
+
+  </li>
+        <li class="menu-item menu-item-movie">
+
+    <a href="/movies/index.html" rel="section"><i class="fa fa-fw fa-film"></i>movie</a>
+
+  </li>
+        <li class="menu-item menu-item-books">
+
+    <a href="/books/index.html" rel="section"><i class="fa fa-fw fa-book"></i>books</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+
+</nav>
+  <div class="site-search">
+    <div class="popup search-popup">
+    <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocorrect="off" autocapitalize="none" placeholder="Searching..." spellcheck="false" type="text" id="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result"></div>
+
+</div>
+<div class="search-pop-overlay"></div>
+
+  </div>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope="" itemtype="http://schema.org/Article" class="post-block " lang="zh-cn">
+    <link itemprop="mainEntityOfPage" href="https://blog.lovezhy.cc/2020/01/11/Kafka指南-时间轮实现/">
+
+    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="zhy">
+      <meta itemprop="description" content="敌视现实">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="LoveZhy">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Kafka指南-时间轮实现
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2020-01-11 00:00:00" itemprop="dateCreated datePublished" datetime="2020-01-11T00:00:00+08:00">2020-01-11</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">Edited on</span>
+                <time title="Modified: 2020-02-29 22:26:48" itemprop="dateModified" datetime="2020-02-29T22:26:48+08:00">2020-02-29</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
+                  <a href="/categories/Kafka指南/" itemprop="url" rel="index">
+                    <span itemprop="name">Kafka指南</span>
+                  </a>
+                </span>
+            </span>
+
+          
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="fa fa-comment-o"></i>
+      </span>
+      <span class="post-meta-item-text">Disqus: </span>
+    
+    <a title="disqus" href="/2020/01/11/Kafka指南-时间轮实现/#disqus_thread" itemprop="discussionUrl">
+      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2020/01/11/Kafka指南-时间轮实现/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>Kafka延迟任务的实现</p>
+<a id="more"></a>
+<h2 id="介绍"><a href="#介绍" class="headerlink" title="介绍"></a>介绍</h2><p>延迟任务的实现，一般是利用有序队列，按照执行时间的顺序排列，然后有个线程不断的去取第一个元素，如果到了需要执行的时间，就去执行。</p>
+<p>伪代码：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Delay</span> </span>&#123;</span><br><span class="line">    Queue&lt;Comparable&gt; taskQueue;</span><br><span class="line">    </span><br><span class="line">    <span class="function">func <span class="title">add</span><span class="params">(Comparable task)</span> </span>&#123;</span><br><span class="line">        taskQueue.add(task);</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="function">func <span class="title">pollAndRun</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">for</span> (;;) &#123;</span><br><span class="line">                var task = taskQueue.peek();</span><br><span class="line">                <span class="keyword">if</span> (task.expireTime &lt;= System.currentTime) &#123;</span><br><span class="line">                    run(taskQueue.poll());</span><br><span class="line">                &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                    Thread.sleep(task.expireTime - System.currentTime);</span><br><span class="line">                &#125;</span><br><span class="line">        &#125; </span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p><strong>注意：这里的伪代码不完善，在add方法中，一般来说在某种情况下要interrupt执行pollAndRun的线程。</strong></p>
+<p>目前聚焦的主要问题是Queue是怎么个实现法。<br>在Java中有优先权队列可以进行排序，底层是基于最小堆做的，插入和删除的时间复杂度是O(logn)</p>
+<p>当然正常情况下，这种实现可以了，Java中的标准实现也是这样。</p>
+<p>但是呢，Kafka中有大量的<strong>低延迟</strong>的任务，如果都用最小堆去做，难免性能不太好<br>所以Kafka中实现了时间轮的算法，将插入和删除的时间复杂度降低到了O(1)。</p>
+<p>下面细讲下实现：</p>
+<h2 id="数据结构"><a href="#数据结构" class="headerlink" title="数据结构"></a>数据结构</h2><p>源码路径在：<code>package kafka.utils.timer</code>下。</p>
+<h3 id="TimerTask"><a href="#TimerTask" class="headerlink" title="TimerTask"></a>TimerTask</h3><p>Task是队列中的执行元素</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">trait TimerTask extends Runnable &#123;</span><br><span class="line">    val delayMs: Long </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>实现了Runnable接口，delayMs是指的需要被执行的时间戳，不是相对时间</p>
+<h3 id="TimerTaskList"><a href="#TimerTaskList" class="headerlink" title="TimerTaskList"></a>TimerTaskList</h3><p>看名字就知道是存储Task的集合类</p>
+<p>但是其实它的定义并没有我开始想的那么简单</p>
+<p>TimerTask在TimerTaskList内部的存储形式是双向链表</p>
+<p>所以TimerTask其实被TimerTaskEntry的类包装了一层，增加了Prev和Next指针。</p>
+<p><img src="/images/Kafka时间轮/TimerTaskList.png"></p>
+<p>但是注意哦，这里虽然TimerTask实现了Comparable接口，但是TimerTaskList内部其实就是个简单的双向列表，并不会根据TimerTask的expireTime进行排序。</p>
+<p>恰恰相反，TimerTaskList也实现了Comparable接口。</p>
+<p>在TimerTaskList内部，有一个变量</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span>[<span class="keyword">this</span>] val expiration = <span class="keyword">new</span> AtomicLong(-<span class="number">1L</span>)</span><br></pre></td></tr></table></figure>
+<p>从名字中看出其实是存放的是到期时间，TimerTask有过期时间我们可以理解，那么为什么TimerTaskList也有个过期时间？</p>
+<p>这个过期时间是怎么定的，有什么用？</p>
+<h3 id="TimingWheel"><a href="#TimingWheel" class="headerlink" title="TimingWheel"></a>TimingWheel</h3><p>来了，时间轮最主要的数据结构来了。</p>
+<p><img src="/images/Kafka时间轮/TimerWheel.png"></p>
+<p>首先，看图中，模仿了一个钟表的运行图。<br>每tick一下，就把当前指针指向下一个格子。<br>其中每个格子对应着一个TimerTaskList</p>
+<p>格子在Kafka中叫bucket<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">val buckets = Array.tabulate[TimerTaskList](wheelSize) &#123; _ =&gt; <span class="keyword">new</span> TimerTaskList(taskCounter) &#125;</span><br></pre></td></tr></table></figure></p>
+<p>每一格代表的时间叫TickMs，整个表最长的跨度叫Interval。</p>
+<p>如果TickMs=5，Bucket=4，就表示这个时间轮有4个格子，总共能执行20ms内的延迟任务，同时TickMs也就是该时间轮保证的延迟任务的延迟执行的单位。</p>
+<p>什么意思呢？就是说如果一个任务是2ms后执行，一个是4ms后执行，但是整个时间轮的TickMs是5ms，那么这两个任务在时间轮看来其实是没区别，是同时执行。</p>
+<p>所以时间轮的TickMs最小，时间就越精确。</p>
+<p>如果延迟时间超过了该时间轮的Interval怎么办？</p>
+<p>比如执行50ms后才运行的任务，则需要建立跨度更大的时间轮。</p>
+<p>而Kafka中会自动建立跨度更大的时间轮，叫overflowWheel，<strong>更大的时间轮的TickMs是下一层的Interval</strong>。</p>
+<p>看到这里，其实可以解答TimerTaskList中的expiration有什么用了。</p>
+<p>这里的expiration其实就是整个TimerTaskList的过期时间，是TickMs的整数倍</p>
+<p>与在TimerTaskList中每个Task的具体延迟时间关系是</p>
+<p><code>TimerTaskList.expiration &lt;= Task.expiration &lt;= TimerTaskList.expiration + TickMs</code></p>
+<p>在Kafka中，默认的时间轮配置TickMs=1，Bucket=20，也就是20MS内的延迟任务。</p>
+<h2 id="运行"><a href="#运行" class="headerlink" title="运行"></a>运行</h2><p>讲完了数据结构，下面需要讲怎么运行了。<br>TimingWheel的运行，交给了Timer来操作。<br>Timer有两个方法<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//往时间轮中加入任务</span></span><br><span class="line"><span class="function">def <span class="title">add</span><span class="params">(timerTask: TimerTask)</span></span>&#123;&#125;</span><br><span class="line"><span class="comment">//驱动时间轮向前Tick</span></span><br><span class="line"><span class="function">def <span class="title">advanceClock</span><span class="params">(timeoutMs: Long)</span></span>&#123;&#125;</span><br></pre></td></tr></table></figure></p>
+<h3 id="菜鸡的猜想方案"><a href="#菜鸡的猜想方案" class="headerlink" title="菜鸡的猜想方案"></a>菜鸡的猜想方案</h3><p>让我们暂时脱离源码，猜猜时间轮怎么运行的。</p>
+<p><img src="/images/Kafka时间轮/tick.png" alt=""></p>
+<p>正常来说，我们把任务分到具体的Bucket中，每隔一个TickMs，将当前的指针向下运行一格。</p>
+<p>找到这一格中的TimerTaskList，将里面的任务全部拿出来run一遍。</p>
+<p>伪代码如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">List&lt;TimerTaskList&gt; buckets;</span><br><span class="line"><span class="keyword">int</span> nextBucket;</span><br><span class="line"><span class="function">func <span class="title">tick</span><span class="params">()</span> </span>&#123;</span><br><span class="line">  var timerTaskList = buckets.get(nextBucket % buckets.length)</span><br><span class="line">  <span class="keyword">if</span> (timerTaskList.expiration &lt;= System.currentTime) &#123;</span><br><span class="line">    timerTaskList.timerTaskEntrys.foreach(entry -&gt; entry.run()));</span><br><span class="line">    timerTaskList.timerTaskEntrys.foreach(TimerTaskList::remove);</span><br><span class="line">    nextBucket++;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>在add元素的时候，先需要判断当前的时间轮是否能承载延迟时间，如果不能，则建立overflowWheel，加到overflowWheel中。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">List&lt;TimerTaskList&gt; buckets;</span><br><span class="line"><span class="function">func <span class="title">add</span><span class="params">(taskEntry)</span> </span>&#123;</span><br><span class="line">  var targetBucketId = (taskEntry.expiration - System.time) / tickMs + nextBucket;</span><br><span class="line">  var timerTaskList = buckets.get(targetBucketId % buckets.length)</span><br><span class="line">  timerTaskList.add(taskEntry);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>看起来非常完美，但是问题来了，这个tick函数，怎么个运行策略呢？</p>
+<p>如果要要跑的非常精确的话，必须要有个线程去单独驱动是肯定的，线程里还得这么跑</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//1</span></span><br><span class="line"><span class="function">func <span class="title">run</span><span class="params">()</span> </span>&#123;</span><br><span class="line">  <span class="keyword">for</span> (;;) &#123;</span><br><span class="line">    timer.tick()</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">//2</span></span><br><span class="line"><span class="function">func <span class="title">run</span><span class="params">()</span> </span>&#123;</span><br><span class="line">  <span class="keyword">for</span> (;;) &#123;</span><br><span class="line">    timer.tick()</span><br><span class="line">    sleep(timer.tickms)</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>有方案1和方案2两种，第二种肯定是有问题的，如果出现了FullGC的情况，那么整个时间轮就不准了。</p>
+<p>只能选择第一种方案，那么第一种肯定是不行的，这样CPU就是100%了，即使时间轮中没有任何任务，很多时间都是无用功，太浪费CPU了。</p>
+<p>其实这里还有个很严重的问题，我们没有考虑overflowWheel。</p>
+<p>正常情况下，在overflowWheel中的任务，如果已经到了下一层TimingWheel的interval范围内，是需要手动放到下一层的。</p>
+<p>如果是这种实现的话，对于overflowWheel的处理会更加的复杂。</p>
+<h3 id="Kafka中的实现"><a href="#Kafka中的实现" class="headerlink" title="Kafka中的实现"></a>Kafka中的实现</h3><p>菜鸡的猜想方案是不行的，面试都是直接挂的节奏。</p>
+<p>所以这种思路是不成立的，那么我们能不能换个思路呢？</p>
+<p>我们沿用最基本的最小堆来实现延迟任务的思路，建立一个优先权队列</p>
+<p>但是队列中的元素不再是TimerTask了，而是TimerTaskList，相比较最原始的方案，队列中的元素少了一个数量级。</p>
+<p>这样，每次单独的线程进行Tick的时候，选出最早需要执行的TimerTaskList，如果还没到执行时间，就可以进行Sleep，而不是占满CPU。</p>
+<p>所以在TimingWheel中增加一个数据结构</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">var queue = <span class="keyword">new</span> PriorityQueue&lt;TimerTaskList&gt;()</span><br></pre></td></tr></table></figure>
+<p>每次进行add时，除了把TaskEntry添加到TimerTaskEntry中，还将TimerTaskList添加到queue中。</p>
+<p>这样线程的驱动函数就是这么写：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">func <span class="title">run</span><span class="params">()</span> </span>&#123;</span><br><span class="line">  <span class="keyword">for</span> (;;) &#123;</span><br><span class="line">    var timerTaskList = timer.queue.poll();</span><br><span class="line">    <span class="keyword">if</span> (timerTaskList.expiration &lt; System.time) &#123;</span><br><span class="line">      sleep(System.time - timerTaskList.expiration);</span><br><span class="line">    &#125;</span><br><span class="line">    ...</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>虽然也使用了插入是O(logn)的最小堆结构，但是堆中元素不再是全量的Task了，而是TaskList，所以时间复杂度其实类似于O(1)了。</p>
+<p>那么对于overflowWheel里面的Task怎么处理呢？</p>
+<p>很简单，和第一层的timingWheel一样，将overFlowWheel中的TimerTaskList也加到queue中</p>
+<p>但是从Queue取出的时候，就不是立即执行了，而是再走一遍add程序</p>
+<p>下面是源码：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line">//类似于源代码中nextBuckets的作用，这里是绝对时间，startMs是时间轮的开始的绝对时间，这里计算成tickMs的整数倍</span><br><span class="line">private[this] var currentTime = startMs - (startMs % tickMs)</span><br><span class="line"></span><br><span class="line">//向时间轮中加入任务</span><br><span class="line">def add(timerTaskEntry: TimerTaskEntry): Boolean = &#123;</span><br><span class="line">   val expiration = timerTaskEntry.expirationMs</span><br><span class="line">   if (timerTaskEntry.cancelled) &#123;</span><br><span class="line">     //如果任务已经取消，添加失败，可以直接实行</span><br><span class="line">     false</span><br><span class="line">   &#125; else if (expiration &lt; currentTime + tickMs) &#123;</span><br><span class="line">     //如果已经到执行时间，那么也是可以直接执行</span><br><span class="line">     false</span><br><span class="line">   &#125; else if (expiration &lt; currentTime + interval) &#123;</span><br><span class="line">           //这里其实还挺难理解的，如果我们按照钟表的概念，指针每隔一段时间去转动一下，就很难理解下面的代码</span><br><span class="line">           //这里其实就是每隔tickMs，指针不转，整个表顺时针转tickMs圈</span><br><span class="line">     val virtualId = expiration / tickMs</span><br><span class="line">     val bucket = buckets((virtualId % wheelSize.toLong).toInt)</span><br><span class="line">     bucket.add(timerTaskEntry)</span><br><span class="line"></span><br><span class="line">     if (bucket.setExpiration(virtualId * tickMs)) &#123;</span><br><span class="line">       //如果Bucket的失效时间设置成功，就把这个TimerTaskList加入到queue中</span><br><span class="line">       queue.offer(bucket)</span><br><span class="line">     &#125;</span><br><span class="line">     true</span><br><span class="line">   &#125; else &#123;</span><br><span class="line">     //放不下，建立overflowWheel，overflowWheel和当前timingWheel公用一个queue</span><br><span class="line">     if (overflowWheel == null) addOverflowWheel()</span><br><span class="line">     overflowWheel.add(timerTaskEntry)</span><br><span class="line">   &#125;</span><br><span class="line"> &#125;</span><br></pre></td></tr></table></figure>
+<p>timingWheel的advanceClock代码：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">def advanceClock(timeMs: Long): Unit = &#123;</span><br><span class="line">  if (timeMs &gt;= currentTime + tickMs) &#123;</span><br><span class="line">    currentTime = timeMs - (timeMs % tickMs)</span><br><span class="line">    if (overflowWheel != null) overflowWheel.advanceClock(currentTime)</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>主要就是调整下currentTime，其实currentTime在有了queue之后，就没有其他作用了，主要就是在add方法中拦住即将过期或者已经过期的任务</p>
+<p>下面是伪代码中的run方法：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">def advanceClock(timeoutMs: Long): Boolean = &#123;</span><br><span class="line">   var bucket = delayQueue.poll(timeoutMs, TimeUnit.MILLISECONDS)</span><br><span class="line">   if (bucket != null) &#123;</span><br><span class="line">     writeLock.lock()</span><br><span class="line">     try &#123;</span><br><span class="line">       while (bucket != null) &#123;</span><br><span class="line">         timingWheel.advanceClock(bucket.getExpiration())</span><br><span class="line">         //这里不能把bucket中的任务全部执行，因为可能是overFlowWheel中的TimerTaskList，还没到执行时间，直接再走一遍add程序</span><br><span class="line">         bucket.flush(reinsert)</span><br><span class="line">         bucket = delayQueue.poll()</span><br><span class="line">       &#125;</span><br><span class="line">     &#125; finally &#123;</span><br><span class="line">       writeLock.unlock()</span><br><span class="line">     &#125;</span><br><span class="line">     true</span><br><span class="line">   &#125; else &#123;</span><br><span class="line">     false</span><br><span class="line">   &#125;</span><br><span class="line"> &#125;</span><br></pre></td></tr></table></figure>
+<p>注意一下这里的delayQueue，其中poll方法返回的是过期的任务，并不是集合中第一个元素。</p>
+<p>也就是说，即使queue中元素，但是没有元素要过期，返回的也是null。</p>
+<p>当时作者在哪儿晕了半天。</p>
+
+    </div>
+
+    
+    
+    
+        
+
+<div>
+<ul class="post-copyright">
+  <li class="post-copyright-author">
+    <strong>Post author:  </strong>zhy
+  </li>
+  <li class="post-copyright-link">
+    <strong>Post link: </strong>
+    <a href="https://blog.lovezhy.cc/2020/01/11/Kafka指南-时间轮实现/" title="Kafka指南-时间轮实现">https://blog.lovezhy.cc/2020/01/11/Kafka指南-时间轮实现/</a>
+  </li>
+  <li class="post-copyright-license">
+    <strong>Copyright Notice:  </strong>All articles in this blog are licensed under <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" rel="noopener" target="_blank"><i class="fa fa-fw fa-creative-commons"></i>BY-NC-SA</a> unless stating additionally.
+  </li>
+</ul>
+</div>
+
+        
+
+  <div class="followme">
+    <p>Welcome to my other publishing channels</p>
+
+    <div class="social-list">
+
+            <div class="social-item">
+              <a target="_blank" class="social-link" href="/atom.xml">
+                <span class="icon">
+                  <i class="fa fa-rss"></i>
+                </span>
+
+                <span class="label">RSS</span>
+              </a>
+            </div>
+    </div>
+  </div>
+
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/kafka/" rel="tag"># kafka</a>
+              <a href="/tags/TimeWheel/" rel="tag"># TimeWheel</a>
+              <a href="/tags/时间轮/" rel="tag"># 时间轮</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2020/01/04/HotSpot原理指南-分层编译/" rel="prev" title="HotSpot原理指南-分层编译">
+      <i class="fa fa-chevron-left"></i> HotSpot原理指南-分层编译
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2020/02/23/Kafka指南-源码导入Idea/" rel="next" title="Kafka指南-源码导入Idea">
+      Kafka指南-源码导入Idea <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+    
+  <div class="comments">
+    <div id="disqus_thread">
+      <noscript>Please enable JavaScript to view the comments powered by Disqus.</noscript>
+    </div>
+  </div>
+  
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let activeClass = CONFIG.comments.activeClass;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#前言"><span class="nav-number">1.</span> <span class="nav-text">前言</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#介绍"><span class="nav-number">2.</span> <span class="nav-text">介绍</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#数据结构"><span class="nav-number">3.</span> <span class="nav-text">数据结构</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#TimerTask"><span class="nav-number">3.1.</span> <span class="nav-text">TimerTask</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#TimerTaskList"><span class="nav-number">3.2.</span> <span class="nav-text">TimerTaskList</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#TimingWheel"><span class="nav-number">3.3.</span> <span class="nav-text">TimingWheel</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#运行"><span class="nav-number">4.</span> <span class="nav-text">运行</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#菜鸡的猜想方案"><span class="nav-number">4.1.</span> <span class="nav-text">菜鸡的猜想方案</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Kafka中的实现"><span class="nav-number">4.2.</span> <span class="nav-text">Kafka中的实现</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">zhy</p>
+  <div class="site-description" itemprop="description">敌视现实</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">70</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">27</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">48</span>
+        <span class="site-state-item-name">tags</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/zhyzhyzhy" title="GitHub → https://github.com/zhyzhyzhy" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:zhuyichen1017@outlook.com" title="E-Mail → mailto:zhuyichen1017@outlook.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+  <div class="beian"><a href="http://www.beian.miit.gov.cn" rel="noopener" target="_blank">苏ICP备15058469号 </a>
+  </div>
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">zhy</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> v3.8.0
+  </div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">Theme – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> v7.7.1
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+<script src="/js/utils.js"></script><script src="/js/motion.js"></script>
+<script src="/js/schemes/pisces.js"></script>
+<script src="/js/next-boot.js"></script>
+
+
+
+  
+
+
+
+
+  <script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+<script>
+  function loadCount() {
+    var d = document, s = d.createElement('script');
+    s.src = 'https://blog-lovezhy-cc-1.disqus.com/count.js';
+    s.id = 'dsq-count-scr';
+    (d.head || d.body).appendChild(s);
+  }
+  // defer loading until the whole page loading is completed
+  window.addEventListener('load', loadCount, false);
+</script>
+<script>
+  var disqus_config = function() {
+    this.page.url = "https://blog.lovezhy.cc/2020/01/11/Kafka指南-时间轮实现/";
+    this.page.identifier = "2020/01/11/Kafka指南-时间轮实现/";
+    this.page.title = "Kafka指南-时间轮实现";
+    };
+  NexT.utils.loadComments(document.querySelector('#disqus_thread'), () => {
+    if (window.DISQUS) {
+      DISQUS.reset({
+        reload: true,
+        config: disqus_config
+      });
+    } else {
+      var d = document, s = d.createElement('script');
+      s.src = 'https://blog-lovezhy-cc-1.disqus.com/embed.js';
+      s.setAttribute('data-timestamp', '' + +new Date());
+      (d.head || d.body).appendChild(s);
+    }
+  });
+</script>
+
+</body>
+</html>

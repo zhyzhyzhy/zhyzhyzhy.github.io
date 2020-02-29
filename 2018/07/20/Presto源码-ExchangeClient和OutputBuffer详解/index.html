@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 3.8.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+  <meta name="google-site-verification" content="wE7ISC42t3QOT-S-gdbdy_XsP3NB23Xi3alKNWXd0dA">
+  <meta name="baidu-site-verification" content="keFN8E7jd3">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="//fonts.googleapis.com/css?family=Operator Mono:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    hostname: new URL('https://blog.lovezhy.cc').hostname,
+    root: '/',
+    scheme: 'Gemini',
+    version: '7.7.1',
+    exturl: false,
+    sidebar: {"position":"right","display":"always","padding":18,"offset":12,"onmobile":false},
+    copycode: {"enable":true,"show_result":true,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    comments: {"style":"tabs","active":"disqus","storage":true,"lazyload":false,"nav":null,"activeClass":"disqus"},
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: 'search.xml',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}
+  };
+</script>
+
+  <meta name="description" content="前言Presto在数据进行shuffle的时候，并不是PPT中经常看到的Push模式，而是Pull模式。在两端负责分发和交换数据的类分别是ExchangClient和OutputBuffer。">
+<meta name="keywords" content="Presto">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Presto源码-ExchangeClient和OutputBuffer详解">
+<meta property="og:url" content="https://blog.lovezhy.cc/2018/07/20/Presto源码-ExchangeClient和OutputBuffer详解/index.html">
+<meta property="og:site_name" content="LoveZhy">
+<meta property="og:description" content="前言Presto在数据进行shuffle的时候，并不是PPT中经常看到的Push模式，而是Pull模式。在两端负责分发和交换数据的类分别是ExchangClient和OutputBuffer。">
+<meta property="og:locale" content="zh-cn">
+<meta property="og:image" content="https://blog.lovezhy.cc/images/presto-exchangeclient/ExchangeClient.png">
+<meta property="og:image" content="https://blog.lovezhy.cc/images/presto-exchangeclient/SqlTask.png">
+<meta property="og:image" content="https://blog.lovezhy.cc/images/presto-exchangeclient/token.png">
+<meta property="og:image" content="https://blog.lovezhy.cc/images/presto-exchangeclient/partition.png">
+<meta property="og:image" content="https://blog.lovezhy.cc/images/presto-exchangeclient/broadcast.png">
+<meta property="og:updated_time" content="2020-02-29T14:37:22.458Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Presto源码-ExchangeClient和OutputBuffer详解">
+<meta name="twitter:description" content="前言Presto在数据进行shuffle的时候，并不是PPT中经常看到的Push模式，而是Pull模式。在两端负责分发和交换数据的类分别是ExchangClient和OutputBuffer。">
+<meta name="twitter:image" content="https://blog.lovezhy.cc/images/presto-exchangeclient/ExchangeClient.png">
+
+<link rel="canonical" href="https://blog.lovezhy.cc/2018/07/20/Presto源码-ExchangeClient和OutputBuffer详解/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true
+  };
+</script>
+
+  <title>Presto源码-ExchangeClient和OutputBuffer详解 | LoveZhy</title>
+  
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-125642214-1"></script>
+    <script>
+      if (CONFIG.hostname === location.hostname) {
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'UA-125642214-1');
+      }
+    </script>
+
+
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?c1f963571cb3d8a4a5dc82346dc65842";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+<link rel="alternate" href="/atom.xml" title="LoveZhy" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">LoveZhy</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+  </div>
+
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-fw fa-user"></i>About</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>Tags</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>Categories</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>Archives</a>
+
+  </li>
+        <li class="menu-item menu-item-sitemap">
+
+    <a href="/sitemap.xml" rel="section"><i class="fa fa-fw fa-sitemap"></i>Sitemap</a>
+
+  </li>
+        <li class="menu-item menu-item-movie">
+
+    <a href="/movies/index.html" rel="section"><i class="fa fa-fw fa-film"></i>movie</a>
+
+  </li>
+        <li class="menu-item menu-item-books">
+
+    <a href="/books/index.html" rel="section"><i class="fa fa-fw fa-book"></i>books</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+
+</nav>
+  <div class="site-search">
+    <div class="popup search-popup">
+    <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocorrect="off" autocapitalize="none" placeholder="Searching..." spellcheck="false" type="text" id="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result"></div>
+
+</div>
+<div class="search-pop-overlay"></div>
+
+  </div>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope="" itemtype="http://schema.org/Article" class="post-block " lang="zh-cn">
+    <link itemprop="mainEntityOfPage" href="https://blog.lovezhy.cc/2018/07/20/Presto源码-ExchangeClient和OutputBuffer详解/">
+
+    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="zhy">
+      <meta itemprop="description" content="敌视现实">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="LoveZhy">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Presto源码-ExchangeClient和OutputBuffer详解
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2018-07-20 00:00:00" itemprop="dateCreated datePublished" datetime="2018-07-20T00:00:00+08:00">2018-07-20</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">Edited on</span>
+                <time title="Modified: 2020-02-29 22:37:22" itemprop="dateModified" datetime="2020-02-29T22:37:22+08:00">2020-02-29</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
+                  <a href="/categories/Presto/" itemprop="url" rel="index">
+                    <span itemprop="name">Presto</span>
+                  </a>
+                </span>
+            </span>
+
+          
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="fa fa-comment-o"></i>
+      </span>
+      <span class="post-meta-item-text">Disqus: </span>
+    
+    <a title="disqus" href="/2018/07/20/Presto源码-ExchangeClient和OutputBuffer详解/#disqus_thread" itemprop="discussionUrl">
+      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2018/07/20/Presto源码-ExchangeClient和OutputBuffer详解/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p><code>Presto</code>在数据进行<code>shuffle</code>的时候，并不是<code>PPT</code>中经常看到的<code>Push</code>模式，而是<code>Pull</code>模式。<br>在两端负责分发和交换数据的类分别是<code>ExchangClient</code>和<code>OutputBuffer</code>。</p>
+<a id="more"></a>
+<p>比如：<br><code>Source Stage</code>把数据从<code>Connector</code>中拉取出来，这时候需要给下一个<code>FixedStage</code>进行处理。<br>他会先把数据放在<code>OutputBuffer</code>中，等待上游把数据请求过去，而上游请求数据的类就是<code>ExchangeClient</code>。</p>
+<h2 id="ExchangeClient"><a href="#ExchangeClient" class="headerlink" title="ExchangeClient"></a>ExchangeClient</h2><p><img src="/images/presto-exchangeclient/ExchangeClient.png" alt=""><br>大体的过程是这样，但是一些细节还是没发画出来，尽力了。<br>下面详细解释下。</p>
+<h3 id="ExchangOperator"><a href="#ExchangOperator" class="headerlink" title="ExchangOperator"></a>ExchangOperator</h3><p>一般来说负责从下游的<code>Stage</code>拉数据有个专门的<code>Operator</code>是<code>ExchangeOperator</code>。<br>在创建<code>ExchangeOperator</code>的时候，会加上一个<code>ExchangClient</code>。<br>所以和图中不同的是，这个<code>ExchangeClient</code>其实是在<code>ExchangeOperator</code>里面。</p>
+<p>在<code>PipeLine</code>的下一个<code>Operator</code>和<code>ExchangeClient</code>拉数据的时候，会调用上一个的<code>getOutput()</code>，返回的是一个<code>Page</code>。<br>在<code>ExchangeOperator</code>的<code>getOutput()</code>方法中<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> Page <span class="title">getOutput</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    SerializedPage page = exchangeClient.pollPage();</span><br><span class="line">    <span class="keyword">if</span> (page == <span class="keyword">null</span>) &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">null</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    operatorContext.recordGeneratedInput(page.getSizeInBytes(), page.getPositionCount());</span><br><span class="line">    <span class="keyword">return</span> serde.deserialize(page);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>就是调用的<code>exchangeClient</code>的<code>pollPage()</code>方法得到一个Page。</p>
+<h3 id="RemoteSplit"><a href="#RemoteSplit" class="headerlink" title="RemoteSplit"></a>RemoteSplit</h3><p><code>RemoteSplit</code>是<code>Source Stage</code>的<code>Task</code>在生成的时候，会添加给<code>FixedStage</code>的。<br>成员变量特别简单，就是一个标记数据位置的URL。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">RemoteSplit</span></span></span><br><span class="line"><span class="class">        <span class="keyword">implements</span> <span class="title">ConnectorSplit</span></span></span><br><span class="line"><span class="class"></span>&#123;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">final</span> URI location;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h3 id="HttpPageBufferClient"><a href="#HttpPageBufferClient" class="headerlink" title="HttpPageBufferClient"></a>HttpPageBufferClient</h3><p>在进行<code>addSplit</code>到<code>ExchangOperator</code>的时候，会把每个<code>URL</code>封装成一个<code>HttpPageBufferClient</code>，同时传递进去的还有</p>
+<ul>
+<li>httpClient 整个Task共享的一个，用于发送请求的。</li>
+<li>maxResponseSize 一次相应最多的数据量大小，默认是1M</li>
+<li>new ExchangeClientCallback() 当拿到数据后的回调，把Page加到ExchangeClient的队列中</li>
+<li>executor 所有的http请求都是通过这个线程池发送</li>
+<li>minErrorDuration </li>
+<li>maxErrorDuration<br>上面这两个参数会随之构建一个Backoff的对象。</li>
+</ul>
+<h3 id="HttpSchedule"><a href="#HttpSchedule" class="headerlink" title="HttpSchedule"></a>HttpSchedule</h3><p>如果我们进入到<code>HttpPageBufferClient</code>的<code>scheduleRequest</code>方法，会发现里面并不是立即发送请求，而是运用了一个<code>schedule</code>方法<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">synchronized</span> <span class="keyword">void</span> <span class="title">scheduleRequest</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">long</span> delayNanos = backoff.getBackoffDelayNanos();</span><br><span class="line">    executor.schedule(() -&gt; &#123;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            initiateRequest();</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">catch</span> (Throwable t) &#123;</span><br><span class="line">            <span class="comment">// should not happen, but be safe and fail the operator</span></span><br><span class="line">            clientCallback.clientFailed(HttpPageBufferClient.<span class="keyword">this</span>, t);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;, delayNanos, NANOSECONDS);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>这就涉及了请求的失败重试的问题。<br>简单的说，每一次请求失败，会有一个等待时间，而且随着失败次数的增加，这个等待的时间会越来越长。在这个等待的时间内，不会再去进行请求。<br>我们看创建<code>backoff</code>的代码。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">this</span>.backoff = <span class="keyword">new</span> Backoff(</span><br><span class="line">    minErrorDuration,</span><br><span class="line">    maxErrorDuration,</span><br><span class="line">    ticker,</span><br><span class="line">    <span class="keyword">new</span> Duration(<span class="number">0</span>, MILLISECONDS),</span><br><span class="line">    <span class="keyword">new</span> Duration(<span class="number">50</span>, MILLISECONDS),</span><br><span class="line">    <span class="keyword">new</span> Duration(<span class="number">100</span>, MILLISECONDS),</span><br><span class="line">    <span class="keyword">new</span> Duration(<span class="number">200</span>, MILLISECONDS),</span><br><span class="line">    <span class="keyword">new</span> Duration(<span class="number">500</span>, MILLISECONDS));</span><br></pre></td></tr></table></figure></p>
+<p>分别是50MS，100MS，200MS和500MS。<br>同时有个最小时间和最大时间，防止传递了一个超长的时间，那么就永远挂在这儿了。</p>
+<p>这在一定的程度上缓解了请求的压力，同时为节约了下游的<code>cpu</code>资源。因为如果那台服务器挂了，那么一直无意义的<code>http</code>请求是毫无意义的，还会一直浪费cpu资源。<br>但是这个</p>
+<h3 id="流控"><a href="#流控" class="headerlink" title="流控"></a>流控</h3><p>如果上游的数据来不及消费会怎么样。<br>那么，上游来不及消费的信号是什么呢？<br>整个<code>buffer</code>肯定有个阈值的。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">ExchangeClientConfig</span></span></span><br><span class="line"><span class="class"></span>&#123;</span><br><span class="line">    <span class="keyword">private</span> DataSize maxBufferSize = <span class="keyword">new</span> DataSize(<span class="number">32</span>, Unit.MEGABYTE);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>这个阈值就是最大的bufferSize，默认是32M。</p>
+<p>在<code>ExchangClient</code>中，有一个<code>long</code>类型的<code>bufferBytes</code>，用来标记当前的<code>buffer</code>中有多少<code>buffer</code>。<br>在<code>scheduleRequestIfNecessary()</code>方法中，会把<code>bufferBytes</code>和<code>maxBufferSize</code>进行比较，如果已经满足了，那么就不会请求<code>HttpPageBufferClient</code>去请求数据。</p>
+<p>同时<code>HttpPageBufferClient</code>不是划了个定时任务去做拉数据的，整个拉取入口函数都是<code>scheduleRequestIfNecessary()</code>中，需要进行手动调用的。</p>
+<p>那么是在什么时候会进行手动调用呢，查看了一些，在下面情况下会发生：</p>
+<ul>
+<li>在新增<code>URL</code>的时候</li>
+<li>在所有的<code>RemoteSplit</code>分配结束的时候</li>
+<li>在<code>ExchangeOperator</code>进行<code>pollPage</code>时</li>
+</ul>
+<p>其中保证第三个条件是最重要的。</p>
+<h2 id="OutputBuffer"><a href="#OutputBuffer" class="headerlink" title="OutputBuffer"></a>OutputBuffer</h2><p><img src="/images/presto-exchangeclient/SqlTask.png" alt=""></p>
+<p>大体的创建流程如上。</p>
+<h3 id="TaskResource"><a href="#TaskResource" class="headerlink" title="TaskResource"></a>TaskResource</h3><p>一般来说创建Task和更新Task的信息的接口都是<code>/v1/task/{TaskId}</code>。<br>所以<code>Presto</code>使用了一个<code>Guava Cache</code>来进行<code>SqlTask</code>的<code>cache</code>，当是第一次来的时候，会自动创建一个新的<code>SqlTask</code>，而当是进行<code>update</code>的时候，就从<code>cache</code>中拿出来之前创建的。</p>
+<h3 id="LazyOutputBuffer"><a href="#LazyOutputBuffer" class="headerlink" title="LazyOutputBuffer"></a>LazyOutputBuffer</h3><p>当一个请求过来的时候，会从Cache中拿出对应的SqlTask，创建LazyOutputBuffer，这个OutputBuffer只是对外的一个封装，里面还包含了一个类别不同的OutputBuffer。</p>
+<h3 id="BroadcastOutputBuffer和PartitionedOutputBuffer"><a href="#BroadcastOutputBuffer和PartitionedOutputBuffer" class="headerlink" title="BroadcastOutputBuffer和PartitionedOutputBuffer"></a>BroadcastOutputBuffer和PartitionedOutputBuffer</h3><p>具体是哪一种，要根据<code>OutputBuffer</code>的类别来判定。<br>如果是<code>Broadcast</code>类别的，就会创建<code>BroadcastOutputBuffer</code>，如果是<code>Partition</code>类别的，就会创建<code>PartitionedOutputBuffer</code>。<br>然后就会根据<code>OutputBuffers</code>的个数具体创建<code>ClientBuffer</code>。</p>
+<p>然后在<code>TaskOutputOperator</code>或者是<code>PartitionOutputOperator</code>进行<code>finish</code>的时候，都是把<code>Page</code>放到<code>ClientBuffer</code>中。</p>
+<p>如果是<code>BroadcastOutputBuffer</code>类别的，就是把<code>PageReference</code>放到所有的<code>ClientBuffer</code>中，如果是<code>Partition</code>类别的，就是放到指定的<code>ClientBuffer</code>中。</p>
+<h3 id="token机制"><a href="#token机制" class="headerlink" title="token机制"></a>token机制</h3><p><code>Presto</code>的数据传输怎么保证可靠性呢？<br><code>Page</code>什么时候会从下游的<code>OutputBuffer</code>中<code>Remove</code>呢？<br>这个就需要了解一下<code>Presto</code>拿数据时的<code>Token</code>机制。<br>我们查看下游去上游的<code>Stage</code>拿数据的接口是<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">@GET</span><br><span class="line">@Path(&quot;&#123;taskId&#125;/results/&#123;bufferId&#125;/&#123;token&#125;&quot;)</span><br></pre></td></tr></table></figure></p>
+<p>这里的<code>TaskId</code>很好理解，<code>bufferId</code>就是下游的<code>Task</code>的<code>Id</code>，也就是标记下游的哪个<code>Task</code>来拿的数据，那么这个<code>Token</code>是怎么回事呢？</p>
+<p>我们想象纯粹的没有<code>token</code>这个参数。<br>来一次请求，从<code>Buffer</code>中取出一部分数据回送回去，然后把这部分<code>Page</code>进行<code>Remove</code>。<br>那么问题来了，如果对方接收失败了这部分数据呢？<br>最终问题就是，你怎么知道对方已经拿到了多少数据？<br>要是接收失败，你怎么处理这种失败的情况。</p>
+<p>解答是<code>Presto</code>模拟了<code>Tcp</code>中的<code>Seq</code>和<code>Ack</code>机制。<br>但是因为只有上游需要把数据传送给下游，所以是半双工的。<br><img src="/images/presto-exchangeclient/token.png" alt=""></p>
+<p>首先下游请求数据的时候，会带上Token，也就是Start，然后还会标记你最多给我多少数据，对应图中的就是MaxSize，其中每个Buffer会有一个叫curSeq的游标。</p>
+<p>假设第一次来的时候，上游的队列中有很多Page，前三个大小分别是8，2，6。因为start = 0，也就是从0开始，MaxSize = 12。所以上游会回送前两个Page给下游，同时回送一个NextStart = 2，告诉下游下一次的数据从什么地方开始请求。</p>
+<p>第二次请求，start就是上一次上游回送的2，<code>maxSize</code>依然是12。这时候请求发过来时，上游会把前2个<code>Page</code>给<code>Remove</code>掉。然后把下两个<code>Page</code>回送回去，同时标记下一个从4开始。</p>
+<p>同样的，当第三次请求过来，<code>start = 4</code>，上游继续把4之前的<code>Page</code>给<code>Remove</code>掉。</p>
+<p>那么假设第二次的回复对方没有接收到，那么游标<code>curSeq</code>还是不会变，等下游再次请求的时候，还是从<code>Start=2</code>开始的，就是不会受到影响。</p>
+<p>这就是<code>Presto</code>的传输数据的<code>Token</code>机制，类似于<code>Tcp</code>中的<code>Seq</code>和<code>Ack</code>，保证了数据传输的可靠性。</p>
+<h3 id="流控-1"><a href="#流控-1" class="headerlink" title="流控"></a>流控</h3><p>上次提到了<code>ExchangeClient</code>端的流控，当数据来不及消费的时候，那么<code>ExchangClient</code>就不会来请求数据了。<br>那么这时候<code>OutputBuffer</code>端会出现什么样子的情况呢？</p>
+<p>同样的，也是有一个配置标记一个Task的Buffer最大能存多少。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">OutputBufferMemoryManager</span></span></span><br><span class="line"><span class="class"></span>&#123;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">final</span> <span class="keyword">long</span> maxBufferedBytes;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>这个类，每一个<code>BroadcastOutputBuffer</code>或者<code>PartitionedOutputBuffer</code>都会含有一个，用来监控当前已经的<code>buffer</code>的大小。</p>
+<p>如果我们简单的想一想其实监控已经很简单，每来一个<code>Page</code>，把大小加进去，每出一个<code>Page</code>把大小减去，如果当前攒着的大小超过了阈值，那么就返回<code>Blocked</code>，把整个<code>Driver</code>给<code>Block</code>掉，不去执行了。</p>
+<p>这种想法其实没错，实现起来也不是很难，足以应付<code>partition</code>的情形，因为每一个<code>Page</code>进来，只会分到<strong>指定</strong>的<strong>一个</strong><code>ClientBuffer</code>中，移除的时候直接减去就行了。<br><img src="/images/presto-exchangeclient/partition.png" alt=""></p>
+<p>但是如果是<code>broadcast</code>情形呢。<br>每个<code>ClientBuffer</code>中其实都有一个<code>Page</code>的引用，只有当所有的下游<code>Task</code>把对应的<code>ClientBuffer</code>里面的<code>Page</code>取走了才能把大小给减去，那么你怎么知道已经被所有的<code>Task</code>取走了呢？<br><img src="/images/presto-exchangeclient/broadcast.png" alt=""></p>
+<p>如果我们看代码，其实<code>Presto</code>并没有直接把<code>Page</code>放进<code>Buffer</code>中，而是包装了一个<code>PageReference</code>类，传递进去原先的<code>Page</code>和一个回调，这个回调就是把当前的<code>BufferSize</code>减去<code>CurPageSize</code>。<br>再进去看发现这是个引用计数的实现，每<code>add</code>到<code>Buffer</code>中一次，计数就加一，每从<code>buffer</code>中移除一次，计数就减一，当为0的时候，就调用回调把<code>size</code>减去。<br>这真的是很精妙了。</p>
+
+    </div>
+
+    
+    
+    
+        
+
+<div>
+<ul class="post-copyright">
+  <li class="post-copyright-author">
+    <strong>Post author:  </strong>zhy
+  </li>
+  <li class="post-copyright-link">
+    <strong>Post link: </strong>
+    <a href="https://blog.lovezhy.cc/2018/07/20/Presto源码-ExchangeClient和OutputBuffer详解/" title="Presto源码-ExchangeClient和OutputBuffer详解">https://blog.lovezhy.cc/2018/07/20/Presto源码-ExchangeClient和OutputBuffer详解/</a>
+  </li>
+  <li class="post-copyright-license">
+    <strong>Copyright Notice:  </strong>All articles in this blog are licensed under <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" rel="noopener" target="_blank"><i class="fa fa-fw fa-creative-commons"></i>BY-NC-SA</a> unless stating additionally.
+  </li>
+</ul>
+</div>
+
+        
+
+  <div class="followme">
+    <p>Welcome to my other publishing channels</p>
+
+    <div class="social-list">
+
+            <div class="social-item">
+              <a target="_blank" class="social-link" href="/atom.xml">
+                <span class="icon">
+                  <i class="fa fa-rss"></i>
+                </span>
+
+                <span class="label">RSS</span>
+              </a>
+            </div>
+    </div>
+  </div>
+
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/Presto/" rel="tag"># Presto</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2018/07/20/Guava学习之异步编程/" rel="prev" title="Guava学习之异步编程">
+      <i class="fa fa-chevron-left"></i> Guava学习之异步编程
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2018/07/21/Guava库学习之Collections/" rel="next" title="Guava库学习之Collections">
+      Guava库学习之Collections <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+    
+  <div class="comments">
+    <div id="disqus_thread">
+      <noscript>Please enable JavaScript to view the comments powered by Disqus.</noscript>
+    </div>
+  </div>
+  
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let activeClass = CONFIG.comments.activeClass;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#前言"><span class="nav-number">1.</span> <span class="nav-text">前言</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#ExchangeClient"><span class="nav-number">2.</span> <span class="nav-text">ExchangeClient</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#ExchangOperator"><span class="nav-number">2.1.</span> <span class="nav-text">ExchangOperator</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#RemoteSplit"><span class="nav-number">2.2.</span> <span class="nav-text">RemoteSplit</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#HttpPageBufferClient"><span class="nav-number">2.3.</span> <span class="nav-text">HttpPageBufferClient</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#HttpSchedule"><span class="nav-number">2.4.</span> <span class="nav-text">HttpSchedule</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#流控"><span class="nav-number">2.5.</span> <span class="nav-text">流控</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#OutputBuffer"><span class="nav-number">3.</span> <span class="nav-text">OutputBuffer</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#TaskResource"><span class="nav-number">3.1.</span> <span class="nav-text">TaskResource</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#LazyOutputBuffer"><span class="nav-number">3.2.</span> <span class="nav-text">LazyOutputBuffer</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#BroadcastOutputBuffer和PartitionedOutputBuffer"><span class="nav-number">3.3.</span> <span class="nav-text">BroadcastOutputBuffer和PartitionedOutputBuffer</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#token机制"><span class="nav-number">3.4.</span> <span class="nav-text">token机制</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#流控-1"><span class="nav-number">3.5.</span> <span class="nav-text">流控</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">zhy</p>
+  <div class="site-description" itemprop="description">敌视现实</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">70</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">27</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">48</span>
+        <span class="site-state-item-name">tags</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/zhyzhyzhy" title="GitHub → https://github.com/zhyzhyzhy" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:zhuyichen1017@outlook.com" title="E-Mail → mailto:zhuyichen1017@outlook.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+  <div class="beian"><a href="http://www.beian.miit.gov.cn" rel="noopener" target="_blank">苏ICP备15058469号 </a>
+  </div>
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">zhy</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> v3.8.0
+  </div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">Theme – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> v7.7.1
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+<script src="/js/utils.js"></script><script src="/js/motion.js"></script>
+<script src="/js/schemes/pisces.js"></script>
+<script src="/js/next-boot.js"></script>
+
+
+
+  
+
+
+
+
+  <script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+<script>
+  function loadCount() {
+    var d = document, s = d.createElement('script');
+    s.src = 'https://blog-lovezhy-cc-1.disqus.com/count.js';
+    s.id = 'dsq-count-scr';
+    (d.head || d.body).appendChild(s);
+  }
+  // defer loading until the whole page loading is completed
+  window.addEventListener('load', loadCount, false);
+</script>
+<script>
+  var disqus_config = function() {
+    this.page.url = "https://blog.lovezhy.cc/2018/07/20/Presto源码-ExchangeClient和OutputBuffer详解/";
+    this.page.identifier = "2018/07/20/Presto源码-ExchangeClient和OutputBuffer详解/";
+    this.page.title = "Presto源码-ExchangeClient和OutputBuffer详解";
+    };
+  NexT.utils.loadComments(document.querySelector('#disqus_thread'), () => {
+    if (window.DISQUS) {
+      DISQUS.reset({
+        reload: true,
+        config: disqus_config
+      });
+    } else {
+      var d = document, s = d.createElement('script');
+      s.src = 'https://blog-lovezhy-cc-1.disqus.com/embed.js';
+      s.setAttribute('data-timestamp', '' + +new Date());
+      (d.head || d.body).appendChild(s);
+    }
+  });
+</script>
+
+</body>
+</html>

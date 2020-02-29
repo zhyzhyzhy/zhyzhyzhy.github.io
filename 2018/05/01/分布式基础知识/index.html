@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 3.8.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+  <meta name="google-site-verification" content="wE7ISC42t3QOT-S-gdbdy_XsP3NB23Xi3alKNWXd0dA">
+  <meta name="baidu-site-verification" content="keFN8E7jd3">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="//fonts.googleapis.com/css?family=Operator Mono:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    hostname: new URL('https://blog.lovezhy.cc').hostname,
+    root: '/',
+    scheme: 'Gemini',
+    version: '7.7.1',
+    exturl: false,
+    sidebar: {"position":"right","display":"always","padding":18,"offset":12,"onmobile":false},
+    copycode: {"enable":true,"show_result":true,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    comments: {"style":"tabs","active":"disqus","storage":true,"lazyload":false,"nav":null,"activeClass":"disqus"},
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: 'search.xml',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}
+  };
+</script>
+
+  <meta name="description" content="分布式，集群，单点问题与分布式相对应的就是单机的概念。比如一个服务，依赖nginx，tomcat，mysql，redis 这么多组件。单机的话可能就部署在一个服务器上。这样的话容易服务器挂了，整个服务就不可用了。同时可扩展性不是很好，一台普通的机器用来跑简单的服务还是可以的，万一是个需要高并发的，数据量比较大的呢，那就只能去买大型机了，但是大型机价格昂贵。同时还是避免不了如果机器挂了，整个服务就不">
+<meta name="keywords" content="分布式">
+<meta property="og:type" content="article">
+<meta property="og:title" content="分布式基础知识">
+<meta property="og:url" content="https://blog.lovezhy.cc/2018/05/01/分布式基础知识/index.html">
+<meta property="og:site_name" content="LoveZhy">
+<meta property="og:description" content="分布式，集群，单点问题与分布式相对应的就是单机的概念。比如一个服务，依赖nginx，tomcat，mysql，redis 这么多组件。单机的话可能就部署在一个服务器上。这样的话容易服务器挂了，整个服务就不可用了。同时可扩展性不是很好，一台普通的机器用来跑简单的服务还是可以的，万一是个需要高并发的，数据量比较大的呢，那就只能去买大型机了，但是大型机价格昂贵。同时还是避免不了如果机器挂了，整个服务就不">
+<meta property="og:locale" content="zh-cn">
+<meta property="og:image" content="https://blog.lovezhy.cc/2018/05/01/分布式基础知识/images/分布式/cap.png">
+<meta property="og:image" content="https://blog.lovezhy.cc/2018/05/01/分布式基础知识/images/分布式/2pc.png">
+<meta property="og:image" content="https://blog.lovezhy.cc/2018/05/01/分布式基础知识/images/分布式/3pc.png">
+<meta property="og:image" content="https://blog.lovezhy.cc/2018/05/01/分布式基础知识/images/分布式/XA.png">
+<meta property="og:image" content="https://blog.lovezhy.cc/2018/05/01/分布式基础知识/images/分布式/XA1.png">
+<meta property="og:updated_time" content="2018-09-20T13:32:17.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="分布式基础知识">
+<meta name="twitter:description" content="分布式，集群，单点问题与分布式相对应的就是单机的概念。比如一个服务，依赖nginx，tomcat，mysql，redis 这么多组件。单机的话可能就部署在一个服务器上。这样的话容易服务器挂了，整个服务就不可用了。同时可扩展性不是很好，一台普通的机器用来跑简单的服务还是可以的，万一是个需要高并发的，数据量比较大的呢，那就只能去买大型机了，但是大型机价格昂贵。同时还是避免不了如果机器挂了，整个服务就不">
+<meta name="twitter:image" content="https://blog.lovezhy.cc/2018/05/01/分布式基础知识/images/分布式/cap.png">
+
+<link rel="canonical" href="https://blog.lovezhy.cc/2018/05/01/分布式基础知识/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true
+  };
+</script>
+
+  <title>分布式基础知识 | LoveZhy</title>
+  
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-125642214-1"></script>
+    <script>
+      if (CONFIG.hostname === location.hostname) {
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'UA-125642214-1');
+      }
+    </script>
+
+
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?c1f963571cb3d8a4a5dc82346dc65842";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+<link rel="alternate" href="/atom.xml" title="LoveZhy" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">LoveZhy</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+  </div>
+
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-fw fa-user"></i>About</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>Tags</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>Categories</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>Archives</a>
+
+  </li>
+        <li class="menu-item menu-item-sitemap">
+
+    <a href="/sitemap.xml" rel="section"><i class="fa fa-fw fa-sitemap"></i>Sitemap</a>
+
+  </li>
+        <li class="menu-item menu-item-movie">
+
+    <a href="/movies/index.html" rel="section"><i class="fa fa-fw fa-film"></i>movie</a>
+
+  </li>
+        <li class="menu-item menu-item-books">
+
+    <a href="/books/index.html" rel="section"><i class="fa fa-fw fa-book"></i>books</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+
+</nav>
+  <div class="site-search">
+    <div class="popup search-popup">
+    <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocorrect="off" autocapitalize="none" placeholder="Searching..." spellcheck="false" type="text" id="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result"></div>
+
+</div>
+<div class="search-pop-overlay"></div>
+
+  </div>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope="" itemtype="http://schema.org/Article" class="post-block " lang="zh-cn">
+    <link itemprop="mainEntityOfPage" href="https://blog.lovezhy.cc/2018/05/01/分布式基础知识/">
+
+    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="zhy">
+      <meta itemprop="description" content="敌视现实">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="LoveZhy">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          分布式基础知识
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2018-05-01 00:00:00" itemprop="dateCreated datePublished" datetime="2018-05-01T00:00:00+08:00">2018-05-01</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">Edited on</span>
+                <time title="Modified: 2018-09-20 21:32:17" itemprop="dateModified" datetime="2018-09-20T21:32:17+08:00">2018-09-20</time>
+              </span>
+
+          
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="fa fa-comment-o"></i>
+      </span>
+      <span class="post-meta-item-text">Disqus: </span>
+    
+    <a title="disqus" href="/2018/05/01/分布式基础知识/#disqus_thread" itemprop="discussionUrl">
+      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2018/05/01/分布式基础知识/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h2 id="分布式，集群，单点问题"><a href="#分布式，集群，单点问题" class="headerlink" title="分布式，集群，单点问题"></a>分布式，集群，单点问题</h2><p>与分布式相对应的就是单机的概念。<br>比如一个服务，依赖<code>nginx</code>，<code>tomcat</code>，<code>mysql</code>，<code>redis</code> 这么多组件。<br>单机的话可能就部署在一个服务器上。<br>这样的话容易服务器挂了，整个服务就不可用了。<br>同时可扩展性不是很好，一台普通的机器用来跑简单的服务还是可以的，万一是个需要高并发的，数据量比较大的呢，那就只能去买大型机了，但是大型机价格昂贵。同时还是避免不了如果机器挂了，整个服务就不可用的问题。<br><a id="more"></a><br>好，那我们从单机的状态下转移出来<br>现在我们<code>Redis</code>，<code>Tomcat</code>，<code>Mysql</code>，<code>Nginx</code>都是单独在一台服务器上。<br>那么整个服务就可以称为是分布式的。</p>
+<p>那么集群是怎么回事呢？<br>就比如跑<code>Nginx</code>这个服务器挂了，<code>Nginx</code>也就挂了，那么即使<code>Mysql</code>没挂，整个服务还是不能正常运行。<br>这个<code>Nginx</code>服务器就是个单点问题。<br>所以即使把服务都分开部署，还是无法解决不可用的问题，那么怎么提高服务的可用性呢。</p>
+<p>那就是使用集群了。<br>我们部署三个机器都是跑<code>Nginx</code>，那么一台挂了不至于导致整个服务不可用。<br>当然<code>Nginx</code>一般来说是无状态的，如果整个集群是有状态的呢。<br>那就需要一些一致性协议来进行实现。<br>真正做起来还是比较复杂的。</p>
+<h2 id="CAP"><a href="#CAP" class="headerlink" title="CAP"></a>CAP</h2><p>CAP理论由Eric Brewer教授在2000年提出的<br>主要说明了一点，在一个分布式环境中<br>Consistency一致性、Availability可用性、Partition-tolerance分区容错性<br>这三个条件不能同时满足，最多只能满足其中的两个。</p>
+<p>其实我们在仔细斟酌下，按照我的理解，其实这个是针对集群的，比如Zookeeper集群，称为是分布式环境中的其实不太准确。<br>再而这个针对的是什么集群呢，nginx集群吗，显然不是，看第一条，一致性，nginx需要什么一致性？那么在仔细想下，这个理论应该是针对提供数据相关功能的服务的。比如数据库之类。  </p>
+<p><img src="images/分布式/cap.png" alt=""></p>
+<p>从上图我们可以看到，一个服务最多满足<code>CAP</code>中的两个而放弃另外一个，像<code>Redis</code>放弃了可用性，选择了一致性和分区容错性。当然这是单机的Redis。</p>
+<p>那么这三个条件具体是什么意思呢</p>
+<ul>
+<li><p>一致性  简单的说，同样的数据在多个集群的所有机器上是否是一样的<br>或者这么说，同一个请求在一个集群中所有的机器上的结果应当是一样的。不允许出现不一样的状态。</p>
+</li>
+<li><p>可用性  整个集群对于别的服务的请求必须在有限时间内返回结果。</p>
+</li>
+<li><p>分区容错性  这个比较难理解，首先什么是分区呢，正常来说，整个集群应该是一个整体，每台机器可以通过网络互相沟通，但是可能因为网络分区的原因，出现了两个分区，每个分区的机器都可以互相沟通，但是跨分区的机器不能沟通。<br>如果数据项只在一个节点中，那么分区出现后，和这个节点之前连通的部分就访问不到这个数据了，那么这就是分区不容忍的。<br>提高分区容忍性的办法就是一个数据项复制到多个节点上，那么出现分区之后，这一数据项就可能分布到各个区里。容忍性就提高了。<br>然而，要把数据复制到多个节点，就会带来一致性的问题，就是多个节点上面的数据可能是不一致的。要保证一致，每次写操作就都要等待全部节点写成功，而这等待又会带来可用性的问题。总的来说就是，数据存在的节点越多，分区容忍性越高，但要复制更新的数据就越多，一致性就越难保证。为了保证一致性，更新所有节点数据所需要的时间就越长，可用性就会降低。  </p>
+</li>
+</ul>
+<p>所以正常情况下，分布式系统中，都要满足分区容错性，然后在一致性和可用性之间做出权衡。  </p>
+<h2 id="BASE"><a href="#BASE" class="headerlink" title="BASE"></a>BASE</h2><p>BASE理论在CAP提出之后，因为CAP提出三个条件，提供数据服务的集群最多保证其中两个。<br>同时一般来说我们P是不可能放弃的，基本都是在C和A之间权衡。<br>那么具体怎么权衡呢，BASE就是一种讨论的结果。</p>
+<p>BASE是Basically Available, Soft state, Eventually consistent三个短语的缩写。<br>也就是基本可用，软状态，最终一致性。</p>
+<h3 id="基本可用"><a href="#基本可用" class="headerlink" title="基本可用"></a>基本可用</h3><p>基本可用不代表不可用，而是在一些情况下在高可用上有稍许的宽松<br>比较典型的就是</p>
+<ul>
+<li>响应时间上的损失  </li>
+<li>功能上的损失，降级等。</li>
+</ul>
+<h3 id="弱状态"><a href="#弱状态" class="headerlink" title="弱状态"></a>弱状态</h3><p>允许系统出现中间状态<br>即允许数据同步的过程中存在延迟</p>
+<h3 id="最终一致性"><a href="#最终一致性" class="headerlink" title="最终一致性"></a>最终一致性</h3><p>强一致性的条件比较严格，就比如我提出了一个写请求，那么我写完之后，必须保证每个机器上都能得到体现，数据必须是一样的。这是强一致性。</p>
+<p>最终一致性就是允许中间有延迟时间，但是保证一定会达到一致，至于多久，这个并没有严格的限制。</p>
+<h2 id="2PC"><a href="#2PC" class="headerlink" title="2PC"></a>2PC</h2><p>2PC =&gt;  Two Phase Commitment Protocol<br>也就是二阶段提交协议  </p>
+<p>在分布式事务中，事务协调器和资源管理器进行事务的过程。  </p>
+<p><img src="images/分布式/2pc.png" alt=""></p>
+<p>第一阶段<br>TM像所有的RM发送prepare指令，相当于执行start transection并执行sql语句，但是并不提交。<br>RM执行完之后会向TM发送反馈。</p>
+<p>第二阶段<br>接收完RM的反馈后，如果有返回NO的，那么TM向所有的RM发送abort指令，放弃事务提交<br>如果反馈全是Yes，那么发送commit指令。</p>
+<p>整个过程很简单，各个书上对这个过程的描述也是一致的。</p>
+<h2 id="3PC"><a href="#3PC" class="headerlink" title="3PC"></a>3PC</h2><p>由2PC的名字可以联想到，其实这个是三阶段提交协议的意思</p>
+<p>三阶段提交协议主要把2PC的第二阶段拆分为两个阶段 preCommit和doCommit阶段</p>
+<p><img src="images/分布式/3pc.png" alt=""></p>
+<h2 id="2PC和3PC对比"><a href="#2PC和3PC对比" class="headerlink" title="2PC和3PC对比"></a>2PC和3PC对比</h2><p>首先对一下细节的探究。</p>
+<ul>
+<li><p>2PC中TM有主备机制吗？<br>这个问题困扰了我很久，最后得到的结论是没有的，只有一个TM，挂了就全局阻塞。<br>参见文章<a href="https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/tr-2003-96.pdf" target="_blank" rel="noopener">链接</a><br>文章的3.3节中提到</p>
+<blockquote>
+<p>They have usually attempted to “fix” the Two-Phase Commit protocol by<br>choosing another TM if the first TM fails.</p>
+</blockquote>
+</li>
+<li><p>2PC中如果TM挂了，那么RM有超时机制吗<br>从众多描述中可以发现是没有的<br>参见问题<br><a href="https://stackoverflow.com/questions/44301852/why-is-two-phase-commit-2pc-blocking" target="_blank" rel="noopener">链接1</a><br><a href="https://cs.stackexchange.com/questions/76192/why-is-two-phase-commit-2pc-blocking" target="_blank" rel="noopener">链接2</a><br>注意这种情况是TM挂了的情况，如果是RM挂了，TM是可以具有超时abort机制的。</p>
+</li>
+<li><p>2PC的数据不一致的情况<br><a href="https://blog.csdn.net/yyd19921214/article/details/68953629" target="_blank" rel="noopener">链接</a></p>
+<blockquote>
+<p>2PC协议中，如果出现协调者和参与者都挂了的情况，有可能导致数据不一致。<br>这里解释一下他说的不一致是什么情景，就是协调者进入第二阶段，发送Commit请求了，当发给第一个RM时挂了，第一个RM收到请求，Commit后也挂了。</p>
+</blockquote>
+</li>
+</ul>
+<p>但是如果这么想的话，因为RM没有超时机制，下面就只有等TM被repair，这时候其实并不是严格处于一个数据不一致的状态。</p>
+<ul>
+<li>3PC怎么解决这么问题的<br>其实仔细看的话，3PC确实解决了一些问题，但是3PC本身还是有问题的。<ul>
+<li>引入RM超时机制，如果发出canCommit后TM挂了，那么RM超时后会自动取消事务，同样的，如果preCommit后TM挂了，那么RM超时后会自动提交事务，一部分情况下避免了无线阻塞。</li>
+<li>引入TM重新选举</li>
+</ul>
+</li>
+</ul>
+<p>但是3PC解决了2PC的问题了吗，阻塞问题算了解决了一下，但是数据不一致的问题确实依然存在的。<br>加入TM发出一个preCommit后挂了，然后一个RM接收到preCommit，其他的没接收到，超时后其他的abort了，只有一个commit了，那么数据不一致还是存在的，而且似乎更严重了一些。</p>
+<p>下面是一些资料：<br>摘自维基百科 <a href="https://en.wikipedia.org/wiki/Two-phase_commit_protocol#Disadvantages" target="_blank" rel="noopener">链接</a></p>
+<blockquote>
+<p>The greatest disadvantage of the two-phase commit protocol is that it is a blocking protocol. If the coordinator fails permanently, some cohorts will never resolve their transactions: After a cohort has sent an agreement message to the coordinator, it will block until a commit or rollback is received.</p>
+</blockquote>
+<p><a href="https://en.wikipedia.org/wiki/Three-phase_commit_protocol" target="_blank" rel="noopener">链接</a></p>
+<blockquote>
+<p>A two-phase commit protocol cannot dependably recover from a failure of both the coordinator and a cohort member during the Commit phase. If only the coordinator had failed, and no cohort members had received a commit message, it could safely be inferred that no commit had happened. If, however, both the coordinator and a cohort member failed, it is possible that the failed cohort member was the first to be notified, and had actually done the commit. Even if a new coordinator is selected, it cannot confidently proceed with the operation until it has received an agreement from all cohort members, and hence must block until all cohort members respond.</p>
+</blockquote>
+<p><a href="https://blog.csdn.net/yyd19921214/article/details/68953629" target="_blank" rel="noopener">链接</a></p>
+<blockquote>
+<p>2PC协议中，如果出现协调者和参与者都挂了的情况，有可能导致数据不一致。<br>这里解释一下他说的不一致是什么情景，就是协调者进入第二阶段，发送Commit请求了，当发给第一个RM时挂了，第一个RM收到请求，Commit后也挂了。</p>
+</blockquote>
+<p><a href="http://www.win.tue.nl/~atif/reports/paper4ICET.pdf" target="_blank" rel="noopener">链接</a></p>
+<blockquote>
+<p>Blocking: The Two-Phase Commit Protocol goes to a<br>blocking state by the failure of the coordinator when the<br>participants are in uncertain state. The participants keep<br>locks on resources until they receive the next message<br>from the coordinator after its recovery.</p>
+</blockquote>
+<p><a href="https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/tr-2003-96.pdf" target="_blank" rel="noopener">链接</a></p>
+<blockquote>
+<p>In a transaction commit protocol, if one or more RMs fail, the transaction<br>is usually aborted. For example, in the Two-Phase Commit protocol, if the<br>TM does not receive a Prepared message from some RM soon enough after<br>sending the Prepare message, then it will abort the transaction by sending<br>Abort messages to the other RMs. However, the failure of the TM can cause<br>the protocol to block until the TM is repaired. In particular, if the TM fails<br>right after every RM has sent a Prepared message, then the other RMs have<br>no way of knowing whether the TM committed or aborted the transaction.</p>
+</blockquote>
+<p>总结一下，主要还是两个问题</p>
+<ul>
+<li>阻塞问题</li>
+<li>数据不一致问题<br>但是优点也是显而易见的</li>
+<li>容易实现</li>
+</ul>
+<h2 id="XA协议"><a href="#XA协议" class="headerlink" title="XA协议"></a>XA协议</h2><p>XA是一个分布式事务的规范，由X/Open组织提出的。<br>X/Open组织定义了分布式事务处理模型 -&gt; X/Open DTP模型。<br>在DTP模型中定义了三个组件</p>
+<ul>
+<li>Application Program (AP)，应用程序，使用DTP模型的程序</li>
+<li>Resource Manager (RM)，资源管理器，可以理解未一个DBMS系统，或者消息服务器管理系统，应用程序通过资源管理器对资源进行控制，资源必须实现XA定义的接口。</li>
+<li>Transaction Manager(TM)，事务管理器，负责协调和管理事务，提供给AP应用程序变成接口并管理资源管理器。事务管理器向事务指定标识，监视它们的进程，并负责处理事务的完成和失败。</li>
+</ul>
+<p><img src="images/分布式/XA.png" alt=""></p>
+<p><img src="images/分布式/XA1.png" alt=""></p>
+<p>一个例子:</p>
+<ul>
+<li>AP与RM之间，可以使用RM自身提供的native API进行交互，这种方式就是使用RM的传统方式，并且这个交互不在TM的管理范围内，另外，当AP和RM之间需要进行分布式事务的时候，AP需要得到对RM的链接(此链接由TM管理)，然后使用XA的native API来进行交互。</li>
+<li>AP和TM之间，该例子中使用的是TX接口，也是由X/Open所规范的。它用于对事务进行控制，包括事务启动，提交事务和回滚事务。</li>
+<li>TM与RM之间是通过XA接口进行交互。TM管理了到RM的连接，并实现了两阶段提交。</li>
+</ul>
+<p>总结：2PC和3PC一定程度上其实是实现了XA协议的。</p>
+<h2 id="Paxos"><a href="#Paxos" class="headerlink" title="Paxos"></a>Paxos</h2><h3 id="Paxos和2PC"><a href="#Paxos和2PC" class="headerlink" title="Paxos和2PC"></a>Paxos和2PC</h3><p>上文提到了数据服务集群的一致性问题，那么怎么保证数据的强一致性呢。<br>这里就需要用到Paxos算法。<br>很多人会认为2PC和Paxos解决了同样的问题，Paxos更为先进，可以放弃2PC了。<br>但是这个其实也是不准确的。<br>因为2PC和Paxos本质上解决的不是同一个问题。<br>2PC是为了分布式事务，Paxos是维持多个副本之间的数据一致。 </p>
+<h2 id="Raft和Zab"><a href="#Raft和Zab" class="headerlink" title="Raft和Zab"></a>Raft和Zab</h2><p>Raft和Zab也是一致性算法。</p>
+<p>上文说我们已经有了Paxos，那么为什么还提出Raft和Zab呢，因为Paxos的理解较为复杂，也没有提出技术细节的解决方案，较为理论，虽然解决的一致性问题很通用，对于一些细节的阐述不是很清晰。</p>
+<p>为了需要一个能实现的算法，于是有了Raft和Zab。</p>
+<p>Raft和Zab的区别其实不是很大，Zab主要是用在Zookeeper上。</p>
+<p>下面主要说说Raft协议。</p>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><ul>
+<li><p>CAP部分的分区容错性 =&gt;<br><a href="https://www.zhihu.com/question/54105974/answer/139037688" target="_blank" rel="noopener">https://www.zhihu.com/question/54105974/answer/139037688</a></p>
+</li>
+<li><p>BASE部分参考=&gt; 《从Paxos到Zookeeper，分布式一致性原理与实践》  </p>
+</li>
+<li><p>XA协议部分参考=&gt; 《大型网站系统与JAVA中间件实践》</p>
+</li>
+</ul>
+<h2 id="课外阅读"><a href="#课外阅读" class="headerlink" title="课外阅读"></a>课外阅读</h2><p><a href="https://martin.kleppmann.com/2015/05/11/please-stop-calling-databases-cp-or-ap.html" target="_blank" rel="noopener">https://martin.kleppmann.com/2015/05/11/please-stop-calling-databases-cp-or-ap.html</a></p>
+
+    </div>
+
+    
+    
+    
+        
+
+<div>
+<ul class="post-copyright">
+  <li class="post-copyright-author">
+    <strong>Post author:  </strong>zhy
+  </li>
+  <li class="post-copyright-link">
+    <strong>Post link: </strong>
+    <a href="https://blog.lovezhy.cc/2018/05/01/分布式基础知识/" title="分布式基础知识">https://blog.lovezhy.cc/2018/05/01/分布式基础知识/</a>
+  </li>
+  <li class="post-copyright-license">
+    <strong>Copyright Notice:  </strong>All articles in this blog are licensed under <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" rel="noopener" target="_blank"><i class="fa fa-fw fa-creative-commons"></i>BY-NC-SA</a> unless stating additionally.
+  </li>
+</ul>
+</div>
+
+        
+
+  <div class="followme">
+    <p>Welcome to my other publishing channels</p>
+
+    <div class="social-list">
+
+            <div class="social-item">
+              <a target="_blank" class="social-link" href="/atom.xml">
+                <span class="icon">
+                  <i class="fa fa-rss"></i>
+                </span>
+
+                <span class="label">RSS</span>
+              </a>
+            </div>
+    </div>
+  </div>
+
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/分布式/" rel="tag"># 分布式</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2018/04/11/brpc-doc笔记/" rel="prev" title="brpc-doc笔记">
+      <i class="fa fa-chevron-left"></i> brpc-doc笔记
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2018/05/23/OLAP基本知识/" rel="next" title="OLAP基本知识">
+      OLAP基本知识 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+    
+  <div class="comments">
+    <div id="disqus_thread">
+      <noscript>Please enable JavaScript to view the comments powered by Disqus.</noscript>
+    </div>
+  </div>
+  
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let activeClass = CONFIG.comments.activeClass;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#分布式，集群，单点问题"><span class="nav-number">1.</span> <span class="nav-text">分布式，集群，单点问题</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#CAP"><span class="nav-number">2.</span> <span class="nav-text">CAP</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#BASE"><span class="nav-number">3.</span> <span class="nav-text">BASE</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#基本可用"><span class="nav-number">3.1.</span> <span class="nav-text">基本可用</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#弱状态"><span class="nav-number">3.2.</span> <span class="nav-text">弱状态</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#最终一致性"><span class="nav-number">3.3.</span> <span class="nav-text">最终一致性</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2PC"><span class="nav-number">4.</span> <span class="nav-text">2PC</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3PC"><span class="nav-number">5.</span> <span class="nav-text">3PC</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2PC和3PC对比"><span class="nav-number">6.</span> <span class="nav-text">2PC和3PC对比</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#XA协议"><span class="nav-number">7.</span> <span class="nav-text">XA协议</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Paxos"><span class="nav-number">8.</span> <span class="nav-text">Paxos</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Paxos和2PC"><span class="nav-number">8.1.</span> <span class="nav-text">Paxos和2PC</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Raft和Zab"><span class="nav-number">9.</span> <span class="nav-text">Raft和Zab</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#参考"><span class="nav-number">10.</span> <span class="nav-text">参考</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#课外阅读"><span class="nav-number">11.</span> <span class="nav-text">课外阅读</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">zhy</p>
+  <div class="site-description" itemprop="description">敌视现实</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">70</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">27</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">48</span>
+        <span class="site-state-item-name">tags</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/zhyzhyzhy" title="GitHub → https://github.com/zhyzhyzhy" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:zhuyichen1017@outlook.com" title="E-Mail → mailto:zhuyichen1017@outlook.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+  <div class="beian"><a href="http://www.beian.miit.gov.cn" rel="noopener" target="_blank">苏ICP备15058469号 </a>
+  </div>
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">zhy</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> v3.8.0
+  </div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">Theme – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> v7.7.1
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+<script src="/js/utils.js"></script><script src="/js/motion.js"></script>
+<script src="/js/schemes/pisces.js"></script>
+<script src="/js/next-boot.js"></script>
+
+
+
+  
+
+
+
+
+  <script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+<script>
+  function loadCount() {
+    var d = document, s = d.createElement('script');
+    s.src = 'https://blog-lovezhy-cc-1.disqus.com/count.js';
+    s.id = 'dsq-count-scr';
+    (d.head || d.body).appendChild(s);
+  }
+  // defer loading until the whole page loading is completed
+  window.addEventListener('load', loadCount, false);
+</script>
+<script>
+  var disqus_config = function() {
+    this.page.url = "https://blog.lovezhy.cc/2018/05/01/分布式基础知识/";
+    this.page.identifier = "2018/05/01/分布式基础知识/";
+    this.page.title = "分布式基础知识";
+    };
+  NexT.utils.loadComments(document.querySelector('#disqus_thread'), () => {
+    if (window.DISQUS) {
+      DISQUS.reset({
+        reload: true,
+        config: disqus_config
+      });
+    } else {
+      var d = document, s = d.createElement('script');
+      s.src = 'https://blog-lovezhy-cc-1.disqus.com/embed.js';
+      s.setAttribute('data-timestamp', '' + +new Date());
+      (d.head || d.body).appendChild(s);
+    }
+  });
+</script>
+
+</body>
+</html>

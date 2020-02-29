@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 3.8.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+  <meta name="google-site-verification" content="wE7ISC42t3QOT-S-gdbdy_XsP3NB23Xi3alKNWXd0dA">
+  <meta name="baidu-site-verification" content="keFN8E7jd3">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="//fonts.googleapis.com/css?family=Operator Mono:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    hostname: new URL('https://blog.lovezhy.cc').hostname,
+    root: '/',
+    scheme: 'Gemini',
+    version: '7.7.1',
+    exturl: false,
+    sidebar: {"position":"right","display":"always","padding":18,"offset":12,"onmobile":false},
+    copycode: {"enable":true,"show_result":true,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    comments: {"style":"tabs","active":"disqus","storage":true,"lazyload":false,"nav":null,"activeClass":"disqus"},
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: 'search.xml',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}
+  };
+</script>
+
+  <meta name="description" content="Kafka的是个复杂的系统，除了基本的Producer，Consumer，Broker外，为了实现完备的功能，Kafka中有许多重要的模块，本文梳理一下这些模块的划分，与他们负责的功能。">
+<meta name="keywords" content="Kafka">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Kafka指南-模块与职能划分">
+<meta property="og:url" content="https://blog.lovezhy.cc/2020/02/29/Kafka指南-模块与职能划分/index.html">
+<meta property="og:site_name" content="LoveZhy">
+<meta property="og:description" content="Kafka的是个复杂的系统，除了基本的Producer，Consumer，Broker外，为了实现完备的功能，Kafka中有许多重要的模块，本文梳理一下这些模块的划分，与他们负责的功能。">
+<meta property="og:locale" content="zh-cn">
+<meta property="og:image" content="https://blog.lovezhy.cc/2020/02/29/images/Kafka-模块划分/组件.png">
+<meta property="og:image" content="https://blog.lovezhy.cc/2020/02/29/images/Kafka-模块划分/分区分配.png">
+<meta property="og:updated_time" content="2020-02-29T14:27:06.411Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Kafka指南-模块与职能划分">
+<meta name="twitter:description" content="Kafka的是个复杂的系统，除了基本的Producer，Consumer，Broker外，为了实现完备的功能，Kafka中有许多重要的模块，本文梳理一下这些模块的划分，与他们负责的功能。">
+<meta name="twitter:image" content="https://blog.lovezhy.cc/2020/02/29/images/Kafka-模块划分/组件.png">
+
+<link rel="canonical" href="https://blog.lovezhy.cc/2020/02/29/Kafka指南-模块与职能划分/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true
+  };
+</script>
+
+  <title>Kafka指南-模块与职能划分 | LoveZhy</title>
+  
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-125642214-1"></script>
+    <script>
+      if (CONFIG.hostname === location.hostname) {
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'UA-125642214-1');
+      }
+    </script>
+
+
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?c1f963571cb3d8a4a5dc82346dc65842";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+<link rel="alternate" href="/atom.xml" title="LoveZhy" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">LoveZhy</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+  </div>
+
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-fw fa-user"></i>About</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>Tags</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>Categories</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>Archives</a>
+
+  </li>
+        <li class="menu-item menu-item-sitemap">
+
+    <a href="/sitemap.xml" rel="section"><i class="fa fa-fw fa-sitemap"></i>Sitemap</a>
+
+  </li>
+        <li class="menu-item menu-item-movie">
+
+    <a href="/movies/index.html" rel="section"><i class="fa fa-fw fa-film"></i>movie</a>
+
+  </li>
+        <li class="menu-item menu-item-books">
+
+    <a href="/books/index.html" rel="section"><i class="fa fa-fw fa-book"></i>books</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+
+</nav>
+  <div class="site-search">
+    <div class="popup search-popup">
+    <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocorrect="off" autocapitalize="none" placeholder="Searching..." spellcheck="false" type="text" id="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result"></div>
+
+</div>
+<div class="search-pop-overlay"></div>
+
+  </div>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope="" itemtype="http://schema.org/Article" class="post-block " lang="zh-cn">
+    <link itemprop="mainEntityOfPage" href="https://blog.lovezhy.cc/2020/02/29/Kafka指南-模块与职能划分/">
+
+    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="zhy">
+      <meta itemprop="description" content="敌视现实">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="LoveZhy">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Kafka指南-模块与职能划分
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+              
+
+              <time title="Created: 2020-02-29 00:00:00 / Modified: 22:27:06" itemprop="dateCreated datePublished" datetime="2020-02-29T00:00:00+08:00">2020-02-29</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
+                  <a href="/categories/Kafka指南/" itemprop="url" rel="index">
+                    <span itemprop="name">Kafka指南</span>
+                  </a>
+                </span>
+            </span>
+
+          
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="fa fa-comment-o"></i>
+      </span>
+      <span class="post-meta-item-text">Disqus: </span>
+    
+    <a title="disqus" href="/2020/02/29/Kafka指南-模块与职能划分/#disqus_thread" itemprop="discussionUrl">
+      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2020/02/29/Kafka指南-模块与职能划分/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>Kafka的是个复杂的系统，除了基本的Producer，Consumer，Broker外，为了实现完备的功能，Kafka中有许多重要的模块，本文梳理一下这些模块的划分，与他们负责的功能。</p>
+<a id="more"></a>
+<h1 id="运行组件"><a href="#运行组件" class="headerlink" title="运行组件"></a>运行组件</h1><p>基本上来说，正常的一个运行Kafka的业务，都需要4个组件：</p>
+<ol>
+<li>Broker。也就是Kafka服务器。</li>
+<li>Producer。也就是消息的生产者，负责把消息传入Broker。</li>
+<li>Consumer。消息的消费者，负责从Broker拉取消息。</li>
+<li>Zookeeper。Broker的运行需要Zookeeper保存一些元数据。</li>
+</ol>
+<p>这四大组件的关系如下图所示：<br><img src="../images/Kafka-模块划分/组件.png" alt=""></p>
+<p>流程也不用我多介绍了。<br>这里要提的一点就是，<strong>Consumer端不再感知Zookeeper了</strong><br>这个其实是演进出来的，之前的Offset保存的方式导致了Consumer端必须要感知ZK的地址。<br>但是使用了新的Offset提交方式后，Consumer没有必要感知Zookeeper了，所以在新版本的启动参数中仅仅需要使用<code>--bootstrap-server</code>指定任意一个Broker地址就行了。</p>
+<p>当然这个问题我也去搜集了一下答案：<br><a href="https://segmentfault.com/q/1010000015795614" target="_blank" rel="noopener">新版kafka消费者、生产者配置为何使用bootstrap-servers而不是zookeeper服务器地址？</a></p>
+<p>答案中提到了一个Kafka的提案，就是要取代Zookeeper。也是值得看一看的。</p>
+<h1 id="控制器"><a href="#控制器" class="headerlink" title="控制器"></a>控制器</h1><p>控制器，也叫Kafka Controller。<br>我们知道Kafka集群中，会有多个Broker，这些Broker并不是对等的关系，和Raft协议一样，其中一个Broker会被选举为Leader，也就是控制器，KafkaController。</p>
+<p>为什么需要一个Leader呢？这个在我看来其实有两个原因。</p>
+<ol>
+<li>Zookeeper的性能有限。</li>
+<li>避免复杂的逻辑。</li>
+</ol>
+<p>在早期的Kafka版本中，其实没有控制器这个概念，所有的Broker都是对等的，很多复杂的逻辑难以解决，以及对ZK会造成很大的负载，笔者列举几个：</p>
+<ol>
+<li>分区的ISR集合变更。每个分区的ISR集合，属于元数据，需要保存到每个Broker上的。分区的Leader副本所在的Broker会首先感知到该分区的ISR变更，它会把这个事件发布上ZK上，然后其他的Broker会监听到这个事件，更新自己的元数据。</li>
+<li>Leader副本出现问题。当一个分区的Leader副本出现问题时，需要重新选举出新的Leader副本，这个事件也是通过注册ZK的监听器实现的。</li>
+<li>Topic的分区分配，分区迁移，优先副本的选举：这是为了负载均衡的分布在不同的Broker上，如果没有Leader，随机的让这些决策由任意一个Broker去完成，会比较复杂。</li>
+</ol>
+<p>所有加入KafkaController后，这个被选为Leader的Broker需要做很多事：</p>
+<ol>
+<li>注册ZK的监听器，事件触发后，将信息传递给其他的Broker。</li>
+<li>对集群的配置进行决策和任务发放</li>
+</ol>
+<p>再具体一点：</p>
+<ol>
+<li>分区Leader副本出现故障，选举出新的Leader副本</li>
+<li>ISR集合变更，通知给其他的Broker</li>
+<li>Topic的新增，删除，分区分配，分区迁移，副本管理</li>
+<li>监听其他的Broker的变化，新增，删除等。</li>
+</ol>
+<h1 id="消费者协调器，组协调器"><a href="#消费者协调器，组协调器" class="headerlink" title="消费者协调器，组协调器"></a>消费者协调器，组协调器</h1><p>消费者协调器（ConsumerCoordinator），组协调器（GroupCoordinator）是为了解决旧版本的消费者再均衡问题而诞生的。</p>
+<p>首先让我们思考一下消费组需要解决的问题。<br>通常来说，一个Topic会有多个分区，而每个分区，都会指派给一个Consumer会消费。<br><img src="../images/Kafka-模块划分/分区分配.png" alt=""><br>如上图所示，这个Topic共有4个partition，有3个Consumer。<br>Consumer0分配了P0和P1给它，Consumer1和Consumer2分别分配了P2和P3。</p>
+<p>这样很美好，但是美好的事情总是不稳定。<br>如果Consumer0挂了呢？<br>那么我们需要把P0和P1分配给Consumer1和Consumer2。<br>如果多了一个Consumer加入，我们需要把P0分配给它。</p>
+<p>这些就是消费者再均衡问题。<br>怎么解决这个问题呢？<br>旧版的Kafka中同样使用了很多的ZK的监听器去完成，很复杂。<br>问题有2：</p>
+<ol>
+<li>ZK负载较大。</li>
+<li>ZK本身的脑裂问题，会导致各个消费者拿到的消费组的状态不一致，产生问题。</li>
+</ol>
+<p>解决这个问题的关键和Kafka的控制器的思路一致，我们需要引入Leader来完成重分配。<br>于是有了组协调器</p>
+<h2 id="组协调器（GroupCoordinator）"><a href="#组协调器（GroupCoordinator）" class="headerlink" title="组协调器（GroupCoordinator）"></a>组协调器（GroupCoordinator）</h2><blockquote>
+<p>组协调器：Kafka将全部的消费组分成了多个子集，每个消费组的子集在服务端对应一个GroupCoordinator对其进行管理</p>
+</blockquote>
+<p>组协调器是在服务端的，由某一个Broker担任。<br>有了组协调器后，某消费组中的所有消费者定时的向其发送心跳包，这样组协调器就能感知该消费组的消费者的个数变更，从而触发分区重分配。</p>
+<p>好像解决重分配的问题，只要有了组协调器就行了？<br>是的，确实是的。</p>
+<p>那么消费者协调器是干什么用的？<br>别急，等我慢慢道来。</p>
+<h2 id="消费者协调器"><a href="#消费者协调器" class="headerlink" title="消费者协调器"></a>消费者协调器</h2><p>说到这个其实不能不提一个概念，<strong>分区分配规则</strong>。<br>X个分区，Y个消费者，怎么分配分区给消费者呢？<br>当然我们可以轮询着来，但是作为一个完备的框架，这一层分配策略是需要抽象出来的，甚至可以由用户自定义的。</p>
+<p>Kafka提供了消费者参数<code>partition.assignment.strategy</code>来进行配置，可选值如下：</p>
+<ol>
+<li>RangeAssignor：按照消费者总数和分区总数进行整除运算来获得一个跨度，然后将分区按照跨度进行平均分配，也是默认的分配策略。</li>
+<li>RoundRobinAssignor：轮询分配</li>
+<li>StickyAssignor：前面两种分配方式，都没有考虑分区和Consumer的状态，消费情况，以及之前的分配情况，这种分配结合前面两种状态来决定分配方式。</li>
+</ol>
+<p>当然也可以进行自定义分配方式，需要我们在Consumer代码里进行编写。</p>
+<p>所以问题来了，为什么配置是在Consumer端？<br>你可能想到了，<strong>灵活配置！</strong>。</p>
+<p>写到这儿，消费者协调器的存在就可以理解了，真正的分配其实并不是组协调器进行的，而是组协调器会在所有的Consumer中指定一个Leader，这个Leader就叫消费者协调器，真正的分配结果由这个Consumer来执行，消费者协调器把分配结果告诉组协调器，组协调器再通知给所有的消费者结果。</p>
+
+    </div>
+
+    
+    
+    
+        
+
+<div>
+<ul class="post-copyright">
+  <li class="post-copyright-author">
+    <strong>Post author:  </strong>zhy
+  </li>
+  <li class="post-copyright-link">
+    <strong>Post link: </strong>
+    <a href="https://blog.lovezhy.cc/2020/02/29/Kafka指南-模块与职能划分/" title="Kafka指南-模块与职能划分">https://blog.lovezhy.cc/2020/02/29/Kafka指南-模块与职能划分/</a>
+  </li>
+  <li class="post-copyright-license">
+    <strong>Copyright Notice:  </strong>All articles in this blog are licensed under <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" rel="noopener" target="_blank"><i class="fa fa-fw fa-creative-commons"></i>BY-NC-SA</a> unless stating additionally.
+  </li>
+</ul>
+</div>
+
+        
+
+  <div class="followme">
+    <p>Welcome to my other publishing channels</p>
+
+    <div class="social-list">
+
+            <div class="social-item">
+              <a target="_blank" class="social-link" href="/atom.xml">
+                <span class="icon">
+                  <i class="fa fa-rss"></i>
+                </span>
+
+                <span class="label">RSS</span>
+              </a>
+            </div>
+    </div>
+  </div>
+
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/Kafka/" rel="tag"># Kafka</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2020/02/23/Kafka指南-源码导入Idea/" rel="prev" title="Kafka指南-源码导入Idea">
+      <i class="fa fa-chevron-left"></i> Kafka指南-源码导入Idea
+    </a></div>
+      <div class="post-nav-item"></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+    
+  <div class="comments">
+    <div id="disqus_thread">
+      <noscript>Please enable JavaScript to view the comments powered by Disqus.</noscript>
+    </div>
+  </div>
+  
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let activeClass = CONFIG.comments.activeClass;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#运行组件"><span class="nav-number">1.</span> <span class="nav-text">运行组件</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#控制器"><span class="nav-number">2.</span> <span class="nav-text">控制器</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#消费者协调器，组协调器"><span class="nav-number">3.</span> <span class="nav-text">消费者协调器，组协调器</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#组协调器（GroupCoordinator）"><span class="nav-number">3.1.</span> <span class="nav-text">组协调器（GroupCoordinator）</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#消费者协调器"><span class="nav-number">3.2.</span> <span class="nav-text">消费者协调器</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">zhy</p>
+  <div class="site-description" itemprop="description">敌视现实</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">70</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">27</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">48</span>
+        <span class="site-state-item-name">tags</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/zhyzhyzhy" title="GitHub → https://github.com/zhyzhyzhy" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:zhuyichen1017@outlook.com" title="E-Mail → mailto:zhuyichen1017@outlook.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+  <div class="beian"><a href="http://www.beian.miit.gov.cn" rel="noopener" target="_blank">苏ICP备15058469号 </a>
+  </div>
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">zhy</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> v3.8.0
+  </div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">Theme – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> v7.7.1
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+<script src="/js/utils.js"></script><script src="/js/motion.js"></script>
+<script src="/js/schemes/pisces.js"></script>
+<script src="/js/next-boot.js"></script>
+
+
+
+  
+
+
+
+
+  <script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+<script>
+  function loadCount() {
+    var d = document, s = d.createElement('script');
+    s.src = 'https://blog-lovezhy-cc-1.disqus.com/count.js';
+    s.id = 'dsq-count-scr';
+    (d.head || d.body).appendChild(s);
+  }
+  // defer loading until the whole page loading is completed
+  window.addEventListener('load', loadCount, false);
+</script>
+<script>
+  var disqus_config = function() {
+    this.page.url = "https://blog.lovezhy.cc/2020/02/29/Kafka指南-模块与职能划分/";
+    this.page.identifier = "2020/02/29/Kafka指南-模块与职能划分/";
+    this.page.title = "Kafka指南-模块与职能划分";
+    };
+  NexT.utils.loadComments(document.querySelector('#disqus_thread'), () => {
+    if (window.DISQUS) {
+      DISQUS.reset({
+        reload: true,
+        config: disqus_config
+      });
+    } else {
+      var d = document, s = d.createElement('script');
+      s.src = 'https://blog-lovezhy-cc-1.disqus.com/embed.js';
+      s.setAttribute('data-timestamp', '' + +new Date());
+      (d.head || d.body).appendChild(s);
+    }
+  });
+</script>
+
+</body>
+</html>

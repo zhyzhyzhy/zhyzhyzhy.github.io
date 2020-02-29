@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 3.8.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+  <meta name="google-site-verification" content="wE7ISC42t3QOT-S-gdbdy_XsP3NB23Xi3alKNWXd0dA">
+  <meta name="baidu-site-verification" content="keFN8E7jd3">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="//fonts.googleapis.com/css?family=Operator Mono:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    hostname: new URL('https://blog.lovezhy.cc').hostname,
+    root: '/',
+    scheme: 'Gemini',
+    version: '7.7.1',
+    exturl: false,
+    sidebar: {"position":"right","display":"always","padding":18,"offset":12,"onmobile":false},
+    copycode: {"enable":true,"show_result":true,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    comments: {"style":"tabs","active":"disqus","storage":true,"lazyload":false,"nav":null,"activeClass":"disqus"},
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: 'search.xml',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}
+  };
+</script>
+
+  <meta name="description" content="Spring5的主推功能可能就是WebFlux了但是网上一堆人吹捧性能完爆SpringMVC似乎有点过头了 结论就是WebFlux的线程模型不同，所以适应场景也不同SpringMVC并不是互相替代的关系(个人感觉)">
+<meta name="keywords" content="Spring">
+<meta property="og:type" content="article">
+<meta property="og:title" content="WebFlux性能问题和适用场景">
+<meta property="og:url" content="https://blog.lovezhy.cc/2018/12/29/webflux性能问题/index.html">
+<meta property="og:site_name" content="LoveZhy">
+<meta property="og:description" content="Spring5的主推功能可能就是WebFlux了但是网上一堆人吹捧性能完爆SpringMVC似乎有点过头了 结论就是WebFlux的线程模型不同，所以适应场景也不同SpringMVC并不是互相替代的关系(个人感觉)">
+<meta property="og:locale" content="zh-cn">
+<meta property="og:updated_time" content="2019-11-30T15:24:52.540Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="WebFlux性能问题和适用场景">
+<meta name="twitter:description" content="Spring5的主推功能可能就是WebFlux了但是网上一堆人吹捧性能完爆SpringMVC似乎有点过头了 结论就是WebFlux的线程模型不同，所以适应场景也不同SpringMVC并不是互相替代的关系(个人感觉)">
+
+<link rel="canonical" href="https://blog.lovezhy.cc/2018/12/29/webflux性能问题/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true
+  };
+</script>
+
+  <title>WebFlux性能问题和适用场景 | LoveZhy</title>
+  
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-125642214-1"></script>
+    <script>
+      if (CONFIG.hostname === location.hostname) {
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'UA-125642214-1');
+      }
+    </script>
+
+
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?c1f963571cb3d8a4a5dc82346dc65842";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+<link rel="alternate" href="/atom.xml" title="LoveZhy" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">LoveZhy</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+  </div>
+
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-fw fa-user"></i>About</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>Tags</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>Categories</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>Archives</a>
+
+  </li>
+        <li class="menu-item menu-item-sitemap">
+
+    <a href="/sitemap.xml" rel="section"><i class="fa fa-fw fa-sitemap"></i>Sitemap</a>
+
+  </li>
+        <li class="menu-item menu-item-movie">
+
+    <a href="/movies/index.html" rel="section"><i class="fa fa-fw fa-film"></i>movie</a>
+
+  </li>
+        <li class="menu-item menu-item-books">
+
+    <a href="/books/index.html" rel="section"><i class="fa fa-fw fa-book"></i>books</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+
+</nav>
+  <div class="site-search">
+    <div class="popup search-popup">
+    <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocorrect="off" autocapitalize="none" placeholder="Searching..." spellcheck="false" type="text" id="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result"></div>
+
+</div>
+<div class="search-pop-overlay"></div>
+
+  </div>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope="" itemtype="http://schema.org/Article" class="post-block " lang="zh-cn">
+    <link itemprop="mainEntityOfPage" href="https://blog.lovezhy.cc/2018/12/29/webflux性能问题/">
+
+    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="zhy">
+      <meta itemprop="description" content="敌视现实">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="LoveZhy">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          WebFlux性能问题和适用场景
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2018-12-29 00:00:00" itemprop="dateCreated datePublished" datetime="2018-12-29T00:00:00+08:00">2018-12-29</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">Edited on</span>
+                <time title="Modified: 2019-11-30 23:24:52" itemprop="dateModified" datetime="2019-11-30T23:24:52+08:00">2019-11-30</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
+                  <a href="/categories/Spring/" itemprop="url" rel="index">
+                    <span itemprop="name">Spring</span>
+                  </a>
+                </span>
+            </span>
+
+          
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="fa fa-comment-o"></i>
+      </span>
+      <span class="post-meta-item-text">Disqus: </span>
+    
+    <a title="disqus" href="/2018/12/29/webflux性能问题/#disqus_thread" itemprop="discussionUrl">
+      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2018/12/29/webflux性能问题/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>Spring5的主推功能可能就是WebFlux了<br>但是网上一堆人吹捧性能完爆SpringMVC似乎有点过头了</p>
+<p>结论就是WebFlux的线程模型不同，所以适应场景也不同<br>SpringMVC并不是互相替代的关系(个人感觉)<br><a id="more"></a></p>
+<h1 id="使用"><a href="#使用" class="headerlink" title="使用"></a>使用</h1><p>使用我推荐看这个视频<br><a href="https://www.youtube.com/watch?v=zVNIZXf4BG8&amp;t=2947s&amp;frags=pl%2Cwn" target="_blank" rel="noopener">https://www.youtube.com/watch?v=zVNIZXf4BG8&amp;t=2947s&amp;frags=pl%2Cwn</a></p>
+<p>简单易懂</p>
+<h1 id="细节问题"><a href="#细节问题" class="headerlink" title="细节问题"></a>细节问题</h1><h2 id="Web容器"><a href="#Web容器" class="headerlink" title="Web容器"></a>Web容器</h2><p>如果你同时引入的是<br><figure class="highlight"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">&lt;dependency&gt;</span><br><span class="line">    &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;</span><br><span class="line">    &lt;artifactId&gt;spring-boot-starter-web&lt;/artifactId&gt;</span><br><span class="line">&lt;/dependency&gt;</span><br><span class="line">&lt;dependency&gt;</span><br><span class="line">    &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;</span><br><span class="line">    &lt;artifactId&gt;spring-boot-starter-webflux&lt;/artifactId&gt;</span><br><span class="line">&lt;/dependency&gt;</span><br></pre></td></tr></table></figure></p>
+<p>那么默认的Web容器就是Tomcat</p>
+<p>如果想要使用Netty作为容器，那么可以在web模块中手动把Tomcat去除<br><figure class="highlight"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">&lt;dependency&gt;</span><br><span class="line">    &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;</span><br><span class="line">    &lt;artifactId&gt;spring-boot-starter-web&lt;/artifactId&gt;</span><br><span class="line">    &lt;exclusions&gt;</span><br><span class="line">        &lt;&lt;exclusion&gt;</span><br><span class="line">            &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;</span><br><span class="line">            &lt;artifactId&gt;spring-boot-starter-tomcat&lt;/artifactId&gt;</span><br><span class="line">        &lt;/exclusion&gt;</span><br><span class="line">    &lt;/exclusions&gt;</span><br><span class="line">&lt;/dependency&gt;</span><br></pre></td></tr></table></figure></p>
+<h2 id="内部依赖"><a href="#内部依赖" class="headerlink" title="内部依赖"></a>内部依赖</h2><p>其实看官方的图就会很费解，为啥WebFlux吹捧的是Reactive编程，却能跑在Tomcat上  </p>
+<p>为此我去翻看了文档</p>
+<p>如果Web容器使用的是Tomcat，那么就是使用Reactor桥接的servlet async api<br>如果Web容器是Netty，那么就是使用的Netty，天生支持Reactive</p>
+<p>所以官方的推荐还是使用Netty跑WebFlux  </p>
+<p>而用Netty跑SpringMVC行不行呢，也是可以的，但是性能并不会很好，主要是Tomcat是暴力创建线程，但是Netty默认线程数量较少</p>
+<h1 id="Reavtive代码"><a href="#Reavtive代码" class="headerlink" title="Reavtive代码"></a>Reavtive代码</h1><p>其实这是第二个误区，很多人以为只要我们在Controller中返回的是Mono或者Flux，性能就会得到提升<br>不存在的<br>如果你要使用WebFlux，那么对不起，从Dao到Service，全部都要是Mono和Flux。<br>目前官方的数据层Reactive框架只支持Redis，Mongo等几个，<strong>没有JDBC</strong><br>所以你的代码是JDBC，想要迁移到WebFlux并指望性能提升，那你可能要失望了  </p>
+<p>不过值得庆幸的是，JDBC的Reactive正在开发中，虽然尚不成熟，但是可以关注一下  </p>
+<h1 id="性能和迁移"><a href="#性能和迁移" class="headerlink" title="性能和迁移"></a>性能和迁移</h1><p>这个其实是值得商榷的问题<br>因为性能和很多因素有关  </p>
+<ul>
+<li>Web容器的线程模型  这个Tomcat和Netty不一样</li>
+<li>Web容器的线程个数 Tomcat默认200个Nio线程，但是Netty默认可能只有核心数*2</li>
+<li>业务代码，如果是IO操作较多，Netty模型可能比较适合，如果是业务阻塞较多，默认的Tomcat可能比较适合，Netty可能需要较多的冗余代码和调优，且性能可能不会有较大提升</li>
+</ul>
+<p>既然性能和这么多因素有关，所以官方也没有打包票WebFlux碾压SpringMVC</p>
+<p>关于迁移，文档是这么写的</p>
+<blockquote>
+<p>If you have a Spring MVC application that works fine, there is no need to change. Imperative programming is the easiest way to write, understand, and debug code. You have maximum choice of libraries, since, historically, most are blocking.</p>
+</blockquote>
+<p>这句话翻译过来就是<br>如果你的代码中有任何阻塞操作，请谨慎选择WebFlux</p>
+<p>关于性能</p>
+<blockquote>
+<p>Performance has many characteristics and meanings. Reactive and non-blocking generally do not make applications run faster. They can, in some cases, (for example, if using the WebClient to execute remote calls in parallel). On the whole, it requires more work to do things the non-blocking way and that can increase slightly the required processing time.</p>
+<p>The key expected benefit of reactive and non-blocking is the ability to scale with a small, fixed number of threads and less memory. That makes applications more resilient under load, because they scale in a more predictable way. In order to observe those benefits, however, you need to have some latency (including a mix of slow and unpredictable network I/O). That is where the reactive stack begins to show its strengths, and the differences can be dramatic.  </p>
+</blockquote>
+<p>WebFlux并不保证应用能运行的更快，但是它主打的是scale和低内存消耗<br>它的性能需要在一些特定的场景才能展现，比如慢网络IO的情况</p>
+<h1 id="惨痛的测试过程"><a href="#惨痛的测试过程" class="headerlink" title="惨痛的测试过程"></a>惨痛的测试过程</h1><p>看起来可能会有点乱，而且也并不是很权威，个人建议直接跳过这一节，去看结论</p>
+<h2 id="第一轮"><a href="#第一轮" class="headerlink" title="第一轮"></a>第一轮</h2><p>其实为啥写这个文章，就是我开始很开心的想要看看WebFlux到底比SpringMVC强多少  </p>
+<p>然后写出了下面的代码<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@GetMapping</span>(<span class="string">"/hello"</span>)</span><br><span class="line"><span class="function"><span class="keyword">public</span> Map&lt;String, String&gt; <span class="title">hello</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        Thread.sleep(<span class="number">5</span>);</span><br><span class="line">    &#125; <span class="keyword">catch</span> (InterruptedException e) &#123;</span><br><span class="line">        </span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> Collections.singletonMap(<span class="string">"Hello"</span>, <span class="string">"world"</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="meta">@GetMapping</span>(<span class="string">"/reactor"</span>)</span><br><span class="line"><span class="keyword">public</span> Mono&lt;Map&lt;String, String&gt;&gt; reactor() &#123;</span><br><span class="line">    <span class="keyword">return</span> Mono.create( sink -&gt; &#123;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            Thread.sleep(<span class="number">5</span>);</span><br><span class="line">        &#125; <span class="keyword">catch</span> (InterruptedException e) &#123;</span><br><span class="line"></span><br><span class="line">        &#125;</span><br><span class="line">        sink.success(Collections.singletonMap(<span class="string">"Hello"</span>, <span class="string">"world"</span>));</span><br><span class="line">    &#125;);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">» wrk -t30 -c3000 -d60s http://127.0.0.1:8080/hello --latency</span><br><span class="line">Running 1m <span class="built_in">test</span> @ http://127.0.0.1:8080/hello</span><br><span class="line">  30 threads and 3000 connections</span><br><span class="line">  Thread Stats   Avg      Stdev     Max   +/- Stdev</span><br><span class="line">    Latency    89.76ms   56.33ms 401.67ms   61.64%</span><br><span class="line">    Req/Sec   628.19    383.30     3.88k    81.15%</span><br><span class="line">  Latency Distribution</span><br><span class="line">     50%   89.00ms</span><br><span class="line">     75%  132.28ms</span><br><span class="line">     90%  161.62ms</span><br><span class="line">     99%  229.86ms</span><br><span class="line">  1027462 requests <span class="keyword">in</span> 1.00m, 153.02MB <span class="built_in">read</span></span><br><span class="line">  Socket errors: connect 0, <span class="built_in">read</span> 3283, write 0, timeout 0</span><br><span class="line">Requests/sec:  17095.73</span><br><span class="line">Transfer/sec:      2.55MB</span><br></pre></td></tr></table></figure>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">» wrk -t30 -c3000 -d60s http://127.0.0.1:8080/reactor --latency</span><br><span class="line">Running 1m <span class="built_in">test</span> @ http://127.0.0.1:8080/reactor</span><br><span class="line">  30 threads and 3000 connections</span><br><span class="line">  Thread Stats   Avg      Stdev     Max   +/- Stdev</span><br><span class="line">    Latency   100.82ms   65.39ms 451.83ms   65.85%</span><br><span class="line">    Req/Sec   438.16    321.89     2.96k    80.20%</span><br><span class="line">  Latency Distribution</span><br><span class="line">     50%   94.37ms</span><br><span class="line">     75%  146.32ms</span><br><span class="line">     90%  185.54ms</span><br><span class="line">     99%  281.39ms</span><br><span class="line">  739620 requests <span class="keyword">in</span> 1.00m, 110.15MB <span class="built_in">read</span></span><br><span class="line">  Socket errors: connect 0, <span class="built_in">read</span> 2524, write 0, timeout 0</span><br><span class="line">Requests/sec:  12306.22</span><br><span class="line">Transfer/sec:      1.83MB</span><br></pre></td></tr></table></figure>
+<p>发现WebFlux性能反而不如SpringMVC，这里标注一点，Mono.create里面的逻辑，还是tomcat的线程去执行的<br>其实我想了想这里进行Sleep应该不是很合理，因为sleep算是个block操作</p>
+<p>继而我手动发布到parallel中，虽然我在官方的例子中没有看过这种写法<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@GetMapping</span>(<span class="string">"/reactor"</span>)</span><br><span class="line"><span class="keyword">public</span> Mono&lt;Map&lt;String, String&gt;&gt; reactor() &#123;</span><br><span class="line">    <span class="keyword">return</span> Mono.&lt;Map&lt;String, String&gt;&gt;create(sink -&gt; &#123;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            Thread.sleep(<span class="number">5</span>);</span><br><span class="line">        &#125; <span class="keyword">catch</span> (InterruptedException e) &#123;</span><br><span class="line"></span><br><span class="line">        &#125;</span><br><span class="line">        sink.success(Collections.singletonMap(<span class="string">"Hello"</span>, <span class="string">"world"</span>));</span><br><span class="line">    &#125;).publishOn(Schedulers.parallel());</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">» wrk -t30 -c3000 -d60s http://127.0.0.1:8080/reactor --latency</span><br><span class="line">Running 1m <span class="built_in">test</span> @ http://127.0.0.1:8080/reactor</span><br><span class="line">  30 threads and 3000 connections</span><br><span class="line">  Thread Stats   Avg      Stdev     Max   +/- Stdev</span><br><span class="line">    Latency   122.59ms   81.11ms 634.86ms   66.16%</span><br><span class="line">    Req/Sec   378.94    246.55     2.56k    79.17%</span><br><span class="line">  Latency Distribution</span><br><span class="line">     50%  110.07ms</span><br><span class="line">     75%  175.18ms</span><br><span class="line">     90%  236.01ms</span><br><span class="line">     99%  344.06ms</span><br><span class="line">  662844 requests <span class="keyword">in</span> 1.00m, 98.71MB <span class="built_in">read</span></span><br><span class="line">  Socket errors: connect 0, <span class="built_in">read</span> 3813, write 0, timeout 0</span><br><span class="line">Requests/sec:  11029.13</span><br><span class="line">Transfer/sec:      1.64MB</span><br></pre></td></tr></table></figure>
+<p>可以看到性能反而变慢了，因为Schedulers.parallel()默认只有8线程在运行，于是我手动改成30</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">» wrk -t30 -c3000 -d60s http://127.0.0.1:8080/reactor --latency</span><br><span class="line">Running 1m <span class="built_in">test</span> @ http://127.0.0.1:8080/reactor</span><br><span class="line">  30 threads and 3000 connections</span><br><span class="line">  Thread Stats   Avg      Stdev     Max   +/- Stdev</span><br><span class="line">    Latency   132.54ms   87.81ms 691.34ms   69.49%</span><br><span class="line">    Req/Sec   390.05    258.97     2.97k    74.94%</span><br><span class="line">  Latency Distribution</span><br><span class="line">     50%  116.71ms</span><br><span class="line">     75%  183.79ms</span><br><span class="line">     90%  251.33ms</span><br><span class="line">     99%  401.91ms</span><br><span class="line">  678598 requests <span class="keyword">in</span> 1.00m, 101.06MB <span class="built_in">read</span></span><br><span class="line">  Socket errors: connect 0, <span class="built_in">read</span> 4059, write 0, timeout 0</span><br><span class="line">Requests/sec:  11291.03</span><br><span class="line">Transfer/sec:      1.68MB</span><br></pre></td></tr></table></figure>
+<p>可以看到结果其实差别并不大，瓶颈应该不在这里，或者WebFlux在publicOn做了什么调用</p>
+<h2 id="第二轮"><a href="#第二轮" class="headerlink" title="第二轮"></a>第二轮</h2><p>第二轮我修改了测试案例，换成了从Redis中取值的操作<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> ReactiveRedisTemplate&lt;String, String&gt; reactiveRedisTemplate;</span><br><span class="line"></span><br><span class="line"><span class="keyword">private</span> StringRedisTemplate stringRedisTemplate;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="title">HelloController</span><span class="params">(ReactiveRedisTemplate&lt;String, String&gt; reactiveRedisTemplate, StringRedisTemplate stringRedisTemplate)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">this</span>.reactiveRedisTemplate = reactiveRedisTemplate;</span><br><span class="line">    <span class="keyword">this</span>.stringRedisTemplate = stringRedisTemplate;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">private</span> List&lt;String&gt; keys = Arrays.asList(<span class="string">"name1"</span>, <span class="string">"name2"</span>, <span class="string">"name3"</span>);</span><br><span class="line"></span><br><span class="line"><span class="meta">@GetMapping</span>(<span class="string">"/hello"</span>)</span><br><span class="line"><span class="function"><span class="keyword">public</span> List&lt;String&gt; <span class="title">hello</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> stringRedisTemplate.opsForValue().multiGet(keys);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="meta">@GetMapping</span>(<span class="string">"/reactor"</span>)</span><br><span class="line"><span class="keyword">public</span> Mono&lt;List&lt;String&gt;&gt; reactor() &#123;</span><br><span class="line">    <span class="keyword">return</span> reactiveRedisTemplate.opsForValue().multiGet(keys);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">» wrk -t30 -c3000 -d60s http://127.0.0.1:8080/hello --latency</span><br><span class="line">Running 1m <span class="built_in">test</span> @ http://127.0.0.1:8080/hello</span><br><span class="line">  30 threads and 3000 connections</span><br><span class="line">  Thread Stats   Avg      Stdev     Max   +/- Stdev</span><br><span class="line">    Latency   110.62ms   57.26ms 279.77ms   65.42%</span><br><span class="line">    Req/Sec   467.92    327.19     4.65k    85.21%</span><br><span class="line">  Latency Distribution</span><br><span class="line">     50%  109.25ms</span><br><span class="line">     75%  155.67ms</span><br><span class="line">     90%  182.36ms</span><br><span class="line">     99%  234.64ms</span><br><span class="line">  808566 requests <span class="keyword">in</span> 1.00m, 128.90MB <span class="built_in">read</span></span><br><span class="line">  Socket errors: connect 0, <span class="built_in">read</span> 4070, write 0, timeout 0</span><br><span class="line">Requests/sec:  13453.13</span><br><span class="line">Transfer/sec:      2.14MB</span><br></pre></td></tr></table></figure>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">» wrk -t30 -c3000 -d60s http://127.0.0.1:8080/reactor --latency</span><br><span class="line">Running 1m <span class="built_in">test</span> @ http://127.0.0.1:8080/reactor</span><br><span class="line">  30 threads and 3000 connections</span><br><span class="line">  Thread Stats   Avg      Stdev     Max   +/- Stdev</span><br><span class="line">    Latency   236.17ms  113.54ms 650.53ms   68.95%</span><br><span class="line">    Req/Sec   293.21    161.31     5.09k    81.31%</span><br><span class="line">  Latency Distribution</span><br><span class="line">     50%  251.06ms</span><br><span class="line">     75%  313.69ms</span><br><span class="line">     90%  352.13ms</span><br><span class="line">     99%  521.69ms</span><br><span class="line">  505806 requests <span class="keyword">in</span> 1.00m, 80.62MB <span class="built_in">read</span></span><br><span class="line">  Socket errors: connect 0, <span class="built_in">read</span> 3535, write 0, timeout 0</span><br><span class="line">Requests/sec:   8416.85</span><br><span class="line">Transfer/sec:      1.34MB</span><br></pre></td></tr></table></figure>
+<p>可以看到性能还是很低，甚至差别略大  </p>
+<p>于是我还是改成手动publish<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">» wrk -t30 -c3000 -d60s http://127.0.0.1:8080/reactor --latency</span><br><span class="line">Running 1m <span class="built_in">test</span> @ http://127.0.0.1:8080/reactor</span><br><span class="line">  30 threads and 3000 connections</span><br><span class="line">  Thread Stats   Avg      Stdev     Max   +/- Stdev</span><br><span class="line">    Latency   228.61ms  101.83ms 666.54ms   70.65%</span><br><span class="line">    Req/Sec   293.82    148.63     1.98k    75.36%</span><br><span class="line">  Latency Distribution</span><br><span class="line">     50%  237.21ms</span><br><span class="line">     75%  287.44ms</span><br><span class="line">     90%  335.04ms</span><br><span class="line">     99%  526.61ms</span><br><span class="line">  499892 requests <span class="keyword">in</span> 1.00m, 79.68MB <span class="built_in">read</span></span><br><span class="line">  Socket errors: connect 0, <span class="built_in">read</span> 3198, write 0, timeout 0</span><br><span class="line">Requests/sec:   8317.62</span><br><span class="line">Transfer/sec:      1.33MB</span><br></pre></td></tr></table></figure></p>
+<p>发现其实区别还是不大</p>
+<p>既然把pool改成30呢<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">» wrk -t30 -c3000 -d60s http:<span class="comment">//127.0.0.1:8080/reactor --latency</span></span><br><span class="line">Running <span class="number">1</span>m test @ http:<span class="comment">//127.0.0.1:8080/reactor</span></span><br><span class="line">  <span class="number">30</span> threads and <span class="number">3000</span> connections</span><br><span class="line">  Thread Stats   Avg      Stdev     Max   +/- Stdev</span><br><span class="line">    Latency   <span class="number">212.81</span>ms   <span class="number">94.51</span>ms <span class="number">709.88</span>ms   <span class="number">69.39</span>%</span><br><span class="line">    Req/Sec   <span class="number">290.22</span>    <span class="number">151.03</span>     <span class="number">2.57</span>k    <span class="number">77.73</span>%</span><br><span class="line">  Latency Distribution</span><br><span class="line">     <span class="number">50</span>%  <span class="number">214.93</span>ms</span><br><span class="line">     <span class="number">75</span>%  <span class="number">262.16</span>ms</span><br><span class="line">     <span class="number">90</span>%  <span class="number">317.48</span>ms</span><br><span class="line">     <span class="number">99</span>%  <span class="number">479.01</span>ms</span><br><span class="line">  <span class="number">508591</span> requests in <span class="number">1.00</span>m, <span class="number">81.07</span>MB read</span><br><span class="line">  Socket errors: connect <span class="number">0</span>, read <span class="number">3190</span>, write <span class="number">0</span>, timeout <span class="number">0</span></span><br><span class="line">Requests/sec:   <span class="number">8462.78</span></span><br><span class="line">Transfer/sec:      <span class="number">1.35</span>MB</span><br></pre></td></tr></table></figure></p>
+<p>还是差别不大，所以问题的关键应该不在这儿。</p>
+<h2 id="第三轮"><a href="#第三轮" class="headerlink" title="第三轮"></a>第三轮</h2><p>第三轮把容器改成了Netty<br>改为Netty之后有个要注意的就是Web容器的线程不会疯狂的进行创建了，一般就是核心数或者核心数*2</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">» wrk -t30 -c3000 -d60s http://127.0.0.1:8080/hello --latency</span><br><span class="line">Running 1m <span class="built_in">test</span> @ http://127.0.0.1:8080/hello</span><br><span class="line">  30 threads and 3000 connections</span><br><span class="line">  Thread Stats   Avg      Stdev     Max   +/- Stdev</span><br><span class="line">    Latency    63.26ms   38.60ms   1.99s    83.37%</span><br><span class="line">    Req/Sec   467.59    453.97     6.27k    85.41%</span><br><span class="line">  Latency Distribution</span><br><span class="line">     50%   65.65ms</span><br><span class="line">     75%   83.72ms</span><br><span class="line">     90%   93.78ms</span><br><span class="line">     99%  129.69ms</span><br><span class="line">  747480 requests <span class="keyword">in</span> 1.00m, 80.55MB <span class="built_in">read</span></span><br><span class="line">  Socket errors: connect 0, <span class="built_in">read</span> 4343, write 1, timeout 874</span><br><span class="line">Requests/sec:  12437.61</span><br><span class="line">Transfer/sec:      1.34MB</span><br></pre></td></tr></table></figure>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">» wrk -t30 -c3000 -d60s http://127.0.0.1:8080/reactor --latency</span><br><span class="line">Running 1m <span class="built_in">test</span> @ http://127.0.0.1:8080/reactor</span><br><span class="line">  30 threads and 3000 connections</span><br><span class="line">  Thread Stats   Avg      Stdev     Max   +/- Stdev</span><br><span class="line">    Latency   156.88ms   74.43ms 527.17ms   66.33%</span><br><span class="line">    Req/Sec   431.27    207.17     5.08k    82.32%</span><br><span class="line">  Latency Distribution</span><br><span class="line">     50%  176.96ms</span><br><span class="line">     75%  211.25ms</span><br><span class="line">     90%  236.23ms</span><br><span class="line">     99%  312.83ms</span><br><span class="line">  762879 requests <span class="keyword">in</span> 1.00m, 82.21MB <span class="built_in">read</span></span><br><span class="line">  Socket errors: connect 0, <span class="built_in">read</span> 3419, write 0, timeout 0</span><br><span class="line">Requests/sec:  12694.40</span><br><span class="line">Transfer/sec:      1.37MB</span><br></pre></td></tr></table></figure>
+<p>和上面的tomcat相比，SpringMVC会比较糟糕，这个也是可以预见的，因为Redis中阻塞的EventLoop<br>WebFlux的性能超过了SpringMVC，同时注意看WebFlux超时为0，而SpringMVC伴随着大量的超时</p>
+<p>横向进行对比的话，SpringMVC的性能还是进行了下降<br>但是WebFlux却有很大的提升</p>
+<p>修改默认的EventLoop大小呢<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">System.setProperty(<span class="string">"reactor.schedulers.defaultPoolSize"</span>, <span class="string">"30"</span>);</span><br></pre></td></tr></table></figure></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">» wrk -t30 -c3000 -d60s http://127.0.0.1:8080/hello --latency</span><br><span class="line">Running 1m <span class="built_in">test</span> @ http://127.0.0.1:8080/hello</span><br><span class="line">  30 threads and 3000 connections</span><br><span class="line">  Thread Stats   Avg      Stdev     Max   +/- Stdev</span><br><span class="line">    Latency    61.56ms   35.75ms   1.98s    84.77%</span><br><span class="line">    Req/Sec   484.48    503.66     8.98k    88.50%</span><br><span class="line">  Latency Distribution</span><br><span class="line">     50%   65.20ms</span><br><span class="line">     75%   80.28ms</span><br><span class="line">     90%   90.15ms</span><br><span class="line">     99%  113.19ms</span><br><span class="line">  764109 requests <span class="keyword">in</span> 1.00m, 82.34MB <span class="built_in">read</span></span><br><span class="line">  Socket errors: connect 0, <span class="built_in">read</span> 4749, write 2, timeout 916</span><br><span class="line">Requests/sec:  12713.41</span><br><span class="line">Transfer/sec:      1.37MB</span><br></pre></td></tr></table></figure>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">» wrk -t30 -c3000 -d60s http://127.0.0.1:8080/reactor --latency</span><br><span class="line">Running 1m <span class="built_in">test</span> @ http://127.0.0.1:8080/reactor</span><br><span class="line">  30 threads and 3000 connections</span><br><span class="line">  Thread Stats   Avg      Stdev     Max   +/- Stdev</span><br><span class="line">    Latency   117.43ms   58.73ms 310.79ms   65.99%</span><br><span class="line">    Req/Sec   464.75    350.25     8.26k    84.65%</span><br><span class="line">  Latency Distribution</span><br><span class="line">     50%  116.12ms</span><br><span class="line">     75%  160.88ms</span><br><span class="line">     90%  192.55ms</span><br><span class="line">     99%  257.21ms</span><br><span class="line">  803283 requests <span class="keyword">in</span> 1.00m, 86.57MB <span class="built_in">read</span></span><br><span class="line">  Socket errors: connect 0, <span class="built_in">read</span> 3011, write 0, timeout 0</span><br><span class="line">Requests/sec:  13366.05</span><br><span class="line">Transfer/sec:      1.44MB</span><br></pre></td></tr></table></figure>
+<p>可以看到SpringMVC基本没变，同时带有大量的超时<br>但是WebFlux性能有提升，同时超时个数依旧为0  </p>
+<p>同时，发现无论怎么设置，都无法超过第二轮Tomcat的值</p>
+<h2 id="第四轮"><a href="#第四轮" class="headerlink" title="第四轮"></a>第四轮</h2><p>比较一下Tomcat的阻塞模型和Netty的非阻塞模型，在线程差不多的情况下的性能<br>增加配置<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">server.tomcat.max-threads=<span class="number">20</span></span><br></pre></td></tr></table></figure></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">» wrk -t30 -c3000 -d60s http://127.0.0.1:8080/hello --latency</span><br><span class="line">Running 1m <span class="built_in">test</span> @ http://127.0.0.1:8080/hello</span><br><span class="line">  30 threads and 3000 connections</span><br><span class="line">  Thread Stats   Avg      Stdev     Max   +/- Stdev</span><br><span class="line">    Latency   119.35ms   73.88ms 323.07ms   61.31%</span><br><span class="line">    Req/Sec   429.58    428.04     8.30k    89.22%</span><br><span class="line">  Latency Distribution</span><br><span class="line">     50%  124.08ms</span><br><span class="line">     75%  179.28ms</span><br><span class="line">     90%  215.99ms</span><br><span class="line">     99%  268.68ms</span><br><span class="line">  713803 requests <span class="keyword">in</span> 1.00m, 113.80MB <span class="built_in">read</span></span><br><span class="line">  Socket errors: connect 0, <span class="built_in">read</span> 3452, write 0, timeout 0</span><br><span class="line">Requests/sec:  11876.60</span><br><span class="line">Transfer/sec:      1.89MB</span><br></pre></td></tr></table></figure>
+<p>会发现WebFlux的表现要好的多</p>
+<h1 id="结论"><a href="#结论" class="headerlink" title="结论"></a>结论</h1><p>WebFlux相对于SpringMVC下的优点</p>
+<ul>
+<li>同样的性能场景消耗的资源更少</li>
+<li>适合横向扩展</li>
+</ul>
+<p>所以总结一下WebFlux什么场景下可以替换SpringMVC呢</p>
+<ul>
+<li>想要内存和线程数较少的场景</li>
+<li>网络较慢或者IO会经常出现问题的场景</li>
+</ul>
+<p>但是WebFlux需要</p>
+<ul>
+<li>非阻塞的业务代码，如果阻塞，需要自己开线程池去运行</li>
+</ul>
+<h1 id="混写"><a href="#混写" class="headerlink" title="混写"></a>混写</h1><p>其实SpringMVC和WebFlux混写个人感觉不会太好<br>因为SpringMVC一般配合的是业务阻塞较多，如果配合Netty，可能会阻塞EventLoop，编程压力较大，配合Tomcat，疯狂开线程就行<br>WebFlux还是比较适合Netty，Reactor模式，业务不能阻塞IO线程，如果业务阻塞操作较多，可能需要自己去单独开线程池去运行，编程较为复杂，所以业务那边，需要框架支持非阻塞运行<br>那WebFlux跑在Tomcat中呢，我觉得是可以的，但是感觉很变扭<br>WebClient例外，那个就是AsyncHttpClient，和Tomcat没啥关系  </p>
+<h1 id="未来与展望"><a href="#未来与展望" class="headerlink" title="未来与展望"></a>未来与展望</h1><p>WebFlux更多的是对标的Vertx，但是没有Vertx完善<br>好在支持自己的IOC和AOP<br>等JDBC支持异步的库完善了，可以用来写纯异步的轻量级应用 </p>
+
+    </div>
+
+    
+    
+    
+        
+
+<div>
+<ul class="post-copyright">
+  <li class="post-copyright-author">
+    <strong>Post author:  </strong>zhy
+  </li>
+  <li class="post-copyright-link">
+    <strong>Post link: </strong>
+    <a href="https://blog.lovezhy.cc/2018/12/29/webflux性能问题/" title="WebFlux性能问题和适用场景">https://blog.lovezhy.cc/2018/12/29/webflux性能问题/</a>
+  </li>
+  <li class="post-copyright-license">
+    <strong>Copyright Notice:  </strong>All articles in this blog are licensed under <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" rel="noopener" target="_blank"><i class="fa fa-fw fa-creative-commons"></i>BY-NC-SA</a> unless stating additionally.
+  </li>
+</ul>
+</div>
+
+        
+
+  <div class="followme">
+    <p>Welcome to my other publishing channels</p>
+
+    <div class="social-list">
+
+            <div class="social-item">
+              <a target="_blank" class="social-link" href="/atom.xml">
+                <span class="icon">
+                  <i class="fa fa-rss"></i>
+                </span>
+
+                <span class="label">RSS</span>
+              </a>
+            </div>
+    </div>
+  </div>
+
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/Spring/" rel="tag"># Spring</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2018/12/17/Counted-B+Tree原理/" rel="prev" title="Counted B+Tree原理">
+      <i class="fa fa-chevron-left"></i> Counted B+Tree原理
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2019/01/01/Things I Don’t Know as of 2018/" rel="next" title="Things I Don’t Know as of 2018">
+      Things I Don’t Know as of 2018 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+    
+  <div class="comments">
+    <div id="disqus_thread">
+      <noscript>Please enable JavaScript to view the comments powered by Disqus.</noscript>
+    </div>
+  </div>
+  
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let activeClass = CONFIG.comments.activeClass;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#使用"><span class="nav-number">1.</span> <span class="nav-text">使用</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#细节问题"><span class="nav-number">2.</span> <span class="nav-text">细节问题</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#Web容器"><span class="nav-number">2.1.</span> <span class="nav-text">Web容器</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#内部依赖"><span class="nav-number">2.2.</span> <span class="nav-text">内部依赖</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Reavtive代码"><span class="nav-number">3.</span> <span class="nav-text">Reavtive代码</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#性能和迁移"><span class="nav-number">4.</span> <span class="nav-text">性能和迁移</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#惨痛的测试过程"><span class="nav-number">5.</span> <span class="nav-text">惨痛的测试过程</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#第一轮"><span class="nav-number">5.1.</span> <span class="nav-text">第一轮</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#第二轮"><span class="nav-number">5.2.</span> <span class="nav-text">第二轮</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#第三轮"><span class="nav-number">5.3.</span> <span class="nav-text">第三轮</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#第四轮"><span class="nav-number">5.4.</span> <span class="nav-text">第四轮</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#结论"><span class="nav-number">6.</span> <span class="nav-text">结论</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#混写"><span class="nav-number">7.</span> <span class="nav-text">混写</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#未来与展望"><span class="nav-number">8.</span> <span class="nav-text">未来与展望</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">zhy</p>
+  <div class="site-description" itemprop="description">敌视现实</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">70</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">27</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">48</span>
+        <span class="site-state-item-name">tags</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/zhyzhyzhy" title="GitHub → https://github.com/zhyzhyzhy" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:zhuyichen1017@outlook.com" title="E-Mail → mailto:zhuyichen1017@outlook.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+  <div class="beian"><a href="http://www.beian.miit.gov.cn" rel="noopener" target="_blank">苏ICP备15058469号 </a>
+  </div>
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">zhy</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> v3.8.0
+  </div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">Theme – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> v7.7.1
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+<script src="/js/utils.js"></script><script src="/js/motion.js"></script>
+<script src="/js/schemes/pisces.js"></script>
+<script src="/js/next-boot.js"></script>
+
+
+
+  
+
+
+
+
+  <script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+<script>
+  function loadCount() {
+    var d = document, s = d.createElement('script');
+    s.src = 'https://blog-lovezhy-cc-1.disqus.com/count.js';
+    s.id = 'dsq-count-scr';
+    (d.head || d.body).appendChild(s);
+  }
+  // defer loading until the whole page loading is completed
+  window.addEventListener('load', loadCount, false);
+</script>
+<script>
+  var disqus_config = function() {
+    this.page.url = "https://blog.lovezhy.cc/2018/12/29/webflux性能问题/";
+    this.page.identifier = "2018/12/29/webflux性能问题/";
+    this.page.title = "WebFlux性能问题和适用场景";
+    };
+  NexT.utils.loadComments(document.querySelector('#disqus_thread'), () => {
+    if (window.DISQUS) {
+      DISQUS.reset({
+        reload: true,
+        config: disqus_config
+      });
+    } else {
+      var d = document, s = d.createElement('script');
+      s.src = 'https://blog-lovezhy-cc-1.disqus.com/embed.js';
+      s.setAttribute('data-timestamp', '' + +new Date());
+      (d.head || d.body).appendChild(s);
+    }
+  });
+</script>
+
+</body>
+</html>
