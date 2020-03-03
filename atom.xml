@@ -40,33 +40,6 @@
   </entry>
   
   <entry>
-    <title>Kafka指南-分区副本详解</title>
-    <link href="https://blog.lovezhy.cc/2020/03/02/%E2%80%9CKafka%E6%8C%87%E5%8D%97-%E5%88%86%E5%8C%BA%E5%89%AF%E6%9C%AC%E2%80%9D%E7%9A%84%E5%89%AF%E6%9C%AC/"/>
-    <id>https://blog.lovezhy.cc/2020/03/02/%E2%80%9CKafka%E6%8C%87%E5%8D%97-%E5%88%86%E5%8C%BA%E5%89%AF%E6%9C%AC%E2%80%9D%E7%9A%84%E5%89%AF%E6%9C%AC/</id>
-    <published>2020-03-01T16:00:00.000Z</published>
-    <updated>2020-03-03T14:12:30.392Z</updated>
-    
-    <content type="html"><![CDATA[<p>分区副本是Kafka中重要的概念。<br>下面我们来详细谈一谈副本相关的概念。</p><h1 id="基本概念"><a href="#基本概念" class="headerlink" title="基本概念"></a>基本概念</h1><p>Kafka中，每个Topic，可能有多个分区，同时为了提高每个分区的可用性，每个分区会有多个冗余备份，这个备份就叫副本（Replica），Kafka集群会将一个分区的不同副本分配在不同的Broker上，这样即使一个Broker系统宕机，也不会影响该分区的可用性。</p><p>这也是分布式系统中常见的高可用实现方式。</p><p>但是Kafka中的关于副本，还有几个比较重要的概念。</p><h2 id="Leader副本，Follower副本"><a href="#Leader副本，Follower副本" class="headerlink" title="Leader副本，Follower副本"></a>Leader副本，Follower副本</h2><p>Leader副本，Follower副本：<br>虽然有多个副本，但是只会有一个Leader副本接收客户端的读写操作，其他的副本都叫Follower副本，Follower副本只做一件事，就是同步Leader副本的日志。</p><h2 id="AR（Assigned-Replica）"><a href="#AR（Assigned-Replica）" class="headerlink" title="AR（Assigned Replica）"></a>AR（Assigned Replica）</h2><p>AR（Assigned Replica）：<br>就是某分区所有副本的统称，包括Leader副本和Follower副本。</p><h2 id="优先副本（Preferred-Replica）"><a href="#优先副本（Preferred-Replica）" class="headerlink" title="优先副本（Preferred Replica）"></a>优先副本（Preferred Replica）</h2><p>优先副本（Preferred Replica)，也叫Preferred Leader：<br>Leader副本也不是随意选出的，前面提到过Leader副本是接收客户端的读写请求的，所有的Leader副本都集中在一个Broker上，那设立多个Broker进行负载均衡的意义就没有了。<br>所有控制器会选出每个分区的优先副本是那个，然后使用一些手段让优先副本变成Leader副本。</p><p>注意：不是每个Partition的优先副本都等于Leader副本，如果中途进行了Leader副本切换，Broker重启等事件，Leader副本就会变化，这种情况，有脚本可以手动操作。</p><h2 id="ISR（In-Sync-Replica"><a href="#ISR（In-Sync-Replica" class="headerlink" title="ISR（In-Sync Replica)"></a>ISR（In-Sync Replica)</h2><p>ISR（In-Sync Replica):<br>前面提到，所有的Follower副本，只做一件事，就是同步Leader副本的日志。<br>但是每个副本的同步进度有快有慢，我们将与Leader副本保持一定同步的Follower副本，包括Leader副本自己，叫In-Sync Replica。</p><p>那么你可能要问了，这个“保持一定同步”的标准是什么？<br>落后日志小于X条？</p><p>从Kafka的0.9版本开始，Broker端有个参数叫<code>replica.lag.time.max.ms</code>，默认值是10000，</p><h1 id="分区Leader"><a href="#分区Leader" class="headerlink" title="分区Leader"></a>分区Leader</h1><h2 id="Leader副本的产生"><a href="#Leader副本的产生" class="headerlink" title="Leader副本的产生"></a>Leader副本的产生</h2><p>一般来说，当我们创建一个Topic，进行分区的时候，Kafka控制器会决定分区分在哪些Broker上，同时也会决定那个副本是Leader副本，并且把这个信息写入ZK。同时通过Http请求通知其他的Broker。</p><h2 id="Leader副本的重新选取"><a href="#Leader副本的重新选取" class="headerlink" title="Leader副本的重新选取"></a>Leader副本的重新选取</h2><p>我们知道，每个Broker启动的时候，都会在ZK的目录下注册一个临时节点。<br>Kafka控制器对这个目录注册监听事件，当发生Broker断开，或者Broker新增的时候，就会触发一些响应的逻辑。</p><p>返回到我们的Leader副本，什么情况下Leader副本会不可用呢？通常来说就是Leader副本所在的Broker整个挂掉了。<br>Kafka控制器感应到这个事件后，就会重新指定一个副本为Leader副本。<br>到底指定哪一个呢？这里面有大文章。<br>我们慢慢来说。</p><h2 id="分区的可用性，AP还是CP"><a href="#分区的可用性，AP还是CP" class="headerlink" title="分区的可用性，AP还是CP"></a>分区的可用性，AP还是CP</h2><p>分布式系统，有个著名的理论就是CAP理论，这里有个A就是可用性。<br>那么Kafka作为一个分布式的系统，其实也是遵循这个理论的。<br>那么你会问了，Kafka是个AP系统还是个CP系统。</p><p>说到这里，不得不提一个共识性算法，叫Raft，Raft协议其实是为了构建一个CP系统，它的A属性，是保证不能挂掉一半以上的节点。<br>而共识性算法中，有个微软的协议叫PacificA，kafka其实和这个系统相近。</p><p>不兜圈子了，直接明说，Kafka系统到底是AP还是CP其实是可以配置的。<br>在Raft中，一个数据的提交，Leader节点必须要接收到一半以上（包括自己）的节点的成功响应，才能告诉客户端，说你这条消息，提交成功，我们保证，肯定不会丢失了。</p><p>把这个概念移到Kafka中，我们的Producer的发送的数据，Leader副本自己Append后，要同步给多少节点才能响应成功呢？<br>这个是个参数，可以配置。<br><code>acks</code>：指明分区中必须要有多少个副本收到这条消息，Broker才能响应成功。</p><ol><li><code>acks=1</code>。这也是默认值，生产者发送消息后，只要分区的Leader成功写入，就会收到成功的响应。显然，这种是不能保证数据不被丢失的。万一写完，Leader副本就挂了，Follower副本还没来得及同步。</li><li><code>acks=0</code>：这个比等于1还夸张，完全随缘的，不关心服务端。一般不这么设置。</li><li><code>acks=-1,acks=all</code>：这个参数，要保证所有的ISR副本都写入成功，才可以返回成功。结合前面我们提到的ISR的概念，会发现，单独设置这个参数其实没啥用，因为ISR集合中副本的个数你根本不知道。所以这个选项，还需要我们设置出ISR集合中，至少有几个副本：<code>min.insync.replicas</code>。</li></ol><p>如果我们需要我们的Kafka是像Raft一样的CP系统，那么我们需要配置：</p><ol><li><code>acks=all</code></li><li><code>min.insync.replicas=${f/2 + 1}</code></li><li><code>unclean.leader.election.enable=false</code><br>显然这种，性能肯定不咋地，可用性也会大大折扣。</li></ol><p>如果我们需要我们的Kafka系统是AP系统，那么我们需要把</p><ol><li><code>min.insync.replicas=1</code></li><li><code>unclean.leader.election.enable=true</code><br>这样我们可以容忍最多（f-1）个副本失效。<br>但是会丢失数据。</li></ol><p>默认值：当然大部分人肯定没关心过这两个参数，其实从参数的设计来看，Kafka其实偏向于一个AP系统，<code>acks</code>的默认值为1，<code>min.insync.replicas</code>的默认值也是1，<code>unclean.leader.election.enable</code>的默认值是false。<br>这么配置的话，如果ISR集合中，某一时间只有Leader副本，同时恰好宕机了，那么整个分区就不可用了。</p><h1 id="ISR更新"><a href="#ISR更新" class="headerlink" title="ISR更新"></a>ISR更新</h1>]]></content>
-    
-    <summary type="html">
-    
-      
-      
-        &lt;p&gt;分区副本是Kafka中重要的概念。&lt;br&gt;下面我们来详细谈一谈副本相关的概念。&lt;/p&gt;
-&lt;h1 id=&quot;基本概念&quot;&gt;&lt;a href=&quot;#基本概念&quot; class=&quot;headerlink&quot; title=&quot;基本概念&quot;&gt;&lt;/a&gt;基本概念&lt;/h1&gt;&lt;p&gt;Kafka中，每个Topic，
-      
-    
-    </summary>
-    
-    
-      <category term="Kafka指南" scheme="https://blog.lovezhy.cc/categories/Kafka%E6%8C%87%E5%8D%97/"/>
-    
-    
-      <category term="Kafka" scheme="https://blog.lovezhy.cc/tags/Kafka/"/>
-    
-  </entry>
-  
-  <entry>
     <title>Kafka指南-模块与职能划分</title>
     <link href="https://blog.lovezhy.cc/2020/02/29/Kafka%E6%8C%87%E5%8D%97-%E6%A8%A1%E5%9D%97%E4%B8%8E%E8%81%8C%E8%83%BD%E5%88%92%E5%88%86/"/>
     <id>https://blog.lovezhy.cc/2020/02/29/Kafka%E6%8C%87%E5%8D%97-%E6%A8%A1%E5%9D%97%E4%B8%8E%E8%81%8C%E8%83%BD%E5%88%92%E5%88%86/</id>
@@ -550,6 +523,29 @@
       <category term="IO" scheme="https://blog.lovezhy.cc/tags/IO/"/>
     
       <category term="CPU中断" scheme="https://blog.lovezhy.cc/tags/CPU%E4%B8%AD%E6%96%AD/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>我的2018</title>
+    <link href="https://blog.lovezhy.cc/2019/01/01/%E6%88%91%E7%9A%842018/"/>
+    <id>https://blog.lovezhy.cc/2019/01/01/%E6%88%91%E7%9A%842018/</id>
+    <published>2018-12-31T16:00:00.000Z</published>
+    <updated>2020-02-29T14:43:26.211Z</updated>
+    
+    <content type="html"><![CDATA[<p>总结我的2018</p><a id="more"></a><h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>一路坎坷的2018年终于过去了，一年12个月，我有9个月都在外面实习  </p><ul><li>2 - 4：美团实习</li><li>6 - 8：阿里实习</li><li>11 - ~：网易实习</li></ul><p>虽然其实自己感觉也没啥，但是回顾起来还是觉得满坎坷的  </p><h2 id="美团实习"><a href="#美团实习" class="headerlink" title="美团实习"></a>美团实习</h2><p>去美团实习的时候，真的是一张白纸<br>最开始去之前还是觉得很开心很激动，因为美团也算是一个大公司了，而我一个双非本科的学生，能得到这样的机会，实在是难得。 当时HR告诉我的工资，足够我在上海活下去，也终于不需要向爸妈拿钱了。<br>但是由于发生了一些事，导致这段实习其实并不是很愉快   </p><p>由于HR的原因，导致我的工资入职后才知道其实很低很低，因为HR不仅仅告诉错了我的工资，还没说日常是实习生是没有房补的。 每个月不仅仅仅靠自己的工资完全活不下去，还需要向爸妈拿钱  这个是我当时最伤心的地方   </p><p>房子租的很远，每天上班大概需要一个半小时的时间 其中走路大概需要45分钟   </p><p>由于当时春招并未开始，所以我知道自己的不足，还是在每天疯狂的学习到很晚，压力很大    </p><p>虽然有点骄傲，进去后发现其实我的水平完全够得上，并没有感觉到不能胜任的地方，但是Leader还是只给我一些小任务去做 我的意思是，我并不能学到什么新的东西 完全是自己自学   </p><p>春招正式开始后，主管以部门HC紧张为理由，拒绝给我转为暑假实习生(有房补)，让我继续保持日常实习生，然后八月份一起参加转正答辩，意味着如果我留下来，到八月份还是没有房补  </p><p>住的很偏，周围并没有什么吃的 但是爸妈一直在问我吃的好不好，让我不要省，但是我还是不好意思和他们要钱，但是我还是得吃饭，外卖又很贵。于是很多个周末我都是早饭不吃，午饭点外卖顺便把晚饭也买下来，可以最大限度的参加满减和省一次运费  </p><h2 id="春招"><a href="#春招" class="headerlink" title="春招"></a>春招</h2><p>大概3 - 4月份两个月都在不停地面试，写笔试，投简历<br>由于还是在美团上班，所以只能每次都约晚上的实习<br>好几次都顶着压力提前下班回去面试  </p><p>最狠的一次是晚上7：30到11点，面了三个公司  </p><p>第一个Offer是酷家乐的，面的其实还挺多的，最后一面是让我远程写代码，写一个命令行的管理系统，大概是一个小时的时间，我当时虽然没吃饭，但是状态不错，顺畅的写完了<br><img src="/images/2018/酷家乐.png" alt=""><br>收到Offer的时间是4.2号，那周我去虹桥的一个电影院看了<strong>玩家一号</strong>的IMAX版本  </p><p>第二个Offer来自饿了么，让我去现场面，我去了之后发现其实面试挺简单的，简单面了两面之后就发了Offer给我<br><img src="/images/2018/饿了么.png" alt="">  </p><p>第三个Offer，也就是最后一个Offer就是来自阿里<br>说来奇怪，阿里是我最早面完的，但是是发的最晚的，大概是在5.10号才发的<br>流程也是比较坎坷</p><p>期间还面了有赞，华为，腾讯等<br>有赞还去了次杭州<br>华为是乘机回了次学校<br>腾讯电话面试挂了一次，然后笔试过了，现场面试又挂了</p><h2 id="5月份"><a href="#5月份" class="headerlink" title="5月份"></a>5月份</h2><p>我在4.23号的时候，离职了美团，终于脱离了让我当时痛苦不堪的地方<br>在家短暂的呆了一段时间，然后去了学校<br>在学校玩的很开心<br>决定去阿里实习之后，按照内推人的建议开始学习Hadoop，Hive之类的一些东西 </p><h2 id="阿里实习"><a href="#阿里实习" class="headerlink" title="阿里实习"></a>阿里实习</h2><p>5.31号入职的阿里，8.25号离职的<br>学到了很多，也很感谢这一段的时光  </p><h2 id="秋招"><a href="#秋招" class="headerlink" title="秋招"></a>秋招</h2><p>秋招其实我参加的不多  </p><p>网易是当时我比较中意的公司，在8月中旬的时候，特地请假去参加了提前批，感觉面试也比较简单，和想象中的不太一样，我当时以为会问的很难。</p><p>中旬的时候回了一次学校，正好也参加了华为的优招，华为的优招投的部门是华为云，问的也比较一般。</p><p>提前批除了这两个公司，我几乎没有参加其他的，一方面是阿里实在是加班太晚了，怕自己没有时间面试，另一方面也是没有时间去做笔试题。</p><p>离职了阿里之后，那一段时间还是比较慌的，就开始疯狂投简历，但是那段时间其实很多的提前批都已经结束了，比如腾讯，百度等。</p><p>当时网易迟迟不出消息，自己都有点想考研的打算了。</p><p>在9.4号的时候，网易终于来了消息，发的offer。</p><p>这也是我秋招的第一个offer。</p><p><img src="/images/2018/网易.png" alt="">  </p><p>其实当时网易是我比较满意的offer了，一方面觉得自己是SP，不知道哪里来的自信，一方面部门是杭研，传说中的养老部门。</p><p>后面的秋招我就没怎么面试了，面了360企业安全，小米等。</p><p>最终收获了4个offer。</p><ul><li>360企业安全</li><li>小米</li><li>华为</li><li>网易</li></ul><p>选择了网易。</p><h1 id="再次实习"><a href="#再次实习" class="headerlink" title="再次实习"></a>再次实习</h1><p>在10月底的时候，我再次踏上了实习的旅程。<br>其实我不是很想去实习的，但是我妈坚持让我去，原因是提前去可以熟悉环境，和同事领导更熟悉，这样在正式工作的时候会有些优势。<br>同时网易的HR们也很推荐我们去实习，实习超过3个月可以抵两个月的试用期。</p><p>匆匆在杭州租了房子</p><p>开始了3个月的实习生涯</p><p>其实是希望破灭的开始</p><p>我对网易的向往其实是之前我在阿里的时候，一个在网易实习的同学告诉我的，网易叫猪场，食堂很好吃，而且不要钱。<br>下班也很早，不怎么加班。</p><p>然而事实上，网易上班是打卡的，而且是9.30打开。回过头看，比小米和阿里的都早。</p><p>还有个事其实可以小声哔哔下，当时部门结果刚出来的时候，我是很惊讶的，因为部门叫推荐技术部，我们都没有听过这个部门，在HR面试的时候，HR还问我对网易的时序数据库敢不敢兴趣，我以为我要去做数据库相关的东西了。<br>推荐技术部，我网上都搜不到这个部门，让我感觉很恐惧。<br>我于是和HR要了主管的微信，想要了解一下，加了之后，主管其实态度并不很热情，只是匆匆介绍了下部门是做什么的<br>然后我问我去大概是做什么，主管说都是先从运营后台做起。</p><p>万分纠结，其实我当时还挺想去小米的，但是最终还是决定去网易。<br>这个决定让我现在都后悔万分。</p><p>去实习了不久，不出我的所望，做的是一个连产品经理都看不见希望的产品。<br>实习了一半的时候，主管非常激动的说要做类似于一元抽奖的东西，并且说”这个才是拉新的重头“。</p><p>KPI项目，做出来了，当时后端就两个，我和一个同事一起做的。<br>其中也遇到了大的麻烦，Redis中间内存满了一次，导致开始随机删Key。<br>其实最奇怪的一点，让我很怀疑这个主管的能力。<br>他说，“能不能切掉Redis，让数据库抗压力”。<br>现在Redis的定位还仅仅是数据库的缓存吗？</p><p>敢问，现在哪个公司的业务Redis挂了还能正常跑的？</p><p>12月底的时候，网易开始裁员。我在这种基本凉凉的产品组当然瑟瑟发抖。<br>于是我问HR，我们会不会裁员，她信誓旦旦的说，不会的，安心干活儿。</p><p>然后过了几天她就调岗了。换了新的HR。</p><p>我在1.8号的时候离职，回学校做毕设。</p><p>到了大概过完年，组里一个和我玩的很好的产品告诉我，整个部门都要裁了。</p><p>于是我就又开始了找工作生涯。</p><p>其实写到这儿，我的2018已经结束了，下面是2019年的事了，那就等2019年再说吧。</p>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;总结我的2018&lt;/p&gt;
+    
+    </summary>
+    
+    
+      <category term="总结" scheme="https://blog.lovezhy.cc/categories/%E6%80%BB%E7%BB%93/"/>
+    
+    
+      <category term="总结" scheme="https://blog.lovezhy.cc/tags/%E6%80%BB%E7%BB%93/"/>
     
   </entry>
   
