@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 3.8.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+  <meta name="google-site-verification" content="wE7ISC42t3QOT-S-gdbdy_XsP3NB23Xi3alKNWXd0dA">
+  <meta name="baidu-site-verification" content="keFN8E7jd3">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="//fonts.googleapis.com/css?family=Operator Mono:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    hostname: new URL('https://blog.lovezhy.cc').hostname,
+    root: '/',
+    scheme: 'Gemini',
+    version: '7.7.1',
+    exturl: false,
+    sidebar: {"position":"right","display":"always","padding":18,"offset":12,"onmobile":false},
+    copycode: {"enable":true,"show_result":true,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    comments: {"style":"tabs","active":"disqus","storage":true,"lazyload":false,"nav":null,"activeClass":"disqus"},
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: 'search.xml',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}
+  };
+</script>
+
+  <meta name="description" content="前言事实上，我很多次以为我懂了volatile的原理，最终都是错误的。关于重排序，CPU，缓存一致性，内容可见性的话题，其实非常复杂。">
+<meta name="keywords" content="volatile,内存屏障">
+<meta property="og:type" content="article">
+<meta property="og:title" content="volatile和内存屏障">
+<meta property="og:url" content="https://blog.lovezhy.cc/2020/03/08/volatile和内存屏障/index.html">
+<meta property="og:site_name" content="LoveZhy">
+<meta property="og:description" content="前言事实上，我很多次以为我懂了volatile的原理，最终都是错误的。关于重排序，CPU，缓存一致性，内容可见性的话题，其实非常复杂。">
+<meta property="og:locale" content="zh-cn">
+<meta property="og:updated_time" content="2020-03-08T07:48:29.305Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="volatile和内存屏障">
+<meta name="twitter:description" content="前言事实上，我很多次以为我懂了volatile的原理，最终都是错误的。关于重排序，CPU，缓存一致性，内容可见性的话题，其实非常复杂。">
+
+<link rel="canonical" href="https://blog.lovezhy.cc/2020/03/08/volatile和内存屏障/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true
+  };
+</script>
+
+  <title>volatile和内存屏障 | LoveZhy</title>
+  
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-125642214-1"></script>
+    <script>
+      if (CONFIG.hostname === location.hostname) {
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'UA-125642214-1');
+      }
+    </script>
+
+
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?c1f963571cb3d8a4a5dc82346dc65842";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+<link rel="alternate" href="/atom.xml" title="LoveZhy" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">LoveZhy</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+  </div>
+
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-fw fa-user"></i>About</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>Tags</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>Categories</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>Archives</a>
+
+  </li>
+        <li class="menu-item menu-item-sitemap">
+
+    <a href="/sitemap.xml" rel="section"><i class="fa fa-fw fa-sitemap"></i>Sitemap</a>
+
+  </li>
+        <li class="menu-item menu-item-movie">
+
+    <a href="/movies/index.html" rel="section"><i class="fa fa-fw fa-film"></i>movie</a>
+
+  </li>
+        <li class="menu-item menu-item-books">
+
+    <a href="/books/index.html" rel="section"><i class="fa fa-fw fa-book"></i>books</a>
+
+  </li>
+  </ul>
+
+</nav>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope="" itemtype="http://schema.org/Article" class="post-block " lang="zh-cn">
+    <link itemprop="mainEntityOfPage" href="https://blog.lovezhy.cc/2020/03/08/volatile和内存屏障/">
+
+    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="zhy">
+      <meta itemprop="description" content="敌视现实">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="LoveZhy">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          volatile和内存屏障
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+              
+
+              <time title="Created: 2020-03-08 00:00:00 / Modified: 15:48:29" itemprop="dateCreated datePublished" datetime="2020-03-08T00:00:00+08:00">2020-03-08</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
+                  <a href="/categories/计算机基础/" itemprop="url" rel="index">
+                    <span itemprop="name">计算机基础</span>
+                  </a>
+                </span>
+            </span>
+
+          
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="fa fa-comment-o"></i>
+      </span>
+      <span class="post-meta-item-text">Disqus: </span>
+    
+    <a title="disqus" href="/2020/03/08/volatile和内存屏障/#disqus_thread" itemprop="discussionUrl">
+      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2020/03/08/volatile和内存屏障/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h1 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h1><p>事实上，我很多次以为我懂了volatile的原理，最终都是错误的。<br>关于重排序，CPU，缓存一致性，内容可见性的话题，其实非常复杂。</p>
+<a id="more"></a>
+<p>很多文章提到的关于volatile的例子：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">int</span> data[<span class="number">5</span>] = &#123; <span class="number">9</span>, <span class="number">9</span>, <span class="number">9</span>, <span class="number">9</span>, <span class="number">9</span> &#125;;</span><br><span class="line">bool is_ready = <span class="keyword">false</span>;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">init_data</span><span class="params">()</span> </span>&#123;</span><br><span class="line">  <span class="keyword">for</span>( <span class="keyword">int</span> i=<span class="number">0</span>; i &lt; <span class="number">5</span>; ++i )</span><br><span class="line">    data[i] = i;</span><br><span class="line">  is_ready = <span class="keyword">true</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">sum_data</span><span class="params">()</span> </span>&#123;</span><br><span class="line">  <span class="keyword">if</span>( !is_ready )</span><br><span class="line">    <span class="keyword">return</span>;</span><br><span class="line">  <span class="keyword">int</span> sum = <span class="number">0</span>;</span><br><span class="line">  <span class="keyword">for</span>( <span class="keyword">int</span> i=<span class="number">0</span>; i &lt;<span class="number">5</span>; ++i )</span><br><span class="line">    sum += data[i];</span><br><span class="line">  printf( <span class="string">"%d"</span>, sum );</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<blockquote>
+<p>如果我们启动两个线程，线程1执行init_data()，另外一个线程不断执行sum_data()<br>正常的结果应该是0+1+2+3+4，但是由于重排序和内存可见性的问题，得到的结果是不一定的。</p>
+</blockquote>
+<p>其实我们很多人没有思考过一个问题：</p>
+<blockquote>
+<p>在这个例子中，是因为内存可见性的问题造成的，还是重排序的问题造成的？还是两个一起造成的</p>
+</blockquote>
+<p>太长不看：</p>
+<ol>
+<li>CPU对指令进行重排序的条件非常苛刻，在这个例子中，完全不存在CPU会将指令重排序的问题。这个代码运行出现的问题，完全是内存可见性的问题。</li>
+<li>其实关于Volatile的所有问题都是内存可见性的问题，只不过看起来像是CPU重排序了。</li>
+<li>内存屏障指令分编译器级别和CPU级别，内存屏障和CPU重排序没半点关系。</li>
+<li>CPU的厂家使用的协议和CPU具体实现不尽相同，JVM定义的4种内存屏障指令，在x86的机器上，其实只有一种有用，其他的都是空指令。</li>
+<li>JMM定义的”CPU缓存，主存“只是一种抽象，真正的CPU缓存实现，CPU之间在一定程度上是<strong>互相可见</strong>的。</li>
+</ol>
+<h1 id="我的思考"><a href="#我的思考" class="headerlink" title="我的思考"></a>我的思考</h1><p>上面的例子有点复杂，我们再举个简单的例子：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">foo</span><span class="params">(<span class="keyword">void</span>)</span> </span>&#123;</span><br><span class="line">    a=<span class="number">1</span>;  <span class="comment">//S1</span></span><br><span class="line">    b=<span class="number">1</span>;  <span class="comment">//S2</span></span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">bar</span><span class="params">(<span class="keyword">void</span>)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">while</span> (b == <span class="number">0</span>) <span class="keyword">continue</span>;  <span class="comment">//L1</span></span><br><span class="line">    <span class="keyword">assert</span>(a == <span class="number">1</span>);           <span class="comment">//L2</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>执行的流程和上面的例子一样，我们把步骤拆成了4个，分别为S1，S2，L1，L2。</p>
+<h2 id="正常流程"><a href="#正常流程" class="headerlink" title="正常流程"></a>正常流程</h2><p>正常流程应该是：<br><code>S1 &gt; S2 &gt; L1 &gt; L2</code><br>也就是说，在执行L2的时候，a=1已经执行过了，所以这个断言是正确的。</p>
+<h2 id="内存可见性导致的问题"><a href="#内存可见性导致的问题" class="headerlink" title="内存可见性导致的问题"></a>内存可见性导致的问题</h2><p>在JMM模型中，每个CPU都有自己的缓存，写入时，先写自己的缓存，然后再同步到主存中。<br>在这个例子中，如果还是<code>S1 &gt; S2 &gt; L1 &gt; L2</code>的执行顺序<br>但是S1执行结束后，a其实存在于三个地方，这三个地方的可能值为：</p>
+<ol>
+<li>foo线程所在的CPU缓存中，这个地方a=1</li>
+<li>bar线程所在的CPU缓存中，这个地方a=0或者a=1</li>
+<li>主存中，这个地方a=0或者a=1</li>
+</ol>
+<p>同样的S2执行结束后，b也存在于三个地方。</p>
+<p>如果在bar线程中，b的值为1，但是a的值还是0，那么断言还是失败的。</p>
+<p>这个时候有人会告诉你使用volatile<br>被volatile修饰的变量，每次写入时，会实时同步到主存中，每次读取时，实时从主存中读取<br>这个就会导致S1和S2执行完之后，L1和L2步骤的a和b的值都是最新的。<br>没毛病，说得通对吧。</p>
+<h2 id="重排序导致的问题"><a href="#重排序导致的问题" class="headerlink" title="重排序导致的问题"></a>重排序导致的问题</h2><p>CPU在执行中会对指令进行重排序<br>比如S1和S2这两个操作，在CPU看来没有任何数据依赖顺序，所以它可以乱序执行<br>这下执行顺序可能就变成<code>S2 &gt; L1 &gt; L2 &gt; S1</code>。<br>也会导致断言失败。<br>这个时候Volatile也会保证执行的时候不会导致重排序。<br>也没毛病。</p>
+<h2 id="内存屏障"><a href="#内存屏障" class="headerlink" title="内存屏障"></a>内存屏障</h2><p>Volatile的具体是怎么实现的呢？<br>实现就是插入内存屏障。<br>内存屏障是什么东西？<br>简单的说：保证内存屏障前的读写指令必须在屏障后的读写指令之前执行，通知被Volatile修饰的值，每次读取都从主存中读取，每次写入都同步写入主存（锁总线）。</p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>从这个例子中看到，其实重排序和内存可见性的问题都会导致程序产生和我们预期不一致的行为，<br>而Volatile恰好能解决这两个问题。</p>
+<h1 id="内存屏障底层指令"><a href="#内存屏障底层指令" class="headerlink" title="内存屏障底层指令"></a>内存屏障底层指令</h1><p>其实正常来说，一般的Java开发者能理解到上面的层次就行了。<br>但是我还想理解的更多，比如这个重排序其实是CPU级别的，我们的Volatile关键词，肯定会映射成汇编指令，那么是哪些汇编指令呢？</p>
+<p>我们先来了解一下<code>barrier()</code>函数。</p>
+<h2 id="编译器重排序"><a href="#编译器重排序" class="headerlink" title="编译器重排序"></a>编译器重排序</h2><p>对于指令重排序，我一直以为只有CPU才会进行重排序，其实编译器也会对我们的指令进行重排序。<br>举个例子：<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">int</span> x, y, r;</span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">f</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    x = r;</span><br><span class="line">    y = <span class="number">1</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如果我们直接编译源文件：<code>g++ -S test.cpp</code><br>会得到这样的汇编文件：<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">movl    r(%rip), %eax</span><br><span class="line">movl    %eax, x(%rip)</span><br><span class="line">movl    $<span class="number">1</span>, y(%rip)</span><br></pre></td></tr></table></figure></p>
+<p>可以看到，这个结果并没有进行重排序</p>
+<p>但是如果我们指定优化级别：<code>g++ -O2 –S test.cpp</code><br>得到的汇编指令如下：<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">movl    r(%rip), %eax</span><br><span class="line">movl    $<span class="number">1</span>, y(%rip)</span><br><span class="line">movl    %eax, x(%rip)</span><br></pre></td></tr></table></figure></p>
+<p>看，两个指令的顺序反了。<br>这也就是编译器的重排序。</p>
+<p>那么怎么避免呢？<br>这个时候<code>barrier()</code>函数就派上用场了。</p>
+<p>我们修改我们的代码：<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">int</span> x, y, r;</span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">f</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">		x = r;</span><br><span class="line">		barrier();</span><br><span class="line">    y = <span class="number">1</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>这个时候我们再进行编译，会发现顺序并没有颠倒。</p>
+<h2 id="内存屏障-1"><a href="#内存屏障-1" class="headerlink" title="内存屏障"></a>内存屏障</h2><p>我们从内核的代码中找出：<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">define</span> barrier() __asm__ __volatile__(<span class="meta-string">""</span>: : :<span class="meta-string">"memory"</span>) </span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> mb() alternative(<span class="meta-string">"lock; addl $0,0(%%esp)"</span>, <span class="meta-string">"mfence"</span>, X86_FEATURE_XMM2) </span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> rmb() alternative(<span class="meta-string">"lock; addl $0,0(%%esp)"</span>, <span class="meta-string">"lfence"</span>, X86_FEATURE_XMM2)</span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">ifdef</span> CONFIG_SMP </span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> smp_mb() mb() </span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> smp_rmb() rmb() </span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> smp_wmb() wmb() </span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> smp_read_barrier_depends() read_barrier_depends() </span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> set_mb(var, value) do &#123; (void) xchg(&amp;var, value); &#125; while (0) </span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">else</span> </span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> smp_mb() barrier() </span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> smp_rmb() barrier() </span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> smp_wmb() barrier() </span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> smp_read_barrier_depends() do &#123; &#125; while(0) </span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> set_mb(var, value) do &#123; var = value; barrier(); &#125; while (0) </span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></span><br></pre></td></tr></table></figure></p>
+<p>别急，我们慢慢来看<br>内存屏障指令，大致有3个</p>
+<ol>
+<li><code>smp_mb</code></li>
+<li><code>smp_rmb</code></li>
+<li><code>smp_wmb</code></li>
+</ol>
+<p>但是看这个<code>#ifdef CONFGIG_SMP</code><br>SMP就是表示多核的意思。</p>
+<blockquote>
+<p>内存屏障指令，在单核和多核的系统中的实现定义是不一样的</p>
+</blockquote>
+<p>我们可以看到，如果计算机是单核的，那么其实所有的内存屏障指令都是编译器级别的，实际的实现都是<code>barrier()</code>函数，在CPU级别都是空操作。</p>
+<h2 id="我的疑惑"><a href="#我的疑惑" class="headerlink" title="我的疑惑"></a>我的疑惑</h2><p>其实不对啊，既然CPU会进行重排序，那为什么单核中并没有使用任何CPU的指令避免重排序呢？</p>
+<p>我们再回到那个例子：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">foo</span><span class="params">(<span class="keyword">void</span>)</span> </span>&#123;</span><br><span class="line">    a=<span class="number">1</span>;  <span class="comment">//S1</span></span><br><span class="line">    b=<span class="number">1</span>;  <span class="comment">//S2</span></span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">bar</span><span class="params">(<span class="keyword">void</span>)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">while</span> (b == <span class="number">0</span>) <span class="keyword">continue</span>;  <span class="comment">//L1</span></span><br><span class="line">    <span class="keyword">assert</span>(a == <span class="number">1</span>);           <span class="comment">//L2</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>假设这个程序是单核中执行的，也就是没有多核中的可见性的问题，但是CPU重排序的问题依然存在。<br>如果CPU进行重排序：<br><code>S2 &gt; L2 &gt; L2 &gt; S1</code><br>那不是仍然会出问题吗？</p>
+<p>黑人问号？</p>
+<p>带着这个问题，我继续开始了我的资料搜寻。</p>
+<h1 id="内存一致性"><a href="#内存一致性" class="headerlink" title="内存一致性"></a>内存一致性</h1><blockquote>
+<p>主要内容来自<a href="https://zhuanlan.zhihu.com/p/48157076" target="_blank" rel="noopener">高并发编程–多处理器编程中的一致性问题(上)</a><br>很多东西这个文章解释的很好，建议先读一读，有的我就直接略讲了</p>
+</blockquote>
+<p>我产生上述疑惑的前提其实就是默认CPU会对指令进行重排序。<br>很多书中对Volatile也提到了这一点，问题源头都是CPU会对指令重排序。<br>这个时候我们可能会觉得CPU厂家不给力，把这个锅丢给了开发者去解决。</p>
+<p>其实不是的。</p>
+<blockquote>
+<p>那么为了保证不会出现这种超出预期的行为，我们就需要一种规则来约束这种行为不能出现。这个任务就是memory consistency需要保证的（这里指的是强一致性模型：SC/TSO， XC的memory consistency并不能保证这点）</p>
+</blockquote>
+<p>CPU的理论中，其实有一系列协议约束CPU的执行不能出现上述行为。<br>也就是memory consistency，内存一致性。或者也叫<code>Memory Model</code>。<br>中文资料关于这个话题确实很少被提到，这个知乎问答提到了哪儿可以去学习。<br><a href="https://www.zhihu.com/question/23572082" target="_blank" rel="noopener">如何系统的学习 Memory Model?</a><br>其实这个话题也分理论与工业实现，就跟操作系统一样。</p>
+<p>笔者了解的也不多，这里就简单提一下。<br>关于内存一致性的问题，其实和分布式的精髓略相似，有强弱之分，不同的CPU架构上实现的强弱程度不同。</p>
+<h2 id="Sequential-Consistency"><a href="#Sequential-Consistency" class="headerlink" title="Sequential Consistency"></a>Sequential Consistency</h2><p>在理论上，不得不提一个人，Lamport，就是Paxos理论的那个教授。<br>他提出了<code>Sequential Consistency</code>，就是顺序一致性，硬件层面的一致性。</p>
+<p>在解释SC的理论之前，还得了解<code>Program Order</code>和<code>Memory Order</code></p>
+<blockquote>
+<p>Program Order: 就是我们写的代码的顺序，这个是静态的也是每个CPU core各自拥有的。<br>Memory Order: 就是代码执行的顺序，这个是全局的，每个CPU core对共享内存的执行都会出现在Memory order中。<br>用&lt;p 表示Program order的先于顺序，&lt;m表示Memory order的先于顺序。</p>
+</blockquote>
+<p>SC的形式化定义如下：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">If L(a) &lt;p L(b) ⇒ L(a) &lt;m L(b) /* Load→Load */</span><br><span class="line">If L(a) &lt;p S(b) ⇒ L(a) &lt;m S(b) /* Load→Store */</span><br><span class="line">If S(a) &lt;p S(b) ⇒ S(a) &lt;m S(b) /* Store→Store */</span><br><span class="line">If S(a) &lt;p L(b) ⇒ S(a) &lt;m L(b) /* Store→Load */</span><br></pre></td></tr></table></figure></p>
+<p>在SC的理论中，这4种关系不允许被Reorder。<br>好了，根据这个理论，我们再看一看上面的代码：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">foo</span><span class="params">(<span class="keyword">void</span>)</span> </span>&#123;</span><br><span class="line">    a=<span class="number">1</span>;  <span class="comment">//S1</span></span><br><span class="line">    b=<span class="number">1</span>;  <span class="comment">//S2</span></span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">bar</span><span class="params">(<span class="keyword">void</span>)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">while</span> (b == <span class="number">0</span>) <span class="keyword">continue</span>;  <span class="comment">//L1</span></span><br><span class="line">    <span class="keyword">assert</span>(a == <span class="number">1</span>);           <span class="comment">//L2</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>在foo函数中，a的Store在程序顺序中是大于b的Store的，所以a=1的MemoryOrder是必须要大于b=1的MemoryOrder的。</p>
+<p>也就说，如果CPU实现了SC协议，那么其实<code>S2 -&gt; S1</code>这个重排序是不允许的。</p>
+<h2 id="Total-Store-Order"><a href="#Total-Store-Order" class="headerlink" title="Total Store Order"></a>Total Store Order</h2><p>当然理论归理论，实现不一定按照理论来。<br>前面提到了SC的理论，在SC理论的指导下，一切都是按照顺序来的，对CPU重排序的条件非常苛刻。</p>
+<p>SC的问题：</p>
+<blockquote>
+<p>SC严格定义了对于共享内存的load和store操作，loadload，storestore，loadstore，storeload四种执行顺序是不允许reorder的。当下CPU的执行速度已经甩DRAM（memory）好几个量级，如果每次store，load操作都从DRAM读取会拖慢CPU的执行速度，在这个极度压榨硬件性能的时代，是不能接受这种行为的。因此在x86的架构实现中引入了TSO。</p>
+</blockquote>
+<p>简单说，就是CPU厂家觉得SC太严格，不利于性能提升，所以几乎没人用SC，而X86而言，他自己定义了一个叫Total Store Order的内存模型。</p>
+<p>在讲TSO之前，在提一嘴前面提到的，内存一致性的协议有强弱之分，就像分布式协议中的强一致性，最终一致性一样。<br>SC显然是强一致性，但是TSO的一致性就略微弱与SC。</p>
+<p>具体体现在哪儿呢：</p>
+<blockquote>
+<p>TSO在CPU与memory之间引入了write buffer。CPU写入的时候先写入write buffer然后就返回了，这样就将cpu与memory之间的差距隐藏了。</p>
+</blockquote>
+<p>引入了write buffer后，这里其实就是一个内存可见性的隐藏问题，在write buffer中的值，到memory中其实需要一段时间的，这个时间是不定的。</p>
+<p>所以还是会导致一些其他的问题出现：</p>
+<p>比如我们看这个例子：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">foo</span><span class="params">(<span class="keyword">void</span>)</span> </span>&#123;</span><br><span class="line">    x=<span class="number">1</span>;  <span class="comment">//S1</span></span><br><span class="line">    r1=y;  <span class="comment">//L1</span></span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">bar</span><span class="params">(<span class="keyword">void</span>)</span> </span>&#123;</span><br><span class="line">    y=<span class="number">1</span>;  <span class="comment">//S2</span></span><br><span class="line">    r2=x;<span class="comment">//L2</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<blockquote>
+<p>还是上面这个例子，S1将x=1放到了core C1的write buffer中，S2将y=1放到了C2的write buffer中，那么在执行L1,L2的时候，r1与r2这时候从memory读到是0。这个是违背了SC的，但是这样的设计确实带来了性能的提升。</p>
+</blockquote>
+<p>怎么解决这个问题呢？</p>
+<p>可能你想到了，就是我们使用某种指令，让CPU去同步Flush这个write buffer中的值。<br>这个指令就是我们提到的内存屏障。</p>
+<p>在详细介绍内存屏障的指令前，我们在TSO模型下，看看我们之前举的例子，到底是什么原因导致的：<br>还是前面的例子：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">foo</span><span class="params">(<span class="keyword">void</span>)</span> </span>&#123;</span><br><span class="line">    a=<span class="number">1</span>;  <span class="comment">//S1</span></span><br><span class="line">    b=<span class="number">1</span>;  <span class="comment">//S2</span></span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">bar</span><span class="params">(<span class="keyword">void</span>)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">while</span> (b == <span class="number">0</span>) <span class="keyword">continue</span>;  <span class="comment">//L1</span></span><br><span class="line">    <span class="keyword">assert</span>(a == <span class="number">1</span>);           <span class="comment">//L2</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>在TOS的引入了write buffer后，我们再来看看上面的例子还会出现问题吗？<br>如果a=1，b=1先后被写入write buffer，并没有写入memory。但是如果把write buffer中的值flush到内存，b=1这个可见性的时间 &gt;= a=1的可见性。<br>所以如果bar中，读到b=1了，那么a肯定也已经读到等于1了。<br>就不会出现上面的问题。</p>
+<p>这个时候，我们可以解答我的疑惑了<br>为什么单核的情况下，仅仅需要禁止编译器的重排序就行了？<br>答案就是在TSO模型下，在上面的例子中，CPU不会进行指令的重排序。</p>
+<h2 id="内存屏障指令"><a href="#内存屏障指令" class="headerlink" title="内存屏障指令"></a>内存屏障指令</h2><p>让我们再回到这个代码：<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">define</span> barrier() __asm__ __volatile__(<span class="meta-string">""</span>: : :<span class="meta-string">"memory"</span>) </span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> mb() alternative(<span class="meta-string">"lock; addl $0,0(%%esp)"</span>, <span class="meta-string">"mfence"</span>, X86_FEATURE_XMM2) </span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> rmb() alternative(<span class="meta-string">"lock; addl $0,0(%%esp)"</span>, <span class="meta-string">"lfence"</span>, X86_FEATURE_XMM2)</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> wmb() alternative(<span class="meta-string">"lock; addl $0,0(%%esp)"</span>, <span class="meta-string">"sfence"</span>, X86_FEATURE_XMM)   </span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">ifdef</span> CONFIG_SMP </span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> smp_mb() mb() </span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> smp_rmb() rmb() </span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> smp_wmb() wmb() </span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> smp_read_barrier_depends() read_barrier_depends() </span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> set_mb(var, value) do &#123; (void) xchg(&amp;var, value); &#125; while (0) </span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">else</span> </span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> smp_mb() barrier() </span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> smp_rmb() barrier() </span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> smp_wmb() barrier() </span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> smp_read_barrier_depends() do &#123; &#125; while(0) </span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> set_mb(var, value) do &#123; var = value; barrier(); &#125; while (0) </span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></span><br></pre></td></tr></table></figure></p>
+<h3 id="常见的三种"><a href="#常见的三种" class="headerlink" title="常见的三种"></a>常见的三种</h3><p>x86/64系统架构提供了三种多核的内存屏障指令：(1) sfence; (2) lfence; (3) mfence</p>
+<ol>
+<li>sfence：在sfence指令前的写操作当必须在sfence指令后的写操作前完成。</li>
+<li>lfence：在lfence指令前的读操作当必须在lfence指令后的读操作前完成。</li>
+<li>mfence：在mfence指令前的读写操作当必须在mfence指令后的读写操作前完成。</li>
+</ol>
+<p>其实总结起来就是读屏障，写屏障，读写屏障。</p>
+<p>上述的是显式的会起到内存屏障作用的指令，但是还有许多指令带有异常的内存屏障的作用。</p>
+<h3 id="MMIO写屏障"><a href="#MMIO写屏障" class="headerlink" title="MMIO写屏障"></a>MMIO写屏障</h3><p>Linux 内核有一个专门用于 MMIO 写的屏障：<br><code>mmiowb()</code><br>笔者也不熟悉这个的作用，后续再补上</p>
+<h3 id="隐藏的内存屏障"><a href="#隐藏的内存屏障" class="headerlink" title="隐藏的内存屏障"></a>隐藏的内存屏障</h3><p>Linux 内核中一些锁或者调度函数暗含了内存屏障。</p>
+<p>锁函数：</p>
+<ul>
+<li>spin locks</li>
+<li>R/W spin locks</li>
+<li>mutexes</li>
+<li>semaphores</li>
+<li>R/W semaphores</li>
+</ul>
+<p>中断禁止函数：<br>启动或禁止终端的函数的作用仅仅是作为编译器屏障，所以要使用内存或者 I/O 屏障 的场合，必须用别的函数。</p>
+<p>SLEEP和WAKE-UP以及其它调度函数：<br>使用 SLEEP 和 WAKE-UP 函数时要改变 task 的状态标志，这需要使用合适的内存屏 障保证修改的顺序。</p>
+<h1 id="MESI缓存一致性"><a href="#MESI缓存一致性" class="headerlink" title="MESI缓存一致性"></a>MESI缓存一致性</h1><p>写不动了，缓存一致性的内容还是大家自己百度吧<br>其实简单点可以这么理解：</p>
+<ol>
+<li>JMM中的主存其实在实现上，包含了CPU的缓存</li>
+<li>JMM中的CPU的缓存在x86机器上可以理解为write buffer。</li>
+</ol>
+<h1 id="JMM"><a href="#JMM" class="headerlink" title="JMM"></a>JMM</h1><p>写到这儿，基本把开头的一些结论说清楚了，但是还有一个：<br>JVM定义的4种内存屏障指令，在x86的机器上，其实只有一种有用，其他的都是空指令。</p>
+<p>我们先来看JMM中的定义，根据Store和Load的操作，JMM分成了4中：</p>
+<ol>
+<li>LoadLoad</li>
+<li>LoadStore</li>
+<li>StoreStore</li>
+<li>StoreLoad</li>
+</ol>
+<p>这4中都是为了禁止重排序的<br>这里的Load就是从主存中获取值，Store就是把值同步写入主存。</p>
+<p>按照读屏障，写屏障，读写屏障划分的话，和fence的对应关系如下：</p>
+<ol>
+<li>LoadLoad -&gt; lfence</li>
+<li>LoadStore -&gt; mfence</li>
+<li>StoreStore -&gt; sfence</li>
+<li>StoreLoad -&gt; mfence</li>
+</ol>
+<p>当然了解这些还是不够的，我们还需要JMM对应了哪种CPU模型。<br>在x86中，我们除了内存，还了解到有write buffer的存在。<br>然而事实上，CPU的实现中，还有一个东西的存在叫<code>invalidate queue</code></p>
+<p>具体的演进与作用可以参照这篇文章：<br><a href="https://zhuanlan.zhihu.com/p/66085562" target="_blank" rel="noopener">内存屏障Memory Barrier: a Hardware View</a></p>
+<p>StoreBuffer就是对应WriteBuffer<br>而Invalidate queue在x86的CPU上是不存在的。</p>
+<p>再回到我们提到的例子：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">foo</span><span class="params">(<span class="keyword">void</span>)</span> </span>&#123;</span><br><span class="line">    x=<span class="number">1</span>;  <span class="comment">//S1</span></span><br><span class="line">    r1=y;  <span class="comment">//S2</span></span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">bar</span><span class="params">(<span class="keyword">void</span>)</span> </span>&#123;</span><br><span class="line">    y=<span class="number">1</span>;  <span class="comment">//L1</span></span><br><span class="line">    r2=x;<span class="comment">//L2</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>在这个例子中，我们需要哪一种屏障呢？<br>就是StoreLoad屏障<br>按照TSO的协议解释，也就是我们读取y的值的之前，必须flush writebuffer。<br>这样，r1和r2就不会出现同时等于0的情况。</p>
+<p>再具体的这个文章讲的很好：<a href="https://zhuanlan.zhihu.com/p/81555436" target="_blank" rel="noopener">为什么在 x86 架构下只有 StoreLoad 屏障是有效指令？</a></p>
+<h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p><a href="https://mortoray.com/2010/11/18/cpu-reordering-what-is-actually-being-reordered/" target="_blank" rel="noopener">cpu-reordering-what-is-actually-being-reordered</a><br><a href="http://lday.me/2017/11/04/0016_what_is_memory_barriers/" target="_blank" rel="noopener">什么是内存屏障(Memory Barriers)</a><br><a href="https://www.linuxidc.com/Linux/2011-10/44623.htm" target="_blank" rel="noopener">Linux内核中的内存屏障</a><br><a href="https://quant67.com/post/linux/memory-barriers/memory-barriers.html#sec-2-6" target="_blank" rel="noopener">内存屏障</a><br><a href="https://zhuanlan.zhihu.com/p/33626920" target="_blank" rel="noopener">为什么我们需要内存屏障？</a><br><a href="https://blog.csdn.net/muxiqingyang/article/details/6615199" target="_blank" rel="noopener">《大话处理器》Cache一致性协议之MESI</a><br><a href="https://paulcavallaro.com/blog/x86-tso-a-programmers-model-for-x86-multiprocessors/" target="_blank" rel="noopener">x86 TSO: A Programmer’s Model for x86 Multiprocessors</a><br><a href="https://stackoverflow.com/questions/51292687/if-i-dont-use-fences-how-long-could-it-take-a-core-to-see-another-cores-write" target="_blank" rel="noopener">If I don’t use fences, how long could it take a core to see another core’s writes?</a><br><a href="https://blog.csdn.net/automan12138/article/details/104682093" target="_blank" rel="noopener">深入理解内存屏障</a><br><a href="https://www.cnblogs.com/aquester/p/10328479.html" target="_blank" rel="noopener">C和C++中的volatile、内存屏障和CPU缓存一致性协议MESI</a><br><a href="https://mp.weixin.qq.com/s?__biz=MzUzMDk3NjM3Mg==&amp;mid=2247483755&amp;idx=1&amp;sn=50f80e73f46fab04d8a799e8731432c6&amp;chksm=fa48da70cd3f5366d9658277cccd9e36fca540276f580822d41aef7d8af4dda480fc85e3bde4&amp;token=1910810820&amp;lang=zh_CN#rd" target="_blank" rel="noopener">从 Java 内存模型看内部细节</a><br><a href="https://www.zhihu.com/question/296949412/answer/864851230" target="_blank" rel="noopener">既然CPU有缓存一致性协议（MESI），为什么JMM还需要volatile关键字？</a></p>
+
+    </div>
+
+    
+    
+    
+        
+
+<div>
+<ul class="post-copyright">
+  <li class="post-copyright-author">
+    <strong>Post author:  </strong>zhy
+  </li>
+  <li class="post-copyright-link">
+    <strong>Post link: </strong>
+    <a href="https://blog.lovezhy.cc/2020/03/08/volatile和内存屏障/" title="volatile和内存屏障">https://blog.lovezhy.cc/2020/03/08/volatile和内存屏障/</a>
+  </li>
+  <li class="post-copyright-license">
+    <strong>Copyright Notice:  </strong>All articles in this blog are licensed under <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" rel="noopener" target="_blank"><i class="fa fa-fw fa-creative-commons"></i>BY-NC-SA</a> unless stating additionally.
+  </li>
+</ul>
+</div>
+
+        
+
+  <div class="followme">
+    <p>Welcome to my other publishing channels</p>
+
+    <div class="social-list">
+
+            <div class="social-item">
+              <a target="_blank" class="social-link" href="/atom.xml">
+                <span class="icon">
+                  <i class="fa fa-rss"></i>
+                </span>
+
+                <span class="label">RSS</span>
+              </a>
+            </div>
+    </div>
+  </div>
+
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/volatile/" rel="tag"># volatile</a>
+              <a href="/tags/内存屏障/" rel="tag"># 内存屏障</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2020/03/03/Kafka指南-分区副本/" rel="prev" title="Kafka指南-分区副本详解">
+      <i class="fa fa-chevron-left"></i> Kafka指南-分区副本详解
+    </a></div>
+      <div class="post-nav-item"></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+    
+  <div class="comments">
+    <div id="disqus_thread">
+      <noscript>Please enable JavaScript to view the comments powered by Disqus.</noscript>
+    </div>
+  </div>
+  
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let activeClass = CONFIG.comments.activeClass;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#前言"><span class="nav-number">1.</span> <span class="nav-text">前言</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#我的思考"><span class="nav-number">2.</span> <span class="nav-text">我的思考</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#正常流程"><span class="nav-number">2.1.</span> <span class="nav-text">正常流程</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#内存可见性导致的问题"><span class="nav-number">2.2.</span> <span class="nav-text">内存可见性导致的问题</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#重排序导致的问题"><span class="nav-number">2.3.</span> <span class="nav-text">重排序导致的问题</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#内存屏障"><span class="nav-number">2.4.</span> <span class="nav-text">内存屏障</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#总结"><span class="nav-number">2.5.</span> <span class="nav-text">总结</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#内存屏障底层指令"><span class="nav-number">3.</span> <span class="nav-text">内存屏障底层指令</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#编译器重排序"><span class="nav-number">3.1.</span> <span class="nav-text">编译器重排序</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#内存屏障-1"><span class="nav-number">3.2.</span> <span class="nav-text">内存屏障</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#我的疑惑"><span class="nav-number">3.3.</span> <span class="nav-text">我的疑惑</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#内存一致性"><span class="nav-number">4.</span> <span class="nav-text">内存一致性</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#Sequential-Consistency"><span class="nav-number">4.1.</span> <span class="nav-text">Sequential Consistency</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Total-Store-Order"><span class="nav-number">4.2.</span> <span class="nav-text">Total Store Order</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#内存屏障指令"><span class="nav-number">4.3.</span> <span class="nav-text">内存屏障指令</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#常见的三种"><span class="nav-number">4.3.1.</span> <span class="nav-text">常见的三种</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#MMIO写屏障"><span class="nav-number">4.3.2.</span> <span class="nav-text">MMIO写屏障</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#隐藏的内存屏障"><span class="nav-number">4.3.3.</span> <span class="nav-text">隐藏的内存屏障</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#MESI缓存一致性"><span class="nav-number">5.</span> <span class="nav-text">MESI缓存一致性</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#JMM"><span class="nav-number">6.</span> <span class="nav-text">JMM</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#参考"><span class="nav-number">7.</span> <span class="nav-text">参考</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">zhy</p>
+  <div class="site-description" itemprop="description">敌视现实</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">72</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">29</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">51</span>
+        <span class="site-state-item-name">tags</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/zhyzhyzhy" title="GitHub → https://github.com/zhyzhyzhy" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:zhuyichen1017@outlook.com" title="E-Mail → mailto:zhuyichen1017@outlook.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+  <div class="beian"><a href="http://www.beian.miit.gov.cn" rel="noopener" target="_blank">苏ICP备15058469号 </a>
+  </div>
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">zhy</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> v3.8.0
+  </div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">Theme – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> v7.7.1
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+<script src="/js/utils.js"></script><script src="/js/motion.js"></script>
+<script src="/js/schemes/pisces.js"></script>
+<script src="/js/next-boot.js"></script>
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+<script>
+  function loadCount() {
+    var d = document, s = d.createElement('script');
+    s.src = 'https://blog-lovezhy-cc-1.disqus.com/count.js';
+    s.id = 'dsq-count-scr';
+    (d.head || d.body).appendChild(s);
+  }
+  // defer loading until the whole page loading is completed
+  window.addEventListener('load', loadCount, false);
+</script>
+<script>
+  var disqus_config = function() {
+    this.page.url = "https://blog.lovezhy.cc/2020/03/08/volatile和内存屏障/";
+    this.page.identifier = "2020/03/08/volatile和内存屏障/";
+    this.page.title = "volatile和内存屏障";
+    };
+  NexT.utils.loadComments(document.querySelector('#disqus_thread'), () => {
+    if (window.DISQUS) {
+      DISQUS.reset({
+        reload: true,
+        config: disqus_config
+      });
+    } else {
+      var d = document, s = d.createElement('script');
+      s.src = 'https://blog-lovezhy-cc-1.disqus.com/embed.js';
+      s.setAttribute('data-timestamp', '' + +new Date());
+      (d.head || d.body).appendChild(s);
+    }
+  });
+</script>
+
+</body>
+</html>
