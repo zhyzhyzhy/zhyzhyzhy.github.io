@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 3.8.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+  <meta name="google-site-verification" content="wE7ISC42t3QOT-S-gdbdy_XsP3NB23Xi3alKNWXd0dA">
+  <meta name="baidu-site-verification" content="keFN8E7jd3">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="//fonts.googleapis.com/css?family=Operator Mono:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    hostname: new URL('https://blog.lovezhy.cc').hostname,
+    root: '/',
+    scheme: 'Gemini',
+    version: '7.7.1',
+    exturl: false,
+    sidebar: {"position":"right","display":"always","padding":18,"offset":12,"onmobile":false},
+    copycode: {"enable":true,"show_result":true,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    comments: {"style":"tabs","active":"disqus","storage":true,"lazyload":false,"nav":null,"activeClass":"disqus"},
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: 'search.xml',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}
+  };
+</script>
+
+  <meta name="description" content="我决定写一个系列，从头到尾讲一讲我理解的内存屏障的起源。要想真正理解内存屏障，其实要讲很多的东西。 第一节，先来讲讲CPU的执行与重排序。">
+<meta name="keywords" content="内存屏障,CPU重排序">
+<meta property="og:type" content="article">
+<meta property="og:title" content="搞懂内存屏障-CPU重排序">
+<meta property="og:url" content="https://blog.lovezhy.cc/2020/03/09/搞懂内存屏障-CPU重排序/index.html">
+<meta property="og:site_name" content="LoveZhy">
+<meta property="og:description" content="我决定写一个系列，从头到尾讲一讲我理解的内存屏障的起源。要想真正理解内存屏障，其实要讲很多的东西。 第一节，先来讲讲CPU的执行与重排序。">
+<meta property="og:locale" content="zh-cn">
+<meta property="og:image" content="https://blog.lovezhy.cc/images/CPU重排序/1.png">
+<meta property="og:image" content="https://blog.lovezhy.cc/images/CPU重排序/2.png">
+<meta property="og:image" content="https://blog.lovezhy.cc/images/CPU重排序/3.png">
+<meta property="og:image" content="https://blog.lovezhy.cc/images/CPU重排序/4.png">
+<meta property="og:image" content="https://blog.lovezhy.cc/images/CPU重排序/5.png">
+<meta property="og:image" content="https://blog.lovezhy.cc/images/CPU重排序/6.png">
+<meta property="og:image" content="https://blog.lovezhy.cc/images/CPU重排序/7.png">
+<meta property="og:image" content="https://blog.lovezhy.cc/images/CPU重排序/8.png">
+<meta property="og:image" content="https://blog.lovezhy.cc/images/CPU重排序/9.png">
+<meta property="og:image" content="https://blog.lovezhy.cc/images/CPU重排序/10.png">
+<meta property="og:image" content="https://blog.lovezhy.cc/images/CPU重排序/11.png">
+<meta property="og:updated_time" content="2020-03-09T14:30:36.248Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="搞懂内存屏障-CPU重排序">
+<meta name="twitter:description" content="我决定写一个系列，从头到尾讲一讲我理解的内存屏障的起源。要想真正理解内存屏障，其实要讲很多的东西。 第一节，先来讲讲CPU的执行与重排序。">
+<meta name="twitter:image" content="https://blog.lovezhy.cc/images/CPU重排序/1.png">
+
+<link rel="canonical" href="https://blog.lovezhy.cc/2020/03/09/搞懂内存屏障-CPU重排序/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true
+  };
+</script>
+
+  <title>搞懂内存屏障-CPU重排序 | LoveZhy</title>
+  
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-125642214-1"></script>
+    <script>
+      if (CONFIG.hostname === location.hostname) {
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'UA-125642214-1');
+      }
+    </script>
+
+
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?c1f963571cb3d8a4a5dc82346dc65842";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+<link rel="alternate" href="/atom.xml" title="LoveZhy" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">LoveZhy</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+  </div>
+
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-fw fa-user"></i>About</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>Tags</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>Categories</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>Archives</a>
+
+  </li>
+        <li class="menu-item menu-item-sitemap">
+
+    <a href="/sitemap.xml" rel="section"><i class="fa fa-fw fa-sitemap"></i>Sitemap</a>
+
+  </li>
+        <li class="menu-item menu-item-movie">
+
+    <a href="/movies/index.html" rel="section"><i class="fa fa-fw fa-film"></i>movie</a>
+
+  </li>
+        <li class="menu-item menu-item-books">
+
+    <a href="/books/index.html" rel="section"><i class="fa fa-fw fa-book"></i>books</a>
+
+  </li>
+  </ul>
+
+</nav>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope="" itemtype="http://schema.org/Article" class="post-block " lang="zh-cn">
+    <link itemprop="mainEntityOfPage" href="https://blog.lovezhy.cc/2020/03/09/搞懂内存屏障-CPU重排序/">
+
+    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="zhy">
+      <meta itemprop="description" content="敌视现实">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="LoveZhy">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          搞懂内存屏障-CPU重排序
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+              
+
+              <time title="Created: 2020-03-09 00:00:00 / Modified: 22:30:36" itemprop="dateCreated datePublished" datetime="2020-03-09T00:00:00+08:00">2020-03-09</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
+                  <a href="/categories/刨根究底/" itemprop="url" rel="index">
+                    <span itemprop="name">刨根究底</span>
+                  </a>
+                </span>
+            </span>
+
+          
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="fa fa-comment-o"></i>
+      </span>
+      <span class="post-meta-item-text">Disqus: </span>
+    
+    <a title="disqus" href="/2020/03/09/搞懂内存屏障-CPU重排序/#disqus_thread" itemprop="discussionUrl">
+      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2020/03/09/搞懂内存屏障-CPU重排序/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>我决定写一个系列，从头到尾讲一讲我理解的内存屏障的起源。<br>要想真正理解内存屏障，其实要讲很多的东西。</p>
+<p>第一节，先来讲讲CPU的执行与重排序。</p>
+<a id="more"></a>
+<h1 id="CPU的执行"><a href="#CPU的执行" class="headerlink" title="CPU的执行"></a>CPU的执行</h1><h2 id="流水线"><a href="#流水线" class="headerlink" title="流水线"></a>流水线</h2><p>当然我对CPU几乎没系统的学过，都是从网上看看博客学来的。</p>
+<p>CPU执行一条指令需要4个步骤（当然网上可能有其他说法，比如三个步骤或者五个步骤，不过没关系，不影响下面我们的结论）：</p>
+<ol>
+<li>取址：从内存中取出指令</li>
+<li>译码：翻译指令，生成响应的控制信号</li>
+<li>执行：使用CPU的逻辑处理单元计算</li>
+<li>回写：把结果写回到寄存器或者内存</li>
+</ol>
+<p>假设我们有三条指令：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">mov $0x0, %esi</span><br><span class="line">mov $0x0, %edi</span><br><span class="line">and $0xf, %ebx</span><br></pre></td></tr></table></figure></p>
+<p>我们把这四个步骤都合并成一个组合逻辑去运行的话<br>架构图如下：<br><img src="/images/CPU重排序/1.png" alt=""></p>
+<p>那么我们需要的时间其实就是串行的，如下图：<br><img src="/images/CPU重排序/2.png" alt=""></p>
+<p>但是这样，太慢了。<br>于是CPU流水线技术就诞生了（大约在Intel 386里开始出现）。</p>
+<p>原理大概是把一个组合逻辑，拆分成多个小的组合逻辑：<br><img src="/images/CPU重排序/3.png" alt=""><br>这样，第一个指令进行组合逻辑B的时候，第二个指令就可以进行组合逻辑A了。<br>我们的时间消耗可以大大减少：<br><img src="/images/CPU重排序/4.png" alt=""></p>
+<h2 id="冒险"><a href="#冒险" class="headerlink" title="冒险"></a>冒险</h2><p>上面的例子中，流水线可以非常完美。因为我们的三个指令所需的数据都互不依赖。<br>但是如果指令是这样的：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">Mov $0x0, %esi</span><br><span class="line">Mov $0x0, %edi</span><br><span class="line">Add %esi, %edi</span><br></pre></td></tr></table></figure></p>
+<p>第三个指令，是把第一个指令和第二个指令的结果进行相加<br>如果我们仍采用上述的流水线去运行，就会出问题：<br><img src="/images/CPU重排序/5.png" alt=""><br>CPU在执行Add指令时，依赖第二步中%edi的值。<br>但是指令3执行到第二个组合逻辑时，第二个指令还没写回到寄存器。<br>这样下去，指令3的Add用到的%edi，其实就不是0。<br>和预期的结果不符合。</p>
+<p>这个就叫冒险<br>其中冒险分为数据冒险和控制冒险，数据冒险就是我们上面提到的。<br>而控制冒险和数据冒险类似，不过一般涉及到跳转指令。</p>
+<p>如：<br><img src="/images/CPU重排序/6.png" alt=""><br>我们在执行JE的时候，依赖上一步的CMP的结果，导致正常的流水线执行就会有问题。</p>
+<h2 id="Bubble"><a href="#Bubble" class="headerlink" title="Bubble"></a>Bubble</h2><p>那怎么解决呢？<br>就是插入Nop指令。</p>
+<p><img src="/images/CPU重排序/7.png" alt=""><br>如上图所示，我们在第二个指令和第三个指令中间加入一个Nop指令，空转一个流水线。</p>
+<p>当然我们不需要编译器每次都进行加入Nop，CPU会自己加入。<br>这个就叫Bubble，而执行Bubble叫Stall。<br><img src="/images/CPU重排序/8.png" alt=""></p>
+<p>对于分支预测而言，CPU除了Bubble，还可能会随机选择一个分支先去执行，等CMP的结果出来，如果预测错了，就把执行结果丢弃掉：<br><img src="/images/CPU重排序/9.png" alt=""><br>分支预测失败当然是比较消耗性能的，Google的报告上指出了一次错误的分支预测的耗时：<br><img src="/images/CPU重排序/10.png" alt=""></p>
+<p><img src="/images/CPU重排序/11.png" alt=""></p>
+<h1 id="重排序"><a href="#重排序" class="headerlink" title="重排序"></a>重排序</h1><p>除了Bubble和分支预测的解决方案，还有一种解决方案，就是CPU的重排序。</p>
+<p>对于下面的指令：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">ADD AX, BX;   </span><br><span class="line">INC AX;         </span><br><span class="line">MOV CX, DX;</span><br></pre></td></tr></table></figure></p>
+<p>ADD和INC操作都用到了AX，必然会导致Stall。<br>但是我们发现MOV指令和ADD和INC都没有关系，<br>那么我们能不能调换顺序：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">ADD AX, BX;  </span><br><span class="line">MOV CX, DX; </span><br><span class="line">INC AX;</span><br></pre></td></tr></table></figure></p>
+<p>在执行时使用这种次序呢？<br>毕竟这种次序，就不会产生Stall，性能必然会提升。</p>
+<p>这种就是CPU的重排序。</p>
+<h1 id="锅是谁的？"><a href="#锅是谁的？" class="headerlink" title="锅是谁的？"></a>锅是谁的？</h1><p>在x86的机器上，CPU会进行大量的指令重排序。<br>但是CPU重排序也不会想重排就重排的，而是需要遵守一定的规范，不然就会影响软件的正常运行。</p>
+<p>比如说下面这段经典的代码：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">int</span> x = <span class="number">0</span>, y = <span class="number">0</span>;</span><br><span class="line"><span class="keyword">int</span> a = <span class="number">0</span>, b = <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">far</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    a=<span class="number">1</span>;</span><br><span class="line">    x=b;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">bar</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    b=<span class="number">1</span>;</span><br><span class="line">    y=a;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如果我们启动两个线程分别去执行far和bar函数。<br>正常的情况下，要么x=1，要么y=1，要么x=y=1;<br>但是也可能是x=y=0;</p>
+<p>怎么解释的呢？很多人是这么解释的，这里我找了一个博客的解释：</p>
+<blockquote>
+<p>这是处理器乱序执行的结果：<br>线程t1内部的两行代码之间不存在数据依赖<br>因此，可以将x = b乱序到a = 1前；<br>同时，线程t2中的y = a早于线程t1中的a = 1执行。<br>一个可能的执行序列如下：<br>t1: x = b<br>t2: b = 1<br>t2: y = a<br>t1: a = 1</p>
+</blockquote>
+<p>看起来非常的有道理，CPU乱序执行害死人。<br>但是事实确实如此吗？<br>这个锅真的是CPU重排序执行导致的吗？</p>
+<h1 id="真的能观测到CPU的重排序吗"><a href="#真的能观测到CPU的重排序吗" class="headerlink" title="真的能观测到CPU的重排序吗"></a>真的能观测到CPU的重排序吗</h1><p>我对CPU不熟悉，这里我就举几个网上的答案反驳吧。</p>
+<h2 id="反驳一"><a href="#反驳一" class="headerlink" title="反驳一"></a>反驳一</h2><p><a href="https://stackoverflow.com/questions/50307693/does-an-x86-cpu-reorder-instructions" target="_blank" rel="noopener">Does an x86 CPU reorder instructions?</a><br>这个是英文回答，内容有点多，我从里面摘抄几个：</p>
+<blockquote>
+<p>Yes, all modern x86 chips from Intel and AMD aggressively reorder instructions across a window which is around 200 instructions deep on recent CPUs from both manufacturers</p>
+</blockquote>
+<p>肯定了x86的CPU会执行很多的指令重排序</p>
+<blockquote>
+<p>That should answer the titular question, but then your second question is about memory barriers. It contains, however, an incorrect assumption that instruction reordering necessarily causes (and is the only cause of) visible memory reordering</p>
+</blockquote>
+<p>这个其实超纲了，他提到了内存可见性的重排序。<br>否定了CPU的指令执行重排序一定会导致内存可见性问题。</p>
+<blockquote>
+<p>At the same time, x86 defines quite a strict memory model, which bans most possible reorderings<br>So actually most memory re-orderings are not allowed</p>
+</blockquote>
+<p>重点来了，x86定义了一个严格的内存模型，这个内存模型禁止了大多数可能的重排序<br>后续的文章中，我会提到这个内存模型。</p>
+<blockquote>
+<p>So it is possible to define an ISA that doesn’t allow any re-ordering at all, but under the covers do re-ordering but carefully check that it isn’t observed</p>
+</blockquote>
+<p>注意看这个词，<strong>observed</strong>。<br>是的，CPU确实会做指令的重排序，但是如果出现了重排序可以被observe的情况，就是BUG。<br>这里我们假定CPU不会出BUG。</p>
+<h2 id="反驳二"><a href="#反驳二" class="headerlink" title="反驳二"></a>反驳二</h2><p><a href="https://www.zhihu.com/question/53761499" target="_blank" rel="noopener">https://www.zhihu.com/question/53761499</a><br>有人问：</p>
+<blockquote>
+<p>如何辨识代码是否被CPU的乱序执行优化了？</p>
+</blockquote>
+<p>一个是<code>中央处理器 (CPU) 话题的优秀回答者</code>的回答：</p>
+<blockquote>
+<p>看不到，也无法控制，ROB存在的目的就是让上层程序员看到的执行结果回归顺序。有一些memory model带来的重排序是可以被上层检测到的，比如x86的TSO模型可以通过精心设计的load store序列检测到访存的乱序。</p>
+</blockquote>
+<h1 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h1><p>总而言之，我们记得一个词就够了：<code>observed</code>。<br>CPU确实会进行重排序，但是这种重排序是无法被我们观测到和控制的。<br>如果CPU没有BUG的话（基本上没听过CPU出现BUG），那么程序出现与预期不一致的行为，和CPU的重排序没半点关系。</p>
+<p>插一句，什么内存屏障之类的，和CPU的重排序也没有关系。</p>
+<h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p><a href="https://uestc-dpz.github.io/blog/2016/11/17/Reordering.html" target="_blank" rel="noopener">指令重排序</a><br><a href="https://www.zhihu.com/question/53761499" target="_blank" rel="noopener">如何辨识代码是否被CPU的乱序执行优化了</a><br><a href="https://www.cs.utexas.edu/~lin/cs380p/Free_Lunch.pdf" target="_blank" rel="noopener">https://www.cs.utexas.edu/~lin/cs380p/Free_Lunch.pdf</a><br><a href="https://monkeysayhi.github.io/2017/12/28/%E4%B8%80%E6%96%87%E8%A7%A3%E5%86%B3%E5%86%85%E5%AD%98%E5%B1%8F%E9%9A%9C/" target="_blank" rel="noopener">https://monkeysayhi.github.io/2017/12/28/%E4%B8%80%E6%96%87%E8%A7%A3%E5%86%B3%E5%86%85%E5%AD%98%E5%B1%8F%E9%9A%9C/</a><br><a href="https://stackoverflow.com/questions/50307693/does-an-x86-cpu-reorder-instructions" target="_blank" rel="noopener">https://stackoverflow.com/questions/50307693/does-an-x86-cpu-reorder-instructions</a></p>
+
+    </div>
+
+    
+    
+    
+        
+
+<div>
+<ul class="post-copyright">
+  <li class="post-copyright-author">
+    <strong>Post author:  </strong>zhy
+  </li>
+  <li class="post-copyright-link">
+    <strong>Post link: </strong>
+    <a href="https://blog.lovezhy.cc/2020/03/09/搞懂内存屏障-CPU重排序/" title="搞懂内存屏障-CPU重排序">https://blog.lovezhy.cc/2020/03/09/搞懂内存屏障-CPU重排序/</a>
+  </li>
+  <li class="post-copyright-license">
+    <strong>Copyright Notice:  </strong>All articles in this blog are licensed under <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" rel="noopener" target="_blank"><i class="fa fa-fw fa-creative-commons"></i>BY-NC-SA</a> unless stating additionally.
+  </li>
+</ul>
+</div>
+
+        
+
+  <div class="followme">
+    <p>Welcome to my other publishing channels</p>
+
+    <div class="social-list">
+
+            <div class="social-item">
+              <a target="_blank" class="social-link" href="/atom.xml">
+                <span class="icon">
+                  <i class="fa fa-rss"></i>
+                </span>
+
+                <span class="label">RSS</span>
+              </a>
+            </div>
+    </div>
+  </div>
+
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/内存屏障/" rel="tag"># 内存屏障</a>
+              <a href="/tags/CPU重排序/" rel="tag"># CPU重排序</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2020/03/08/volatile和内存屏障/" rel="prev" title="volatile和内存屏障">
+      <i class="fa fa-chevron-left"></i> volatile和内存屏障
+    </a></div>
+      <div class="post-nav-item"></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+    
+  <div class="comments">
+    <div id="disqus_thread">
+      <noscript>Please enable JavaScript to view the comments powered by Disqus.</noscript>
+    </div>
+  </div>
+  
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let activeClass = CONFIG.comments.activeClass;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#CPU的执行"><span class="nav-number">1.</span> <span class="nav-text">CPU的执行</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#流水线"><span class="nav-number">1.1.</span> <span class="nav-text">流水线</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#冒险"><span class="nav-number">1.2.</span> <span class="nav-text">冒险</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Bubble"><span class="nav-number">1.3.</span> <span class="nav-text">Bubble</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#重排序"><span class="nav-number">2.</span> <span class="nav-text">重排序</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#锅是谁的？"><span class="nav-number">3.</span> <span class="nav-text">锅是谁的？</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#真的能观测到CPU的重排序吗"><span class="nav-number">4.</span> <span class="nav-text">真的能观测到CPU的重排序吗</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#反驳一"><span class="nav-number">4.1.</span> <span class="nav-text">反驳一</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#反驳二"><span class="nav-number">4.2.</span> <span class="nav-text">反驳二</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#总结"><span class="nav-number">5.</span> <span class="nav-text">总结</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#参考"><span class="nav-number">6.</span> <span class="nav-text">参考</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">zhy</p>
+  <div class="site-description" itemprop="description">敌视现实</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">73</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">30</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">52</span>
+        <span class="site-state-item-name">tags</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/zhyzhyzhy" title="GitHub → https://github.com/zhyzhyzhy" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:zhuyichen1017@outlook.com" title="E-Mail → mailto:zhuyichen1017@outlook.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+  <div class="beian"><a href="http://www.beian.miit.gov.cn" rel="noopener" target="_blank">苏ICP备15058469号 </a>
+  </div>
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">zhy</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> v3.8.0
+  </div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">Theme – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> v7.7.1
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+<script src="/js/utils.js"></script><script src="/js/motion.js"></script>
+<script src="/js/schemes/pisces.js"></script>
+<script src="/js/next-boot.js"></script>
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+<script>
+  function loadCount() {
+    var d = document, s = d.createElement('script');
+    s.src = 'https://blog-lovezhy-cc-1.disqus.com/count.js';
+    s.id = 'dsq-count-scr';
+    (d.head || d.body).appendChild(s);
+  }
+  // defer loading until the whole page loading is completed
+  window.addEventListener('load', loadCount, false);
+</script>
+<script>
+  var disqus_config = function() {
+    this.page.url = "https://blog.lovezhy.cc/2020/03/09/搞懂内存屏障-CPU重排序/";
+    this.page.identifier = "2020/03/09/搞懂内存屏障-CPU重排序/";
+    this.page.title = "搞懂内存屏障-CPU重排序";
+    };
+  NexT.utils.loadComments(document.querySelector('#disqus_thread'), () => {
+    if (window.DISQUS) {
+      DISQUS.reset({
+        reload: true,
+        config: disqus_config
+      });
+    } else {
+      var d = document, s = d.createElement('script');
+      s.src = 'https://blog-lovezhy-cc-1.disqus.com/embed.js';
+      s.setAttribute('data-timestamp', '' + +new Date());
+      (d.head || d.body).appendChild(s);
+    }
+  });
+</script>
+
+</body>
+</html>
