@@ -48,18 +48,18 @@
   };
 </script>
 
-  <meta name="description" content="前言事实上，我很多次以为我懂了volatile的原理，最终都是错误的。关于重排序，CPU，缓存一致性，内存可见性的话题，其实非常复杂。 这篇文章较为混乱，较为详细的可以看笔者的一个系列： 搞懂内存屏障-CPU重排序) 搞懂内存屏障-CPU的演进) 搞懂内存屏障-指令与JMM)">
+  <meta name="description" content="前言事实上，我很多次以为我懂了volatile的原理，最终都是错误的。关于重排序，CPU，缓存一致性，内存可见性的话题，其实非常复杂。 这篇文章较为混乱，较为详细的可以看笔者的一个系列： 搞懂内存屏障-CPU重排序 搞懂内存屏障-CPU的演进 搞懂内存屏障-指令与JMM">
 <meta name="keywords" content="内存屏障,volatile">
 <meta property="og:type" content="article">
 <meta property="og:title" content="volatile和内存屏障">
 <meta property="og:url" content="https://blog.lovezhy.cc/2020/03/08/volatile和内存屏障/index.html">
 <meta property="og:site_name" content="LoveZhy">
-<meta property="og:description" content="前言事实上，我很多次以为我懂了volatile的原理，最终都是错误的。关于重排序，CPU，缓存一致性，内存可见性的话题，其实非常复杂。 这篇文章较为混乱，较为详细的可以看笔者的一个系列： 搞懂内存屏障-CPU重排序) 搞懂内存屏障-CPU的演进) 搞懂内存屏障-指令与JMM)">
+<meta property="og:description" content="前言事实上，我很多次以为我懂了volatile的原理，最终都是错误的。关于重排序，CPU，缓存一致性，内存可见性的话题，其实非常复杂。 这篇文章较为混乱，较为详细的可以看笔者的一个系列： 搞懂内存屏障-CPU重排序 搞懂内存屏障-CPU的演进 搞懂内存屏障-指令与JMM">
 <meta property="og:locale" content="zh-cn">
-<meta property="og:updated_time" content="2020-03-14T14:55:13.703Z">
+<meta property="og:updated_time" content="2020-03-14T15:04:57.467Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="volatile和内存屏障">
-<meta name="twitter:description" content="前言事实上，我很多次以为我懂了volatile的原理，最终都是错误的。关于重排序，CPU，缓存一致性，内存可见性的话题，其实非常复杂。 这篇文章较为混乱，较为详细的可以看笔者的一个系列： 搞懂内存屏障-CPU重排序) 搞懂内存屏障-CPU的演进) 搞懂内存屏障-指令与JMM)">
+<meta name="twitter:description" content="前言事实上，我很多次以为我懂了volatile的原理，最终都是错误的。关于重排序，CPU，缓存一致性，内存可见性的话题，其实非常复杂。 这篇文章较为混乱，较为详细的可以看笔者的一个系列： 搞懂内存屏障-CPU重排序 搞懂内存屏障-CPU的演进 搞懂内存屏障-指令与JMM">
 
 <link rel="canonical" href="https://blog.lovezhy.cc/2020/03/08/volatile和内存屏障/">
 
@@ -251,7 +251,7 @@
                   <i class="fa fa-calendar-check-o"></i>
                 </span>
                 <span class="post-meta-item-text">Edited on</span>
-                <time title="Modified: 2020-03-14 22:55:13" itemprop="dateModified" datetime="2020-03-14T22:55:13+08:00">2020-03-14</time>
+                <time title="Modified: 2020-03-14 23:04:57" itemprop="dateModified" datetime="2020-03-14T23:04:57+08:00">2020-03-14</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -292,10 +292,9 @@
       
         <h1 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h1><p>事实上，我很多次以为我懂了volatile的原理，最终都是错误的。<br>关于重排序，CPU，缓存一致性，内存可见性的话题，其实非常复杂。</p>
 <p>这篇文章较为混乱，较为详细的可以看笔者的一个系列：</p>
-<p><a href="[https://blog.lovezhy.cc/2020/03/09/%E6%90%9E%E6%87%82%E5%86%85%E5%AD%98%E5%B1%8F%E9%9A%9C-CPU%E9%87%8D%E6%8E%92%E5%BA%8F/](https://blog.lovezhy.cc/2020/03/09/搞懂内存屏障-CPU重排序/">搞懂内存屏障-CPU重排序</a>)</p>
-<p><a href="[https://blog.lovezhy.cc/2020/03/14/%E6%90%9E%E6%87%82%E5%86%85%E5%AD%98%E5%B1%8F%E9%9A%9C-CPU%E7%9A%84%E6%BC%94%E8%BF%9B/](https://blog.lovezhy.cc/2020/03/14/搞懂内存屏障-CPU的演进/">搞懂内存屏障-CPU的演进</a>)</p>
-<p><a href="[https://blog.lovezhy.cc/2020/03/14/%E6%90%9E%E6%87%82%E5%86%85%E5%AD%98%E5%B1%8F%E9%9A%9C-%E6%8C%87%E4%BB%A4%E4%B8%8EJMM/](https://blog.lovezhy.cc/2020/03/14/搞懂内存屏障-指令与JMM/">搞懂内存屏障-指令与JMM</a>)</p>
-<a id="more"></a>
+<p><a href="https://blog.lovezhy.cc/2020/03/09/%E6%90%9E%E6%87%82%E5%86%85%E5%AD%98%E5%B1%8F%E9%9A%9C-CPU%E9%87%8D%E6%8E%92%E5%BA%8F/">搞懂内存屏障-CPU重排序</a></p>
+<p><a href="https://blog.lovezhy.cc/2020/03/14/%E6%90%9E%E6%87%82%E5%86%85%E5%AD%98%E5%B1%8F%E9%9A%9C-CPU%E7%9A%84%E6%BC%94%E8%BF%9B/">搞懂内存屏障-CPU的演进</a></p>
+<p><a href="https://blog.lovezhy.cc/2020/03/14/%E6%90%9E%E6%87%82%E5%86%85%E5%AD%98%E5%B1%8F%E9%9A%9C-%E6%8C%87%E4%BB%A4%E4%B8%8EJMM/">搞懂内存屏障-指令与JMM</a><br><a id="more"></a></p>
 <p>很多文章提到的关于volatile的例子：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">int</span> data[<span class="number">5</span>] = &#123; <span class="number">9</span>, <span class="number">9</span>, <span class="number">9</span>, <span class="number">9</span>, <span class="number">9</span> &#125;;</span><br><span class="line">bool is_ready = <span class="keyword">false</span>;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">init_data</span><span class="params">()</span> </span>&#123;</span><br><span class="line">  <span class="keyword">for</span>( <span class="keyword">int</span> i=<span class="number">0</span>; i &lt; <span class="number">5</span>; ++i )</span><br><span class="line">    data[i] = i;</span><br><span class="line">  is_ready = <span class="keyword">true</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">sum_data</span><span class="params">()</span> </span>&#123;</span><br><span class="line">  <span class="keyword">if</span>( !is_ready )</span><br><span class="line">    <span class="keyword">return</span>;</span><br><span class="line">  <span class="keyword">int</span> sum = <span class="number">0</span>;</span><br><span class="line">  <span class="keyword">for</span>( <span class="keyword">int</span> i=<span class="number">0</span>; i &lt;<span class="number">5</span>; ++i )</span><br><span class="line">    sum += data[i];</span><br><span class="line">  printf( <span class="string">"%d"</span>, sum );</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
 <blockquote>
 <p>如果我们启动两个线程，线程1执行init_data()，另外一个线程不断执行sum_data()<br>正常的结果应该是0+1+2+3+4，但是由于重排序和内存可见性的问题，得到的结果是不一定的。</p>

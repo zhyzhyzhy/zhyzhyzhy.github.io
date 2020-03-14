@@ -2,6 +2,13 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   
   <url>
+    <loc>https://blog.lovezhy.cc/2020/03/08/volatile%E5%92%8C%E5%86%85%E5%AD%98%E5%B1%8F%E9%9A%9C/</loc>
+    
+    <lastmod>2020-03-14T15:04:57.467Z</lastmod>
+    
+  </url>
+  
+  <url>
     <loc>https://blog.lovezhy.cc/2019/11/08/%E7%BB%99RedisTemplate%E6%8F%92%E5%85%A5Cat%E6%89%93%E7%82%B9/</loc>
     
     <lastmod>2020-03-14T14:57:53.851Z</lastmod>
@@ -33,13 +40,6 @@
     <loc>https://blog.lovezhy.cc/2020/03/14/%E6%90%9E%E6%87%82%E5%86%85%E5%AD%98%E5%B1%8F%E9%9A%9C-%E6%8C%87%E4%BB%A4%E4%B8%8EJMM/</loc>
     
     <lastmod>2020-03-14T14:55:25.770Z</lastmod>
-    
-  </url>
-  
-  <url>
-    <loc>https://blog.lovezhy.cc/2020/03/08/volatile%E5%92%8C%E5%86%85%E5%AD%98%E5%B1%8F%E9%9A%9C/</loc>
-    
-    <lastmod>2020-03-14T14:55:13.703Z</lastmod>
     
   </url>
   
