@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 3.8.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+  <meta name="google-site-verification" content="wE7ISC42t3QOT-S-gdbdy_XsP3NB23Xi3alKNWXd0dA">
+  <meta name="baidu-site-verification" content="keFN8E7jd3">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="//fonts.googleapis.com/css?family=Operator Mono:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    hostname: new URL('https://blog.lovezhy.cc').hostname,
+    root: '/',
+    scheme: 'Gemini',
+    version: '7.7.1',
+    exturl: false,
+    sidebar: {"position":"right","display":"always","padding":18,"offset":12,"onmobile":false},
+    copycode: {"enable":true,"show_result":true,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    comments: {"style":"tabs","active":"disqus","storage":true,"lazyload":false,"nav":null,"activeClass":"disqus"},
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: 'search.xml',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}
+  };
+</script>
+
+  <meta name="description" content="前面讲了CPU的演进，提出了StoreBuffer和InvalidateQueue的设计，并且讲解了这两个设计会带来的问题。解决这两个问题就是引入内存屏障：强制刷新StoreBuffer和InvalidateQueue。 这里详细讲讲x86机器上的内存屏障指令与其他隐式的含有内存屏障的指令。然后再聊一聊JMM与内存屏障的对应关系。">
+<meta name="keywords" content="内存屏障">
+<meta property="og:type" content="article">
+<meta property="og:title" content="搞懂内存屏障-指令与JMM">
+<meta property="og:url" content="https://blog.lovezhy.cc/2020/03/14/搞懂内存屏障-指令与JMM/index.html">
+<meta property="og:site_name" content="LoveZhy">
+<meta property="og:description" content="前面讲了CPU的演进，提出了StoreBuffer和InvalidateQueue的设计，并且讲解了这两个设计会带来的问题。解决这两个问题就是引入内存屏障：强制刷新StoreBuffer和InvalidateQueue。 这里详细讲讲x86机器上的内存屏障指令与其他隐式的含有内存屏障的指令。然后再聊一聊JMM与内存屏障的对应关系。">
+<meta property="og:locale" content="zh-cn">
+<meta property="og:image" content="https://blog.lovezhy.cc/images/搞定内存屏障-指令与JMM/1.png">
+<meta property="og:image" content="https://blog.lovezhy.cc/images/搞定内存屏障-指令与JMM/2.png">
+<meta property="og:updated_time" content="2020-03-14T07:33:38.808Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="搞懂内存屏障-指令与JMM">
+<meta name="twitter:description" content="前面讲了CPU的演进，提出了StoreBuffer和InvalidateQueue的设计，并且讲解了这两个设计会带来的问题。解决这两个问题就是引入内存屏障：强制刷新StoreBuffer和InvalidateQueue。 这里详细讲讲x86机器上的内存屏障指令与其他隐式的含有内存屏障的指令。然后再聊一聊JMM与内存屏障的对应关系。">
+<meta name="twitter:image" content="https://blog.lovezhy.cc/images/搞定内存屏障-指令与JMM/1.png">
+
+<link rel="canonical" href="https://blog.lovezhy.cc/2020/03/14/搞懂内存屏障-指令与JMM/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true
+  };
+</script>
+
+  <title>搞懂内存屏障-指令与JMM | LoveZhy</title>
+  
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-125642214-1"></script>
+    <script>
+      if (CONFIG.hostname === location.hostname) {
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'UA-125642214-1');
+      }
+    </script>
+
+
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?c1f963571cb3d8a4a5dc82346dc65842";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+<link rel="alternate" href="/atom.xml" title="LoveZhy" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">LoveZhy</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+  </div>
+
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-fw fa-user"></i>About</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>Tags</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>Categories</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>Archives</a>
+
+  </li>
+        <li class="menu-item menu-item-sitemap">
+
+    <a href="/sitemap.xml" rel="section"><i class="fa fa-fw fa-sitemap"></i>Sitemap</a>
+
+  </li>
+        <li class="menu-item menu-item-movie">
+
+    <a href="/movies/index.html" rel="section"><i class="fa fa-fw fa-film"></i>movie</a>
+
+  </li>
+        <li class="menu-item menu-item-books">
+
+    <a href="/books/index.html" rel="section"><i class="fa fa-fw fa-book"></i>books</a>
+
+  </li>
+  </ul>
+
+</nav>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope="" itemtype="http://schema.org/Article" class="post-block " lang="zh-cn">
+    <link itemprop="mainEntityOfPage" href="https://blog.lovezhy.cc/2020/03/14/搞懂内存屏障-指令与JMM/">
+
+    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="zhy">
+      <meta itemprop="description" content="敌视现实">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="LoveZhy">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          搞懂内存屏障-指令与JMM
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+              
+
+              <time title="Created: 2020-03-14 00:00:00 / Modified: 15:33:38" itemprop="dateCreated datePublished" datetime="2020-03-14T00:00:00+08:00">2020-03-14</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
+                  <a href="/categories/刨根究底/" itemprop="url" rel="index">
+                    <span itemprop="name">刨根究底</span>
+                  </a>
+                </span>
+            </span>
+
+          
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="fa fa-comment-o"></i>
+      </span>
+      <span class="post-meta-item-text">Disqus: </span>
+    
+    <a title="disqus" href="/2020/03/14/搞懂内存屏障-指令与JMM/#disqus_thread" itemprop="discussionUrl">
+      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2020/03/14/搞懂内存屏障-指令与JMM/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>前面讲了CPU的演进，提出了StoreBuffer和InvalidateQueue的设计，并且讲解了这两个设计会带来的问题。<br>解决这两个问题就是引入内存屏障：强制刷新StoreBuffer和InvalidateQueue。</p>
+<p>这里详细讲讲x86机器上的内存屏障指令与其他隐式的含有内存屏障的指令。<br>然后再聊一聊JMM与内存屏障的对应关系。</p>
+<a id="more"></a>
+<h1 id="x86与内存屏障"><a href="#x86与内存屏障" class="headerlink" title="x86与内存屏障"></a>x86与内存屏障</h1><p>前面提到的StoreBuffer和InvalidateQueue并不是所有的CPU都会去实现。<br>其中x86的机器上，遵循的内存一致性协议叫TSO协议。<br>在这个协议中，有个叫WriteBuffer的东西，就是对应StoreBuffer。<br>但是并没有InvalidateQueue的存在。</p>
+<h1 id="内存屏障指令集"><a href="#内存屏障指令集" class="headerlink" title="内存屏障指令集"></a>内存屏障指令集</h1><p>上文中，提到了三个内存屏障的指令：</p>
+<ol>
+<li>lfence()：读屏障</li>
+<li>sfence()：写屏障</li>
+<li>mfence()：读写屏障</li>
+</ol>
+<p>那么在代码中是怎么定义的呢：<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">define</span> barrier() __asm__ __volatile__(<span class="meta-string">""</span>: : :<span class="meta-string">"memory"</span>) </span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> mb() alternative(<span class="meta-string">"lock; addl $0,0(%%esp)"</span>, <span class="meta-string">"mfence"</span>, X86_FEATURE_XMM2) </span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> rmb() alternative(<span class="meta-string">"lock; addl $0,0(%%esp)"</span>, <span class="meta-string">"lfence"</span>, X86_FEATURE_XMM2)</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> wmb() alternative(<span class="meta-string">"lock; addl $0,0(%%esp)"</span>, <span class="meta-string">"sfence"</span>, X86_FEATURE_XMM)   </span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">ifdef</span> CONFIG_SMP </span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> smp_mb() mb() </span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> smp_rmb() rmb() </span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> smp_wmb() wmb() </span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> smp_read_barrier_depends() read_barrier_depends() </span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> set_mb(var, value) do &#123; (void) xchg(&amp;var, value); &#125; while (0) </span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">else</span> </span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> smp_mb() barrier() </span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> smp_rmb() barrier() </span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> smp_wmb() barrier() </span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> smp_read_barrier_depends() do &#123; &#125; while(0) </span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> set_mb(var, value) do &#123; var = value; barrier(); &#125; while (0) </span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></span><br></pre></td></tr></table></figure></p>
+<p>首先来看barrirer()的定义，这个是禁止编译器进行重排序的。<br>具体的解释可以参考笔者的另外一个文章：<a href="https://blog.lovezhy.cc/2020/03/08/volatile%E5%92%8C%E5%86%85%E5%AD%98%E5%B1%8F%E9%9A%9C/">volatile和内存屏障</a></p>
+<p>然后我们看CONFIG_SMP，如果定义了这个，说明该机器上不止一个Core，否则就是单核心的机器。<br>在单核心的机器上，所有的CPU的内存屏障指令都是空指令，只有禁止编译器重排序的作用。<br>这个也好理解，就不多做解释了。</p>
+<p>而在多核心的机器上，分别定义了:</p>
+<ol>
+<li>smp_mb()：读写屏障</li>
+<li>smp_rmb()：读屏障</li>
+<li>smp_wmb()：写屏障</li>
+</ol>
+<p>同时我们看具体的实现，也就是用到了我们上面提到了lfence，sfence，mfence。</p>
+<p>但是我们再仔细看看这句话：<br><code>#define rmb() alternative(&quot;lock; addl $0,0(%%esp)&quot;, &quot;lfence&quot;, X86_FEATURE_XMM2)</code></p>
+<p>如果CPU没有lfence指令，那么就用<code>lock; addl $0,0(%%esp)</code>代替。<br>为什么？难道<code>lock; addl $0,0(%%esp)</code>也能有内存屏障的语义吗？</p>
+<p>是的！<br>除了fence指令，还有很多的其他的指令也隐藏了内存屏障的语义。<br>下面笔者来总结一下：</p>
+<h2 id="常见的三种"><a href="#常见的三种" class="headerlink" title="常见的三种"></a>常见的三种</h2><p>x86/64系统架构提供了三种多核的内存屏障指令：(1) sfence; (2) lfence; (3) mfence</p>
+<ol>
+<li>sfence：在sfence指令前的写操作当必须在sfence指令后的写操作前完成。</li>
+<li>lfence：在lfence指令前的读操作当必须在lfence指令后的读操作前完成。</li>
+<li>mfence：在mfence指令前的读写操作当必须在mfence指令后的读写操作前完成。</li>
+</ol>
+<p>其实总结起来就是读屏障，写屏障，读写屏障。</p>
+<p>上述的是显式的会起到内存屏障作用的指令，但是还有许多指令带有异常的内存屏障的作用。</p>
+<h2 id="MMIO写屏障"><a href="#MMIO写屏障" class="headerlink" title="MMIO写屏障"></a>MMIO写屏障</h2><p>Linux 内核有一个专门用于 MMIO 写的屏障：<br><code>mmiowb()</code><br>笔者也不熟悉这个的作用，后续再补上</p>
+<h2 id="隐藏的内存屏障"><a href="#隐藏的内存屏障" class="headerlink" title="隐藏的内存屏障"></a>隐藏的内存屏障</h2><p>Linux 内核中一些锁或者调度函数暗含了内存屏障。</p>
+<p>锁函数：</p>
+<ul>
+<li>spin locks</li>
+<li>R/W spin locks</li>
+<li>mutexes</li>
+<li>semaphores</li>
+<li>R/W semaphores</li>
+</ul>
+<p>中断禁止函数：<br>启动或禁止终端的函数的作用仅仅是作为编译器屏障，所以要使用内存或者 I/O 屏障 的场合，必须用别的函数。</p>
+<p>SLEEP和WAKE-UP以及其它调度函数：<br>使用 SLEEP 和 WAKE-UP 函数时要改变 task 的状态标志，这需要使用合适的内存屏 障保证修改的顺序。</p>
+<h1 id="JMM"><a href="#JMM" class="headerlink" title="JMM"></a>JMM</h1><p>在JMM中，定义了4中内存可见性语义：</p>
+<ol>
+<li>LoadLoad</li>
+<li>LoadStore</li>
+<li>StoreStore</li>
+<li>StoreLoad</li>
+</ol>
+<p>但是这些指令对应到x86的机器上，并不是都需要实现的。<br>因为x86的核心问题是有StoreBuffer，一个值被Core0写入了StoreBuffer，另外一个Core可能读不到最新的值，除非Flush StoreBuffer。所以StoreLoad语义需要内存屏障来维持。</p>
+<p>例如以下的例子：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">foo</span><span class="params">(<span class="keyword">void</span>)</span> </span>&#123;</span><br><span class="line">    x=<span class="number">1</span>;  <span class="comment">//S1</span></span><br><span class="line">    r1=y;  <span class="comment">//S2</span></span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">bar</span><span class="params">(<span class="keyword">void</span>)</span> </span>&#123;</span><br><span class="line">    y=<span class="number">1</span>;  <span class="comment">//L1</span></span><br><span class="line">    r2=x;<span class="comment">//L2</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>在这个例子中，如果没有内存屏障，Core0执行foo，Core1执行bar，则r1和r2可能出现同时为0的情况。</p>
+<p>再具体的这个文章讲的很好：<a href="https://zhuanlan.zhihu.com/p/81555436" target="_blank" rel="noopener">为什么在 x86 架构下只有 StoreLoad 屏障是有效指令？</a></p>
+<h2 id="更具体的例子"><a href="#更具体的例子" class="headerlink" title="更具体的例子"></a>更具体的例子</h2><p>下面我们看看代码，经过JIT编译后的指令<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">static</span> <span class="keyword">int</span> a = <span class="number">0</span>;</span><br><span class="line"><span class="keyword">static</span> <span class="keyword">int</span> b = <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; <span class="number">10000</span>; i++) &#123;</span><br><span class="line">        add();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">add</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; <span class="number">100</span>; i++) &#123;</span><br><span class="line">        a++;</span><br><span class="line">        b += <span class="number">2</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如果a没有被volatile修饰：<br><img src="/images/搞定内存屏障-指令与JMM/1.png" alt="image-20200314152942448"><br>可以看到a和b的操作分别对应：<br><code>inc %r9d</code><br><code>add $0x2, %r9d</code><br>中间没有任何内存屏障的指令</p>
+<p>如果我们加上volatile修饰呢？<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">static</span> <span class="keyword">volatile</span> <span class="keyword">int</span> a = <span class="number">0</span>;</span><br><span class="line"><span class="keyword">static</span> <span class="keyword">volatile</span> <span class="keyword">int</span> b = <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; <span class="number">10000</span>; i++) &#123;</span><br><span class="line">        add();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">add</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; <span class="number">100</span>; i++) &#123;</span><br><span class="line">        a++;</span><br><span class="line">        b += <span class="number">2</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p><img src="/images/搞定内存屏障-指令与JMM/2.png" alt="image-20200314153303884"><br>可以很明显的看到两个<code>lock</code>指令。</p>
+
+    </div>
+
+    
+    
+    
+        
+
+<div>
+<ul class="post-copyright">
+  <li class="post-copyright-author">
+    <strong>Post author:  </strong>zhy
+  </li>
+  <li class="post-copyright-link">
+    <strong>Post link: </strong>
+    <a href="https://blog.lovezhy.cc/2020/03/14/搞懂内存屏障-指令与JMM/" title="搞懂内存屏障-指令与JMM">https://blog.lovezhy.cc/2020/03/14/搞懂内存屏障-指令与JMM/</a>
+  </li>
+  <li class="post-copyright-license">
+    <strong>Copyright Notice:  </strong>All articles in this blog are licensed under <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" rel="noopener" target="_blank"><i class="fa fa-fw fa-creative-commons"></i>BY-NC-SA</a> unless stating additionally.
+  </li>
+</ul>
+</div>
+
+        
+
+  <div class="followme">
+    <p>Welcome to my other publishing channels</p>
+
+    <div class="social-list">
+
+            <div class="social-item">
+              <a target="_blank" class="social-link" href="/atom.xml">
+                <span class="icon">
+                  <i class="fa fa-rss"></i>
+                </span>
+
+                <span class="label">RSS</span>
+              </a>
+            </div>
+    </div>
+  </div>
+
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/内存屏障/" rel="tag"># 内存屏障</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2020/03/14/搞懂内存屏障-CPU的演进/" rel="prev" title="搞懂内存屏障-CPU的演进">
+      <i class="fa fa-chevron-left"></i> 搞懂内存屏障-CPU的演进
+    </a></div>
+      <div class="post-nav-item"></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+    
+  <div class="comments">
+    <div id="disqus_thread">
+      <noscript>Please enable JavaScript to view the comments powered by Disqus.</noscript>
+    </div>
+  </div>
+  
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let activeClass = CONFIG.comments.activeClass;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#x86与内存屏障"><span class="nav-number">1.</span> <span class="nav-text">x86与内存屏障</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#内存屏障指令集"><span class="nav-number">2.</span> <span class="nav-text">内存屏障指令集</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#常见的三种"><span class="nav-number">2.1.</span> <span class="nav-text">常见的三种</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#MMIO写屏障"><span class="nav-number">2.2.</span> <span class="nav-text">MMIO写屏障</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#隐藏的内存屏障"><span class="nav-number">2.3.</span> <span class="nav-text">隐藏的内存屏障</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#JMM"><span class="nav-number">3.</span> <span class="nav-text">JMM</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#更具体的例子"><span class="nav-number">3.1.</span> <span class="nav-text">更具体的例子</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">zhy</p>
+  <div class="site-description" itemprop="description">敌视现实</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">75</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">30</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">52</span>
+        <span class="site-state-item-name">tags</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/zhyzhyzhy" title="GitHub → https://github.com/zhyzhyzhy" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:zhuyichen1017@outlook.com" title="E-Mail → mailto:zhuyichen1017@outlook.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+  <div class="beian"><a href="http://www.beian.miit.gov.cn" rel="noopener" target="_blank">苏ICP备15058469号 </a>
+  </div>
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">zhy</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> v3.8.0
+  </div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">Theme – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> v7.7.1
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+<script src="/js/utils.js"></script><script src="/js/motion.js"></script>
+<script src="/js/schemes/pisces.js"></script>
+<script src="/js/next-boot.js"></script>
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+<script>
+  function loadCount() {
+    var d = document, s = d.createElement('script');
+    s.src = 'https://blog-lovezhy-cc-1.disqus.com/count.js';
+    s.id = 'dsq-count-scr';
+    (d.head || d.body).appendChild(s);
+  }
+  // defer loading until the whole page loading is completed
+  window.addEventListener('load', loadCount, false);
+</script>
+<script>
+  var disqus_config = function() {
+    this.page.url = "https://blog.lovezhy.cc/2020/03/14/搞懂内存屏障-指令与JMM/";
+    this.page.identifier = "2020/03/14/搞懂内存屏障-指令与JMM/";
+    this.page.title = "搞懂内存屏障-指令与JMM";
+    };
+  NexT.utils.loadComments(document.querySelector('#disqus_thread'), () => {
+    if (window.DISQUS) {
+      DISQUS.reset({
+        reload: true,
+        config: disqus_config
+      });
+    } else {
+      var d = document, s = d.createElement('script');
+      s.src = 'https://blog-lovezhy-cc-1.disqus.com/embed.js';
+      s.setAttribute('data-timestamp', '' + +new Date());
+      (d.head || d.body).appendChild(s);
+    }
+  });
+</script>
+
+</body>
+</html>

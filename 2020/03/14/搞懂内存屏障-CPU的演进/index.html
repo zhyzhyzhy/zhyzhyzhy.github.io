@@ -61,7 +61,7 @@
 <meta property="og:image" content="https://blog.lovezhy.cc/images/cpu演进/3.png">
 <meta property="og:image" content="https://blog.lovezhy.cc/images/cpu演进/4.png">
 <meta property="og:image" content="https://blog.lovezhy.cc/images/cpu演进/5.png">
-<meta property="og:updated_time" content="2020-03-14T06:17:43.087Z">
+<meta property="og:updated_time" content="2020-03-14T06:56:23.069Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="搞懂内存屏障-CPU的演进">
 <meta name="twitter:description" content="内存屏障是随着SMP系统的出现而出现的，也就意味着在单核的机器上，不需要任何的内存屏障。 所以要想理解内存屏障的意义，我们需要知道CPU从单核到多核，究竟修改了什么，需要我们引入内存屏障">
@@ -251,7 +251,7 @@
               <span class="post-meta-item-text">Posted on</span>
               
 
-              <time title="Created: 2020-03-14 00:00:00 / Modified: 14:17:43" itemprop="dateCreated datePublished" datetime="2020-03-14T00:00:00+08:00">2020-03-14</time>
+              <time title="Created: 2020-03-14 00:00:00 / Modified: 14:56:23" itemprop="dateCreated datePublished" datetime="2020-03-14T00:00:00+08:00">2020-03-14</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -327,9 +327,9 @@
 <p>说到这里你可以明白了MESI大致的作用：<br>当某个核心想要修改某个CacheLine的数据时，由于该CacheLine可能也在其他的核心中，所以必须要发消息给其他的核心，先移除对应的CacheLine。<br>同时，如果其他的核心有对应的CacheLine，必须先从自己的Cache中移除。以免自己读到已经被修改过的数据。</p>
 <p>具体的操作流程有点复杂，估计读者也没耐心读完，这里就略过了。<br>想要详细了解的可以阅读本文的参考文章。</p>
 <h1 id="StoreBuffer和InvalidaQueue"><a href="#StoreBuffer和InvalidaQueue" class="headerlink" title="StoreBuffer和InvalidaQueue"></a>StoreBuffer和InvalidaQueue</h1><p>有了MESI协议，Cache还是派的上用场，但是每次写入都得通知其他的核心，同时接收到其他核心的写入，还得把自己的那部分CacheLine失效。<br>必然会拖慢很多的性能。</p>
-<p>比如说，当Core0想要修改a的值，但是发现a并不在CacheLine中，或者在CacheLine中，是Shared状态，这个时候他并不能直接修改a的值，他需要发消息给他的Core Invalidate这部分CacheLine，等所有的Core返回Ack的时候，他才能修改。<br>这部分时间cpu属于Stall状态。<br>那怎么办呢？<br>于是在写入Cache前，加入了一个Store Buffer。<br><img src="/images/cpu演进/4.png" alt=""></p>
-<p>当需要写入一个值的时候，如果这个值的CacheLine并不在当前核心，或者该CacheLine并不是Modified或者Exclusive状态，先写入StoreBuffer，等其他的CPU的Ack到来时候，在把StoreBuffer中的值写入Cache。<br>同时，由于对该核心而言，一个值可能已经被修改了，但是并不在Cache中，而是在StoreBuffer中，所以读取的时候，以StoreBuffer的为准。</p>
-<p>除了写入一个值时，需要进行等待，当收到Invalidate请求时，CPU也得放下手中的活，把CacheLine删除发送Ack才能继续。<br>这部分时间能不能缩减呢？<br>我们引入InvalidateQueue。<br><img src="/images/cpu演进/5.png" alt=""><br>当接收到其他的Invalidate请求是，我们将请求放在InvalidateQueue中，并立马返回Ack。</p>
+<p>比如说，当Core0想要修改a的值，但是发现a并不在CacheLine中，或者在CacheLine中，是Shared状态，这个时候他并不能直接修改a的值，他需要发消息给其他的Core， Invalidate这部分CacheLine，等所有的Core返回Ack的时候，他才能修改。<br>这部分时间cpu属于Stall状态。<br>那怎么办呢？<br>于是在写入Cache前，加入了一个Store Buffer。<br><img src="/images/cpu演进/4.png" alt=""></p>
+<p>当需要写入一个值的时候，如果这个值的CacheLine并不在当前核心，或者该CacheLine并不是Modified或者Exclusive状态，先写入StoreBuffer，等其他的CPU的Ack到来时候，再择机把StoreBuffer中的值写入Cache。<br>同时，由于对该核心而言，一个值可能已经被修改了，但是并不在Cache中，而是在StoreBuffer中，所以读取的时候，以StoreBuffer的为准。</p>
+<p>除了写入一个值时，需要进行等待，当收到Invalidate请求时，CPU也得放下手中的活，把CacheLine删除发送Ack才能继续。<br>这部分时间能不能缩减呢？<br>我们引入InvalidateQueue。<br><img src="/images/cpu演进/5.png" alt=""><br>当接收到其他的Invalidate请求时，我们将请求放在InvalidateQueue中，并立马返回Ack。<br>再择机把InvalidateQueue中标志到的需要失效的CacheLine移除。</p>
 <h1 id="StoreBuffer导致的问题"><a href="#StoreBuffer导致的问题" class="headerlink" title="StoreBuffer导致的问题"></a>StoreBuffer导致的问题</h1><p>我们首先看一段代码：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">foo</span><span class="params">(<span class="keyword">void</span>)</span> </span>&#123;</span><br><span class="line">    a=<span class="number">1</span>;  <span class="comment">//S1</span></span><br><span class="line">    b=<span class="number">1</span>;  <span class="comment">//S2</span></span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">bar</span><span class="params">(<span class="keyword">void</span>)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">while</span> (b == <span class="number">0</span>) <span class="keyword">continue</span>;  <span class="comment">//L1</span></span><br><span class="line">    <span class="keyword">assert</span>(a == <span class="number">1</span>);           <span class="comment">//L2</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
 <p>如果CPU0执行foo函数，CPU1执行bar函数。<br>同时a的值所在的CacheLine并不在CPU0中，b的值所在的CacheLine在CPU0中，并且是Exlusive状态。</p>
 <ol>
@@ -341,7 +341,7 @@
 <li>CPU1执行L2，a在CacheLine中并且是0，assert fail</li>
 <li>CPU1得到第1步的Read Validate消息，把a所在的CacheLine移除。</li>
 </ol>
-<p>步骤有点复杂，简单讲就是，需要耐心阅读。<br>核心就是第1步的Read Validate消息，CPU1延迟到第7步才收到。</p>
+<p>步骤有点复杂，需要耐心阅读。<br>核心就是第1步的Read Validate消息，CPU1延迟到第7步才收到。</p>
 <p>那怎么避免这种情况呢？<br>我们能不能让StoreBuffer退化到没有之前的流程？<br>也就是把第一步中的操作中，写入StoreBuffer后，不允许执行后续的操作，直到收到Validate Ack消息。<br>于是我们引入sfence()函数，遇到这个函数时，必须等到所有的Validate Ack，并且把StoreBuffer全部Flush到Cache，清空StoreBuffer。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">foo</span><span class="params">(<span class="keyword">void</span>)</span> </span>&#123;</span><br><span class="line">    a=<span class="number">1</span>;  <span class="comment">//S1</span></span><br><span class="line">    sfence();</span><br><span class="line">    b=<span class="number">1</span>;  <span class="comment">//S2</span></span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">bar</span><span class="params">(<span class="keyword">void</span>)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">while</span> (b == <span class="number">0</span>) <span class="keyword">continue</span>;  <span class="comment">//L1</span></span><br><span class="line">    <span class="keyword">assert</span>(a == <span class="number">1</span>);           <span class="comment">//L2</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
 <h1 id="InvalidateQueue导致的问题"><a href="#InvalidateQueue导致的问题" class="headerlink" title="InvalidateQueue导致的问题"></a>InvalidateQueue导致的问题</h1><p>还是看这段代码：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">foo</span><span class="params">(<span class="keyword">void</span>)</span> </span>&#123;</span><br><span class="line">    a=<span class="number">1</span>;  <span class="comment">//S1</span></span><br><span class="line">    sfence();</span><br><span class="line">    b=<span class="number">1</span>;  <span class="comment">//S2</span></span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">bar</span><span class="params">(<span class="keyword">void</span>)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">while</span> (b == <span class="number">0</span>) <span class="keyword">continue</span>;  <span class="comment">//L1</span></span><br><span class="line">    <span class="keyword">assert</span>(a == <span class="number">1</span>);           <span class="comment">//L2</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
 <p>InvalidateQueue导致的就是，将CacheLine的移除时机变得不可确定。即使这个指示需要移除该CacheLine的Invalidate消息已经在InvalidateQueue中了，CPU还是会可能会从自己的Cache中读到旧的值。</p>
@@ -406,7 +406,10 @@
     <a href="/2020/03/09/搞懂内存屏障-CPU重排序/" rel="prev" title="搞懂内存屏障-CPU重排序">
       <i class="fa fa-chevron-left"></i> 搞懂内存屏障-CPU重排序
     </a></div>
-      <div class="post-nav-item"></div>
+      <div class="post-nav-item">
+    <a href="/2020/03/14/搞懂内存屏障-指令与JMM/" rel="next" title="搞懂内存屏障-指令与JMM">
+      搞懂内存屏障-指令与JMM <i class="fa fa-chevron-right"></i>
+    </a></div>
     </div>
       </footer>
     
@@ -487,7 +490,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">74</span>
+          <span class="site-state-item-count">75</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
