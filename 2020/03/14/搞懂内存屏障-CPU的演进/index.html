@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 3.8.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+  <meta name="google-site-verification" content="wE7ISC42t3QOT-S-gdbdy_XsP3NB23Xi3alKNWXd0dA">
+  <meta name="baidu-site-verification" content="keFN8E7jd3">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="//fonts.googleapis.com/css?family=Operator Mono:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    hostname: new URL('https://blog.lovezhy.cc').hostname,
+    root: '/',
+    scheme: 'Gemini',
+    version: '7.7.1',
+    exturl: false,
+    sidebar: {"position":"right","display":"always","padding":18,"offset":12,"onmobile":false},
+    copycode: {"enable":true,"show_result":true,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    comments: {"style":"tabs","active":"disqus","storage":true,"lazyload":false,"nav":null,"activeClass":"disqus"},
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: 'search.xml',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}
+  };
+</script>
+
+  <meta name="description" content="内存屏障是随着SMP系统的出现而出现的，也就意味着在单核的机器上，不需要任何的内存屏障。 所以要想理解内存屏障的意义，我们需要知道CPU从单核到多核，究竟修改了什么，需要我们引入内存屏障">
+<meta name="keywords" content="内存屏障">
+<meta property="og:type" content="article">
+<meta property="og:title" content="搞懂内存屏障-CPU的演进">
+<meta property="og:url" content="https://blog.lovezhy.cc/2020/03/14/搞懂内存屏障-CPU的演进/index.html">
+<meta property="og:site_name" content="LoveZhy">
+<meta property="og:description" content="内存屏障是随着SMP系统的出现而出现的，也就意味着在单核的机器上，不需要任何的内存屏障。 所以要想理解内存屏障的意义，我们需要知道CPU从单核到多核，究竟修改了什么，需要我们引入内存屏障">
+<meta property="og:locale" content="zh-cn">
+<meta property="og:image" content="https://blog.lovezhy.cc/images/cpu演进/1.png">
+<meta property="og:image" content="https://blog.lovezhy.cc/images/cpu演进/2.png">
+<meta property="og:image" content="https://blog.lovezhy.cc/images/cpu演进/3.png">
+<meta property="og:image" content="https://blog.lovezhy.cc/images/cpu演进/4.png">
+<meta property="og:image" content="https://blog.lovezhy.cc/images/cpu演进/5.png">
+<meta property="og:updated_time" content="2020-03-14T06:17:43.087Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="搞懂内存屏障-CPU的演进">
+<meta name="twitter:description" content="内存屏障是随着SMP系统的出现而出现的，也就意味着在单核的机器上，不需要任何的内存屏障。 所以要想理解内存屏障的意义，我们需要知道CPU从单核到多核，究竟修改了什么，需要我们引入内存屏障">
+<meta name="twitter:image" content="https://blog.lovezhy.cc/images/cpu演进/1.png">
+
+<link rel="canonical" href="https://blog.lovezhy.cc/2020/03/14/搞懂内存屏障-CPU的演进/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true
+  };
+</script>
+
+  <title>搞懂内存屏障-CPU的演进 | LoveZhy</title>
+  
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-125642214-1"></script>
+    <script>
+      if (CONFIG.hostname === location.hostname) {
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'UA-125642214-1');
+      }
+    </script>
+
+
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?c1f963571cb3d8a4a5dc82346dc65842";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+<link rel="alternate" href="/atom.xml" title="LoveZhy" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">LoveZhy</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+  </div>
+
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-fw fa-user"></i>About</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>Tags</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>Categories</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>Archives</a>
+
+  </li>
+        <li class="menu-item menu-item-sitemap">
+
+    <a href="/sitemap.xml" rel="section"><i class="fa fa-fw fa-sitemap"></i>Sitemap</a>
+
+  </li>
+        <li class="menu-item menu-item-movie">
+
+    <a href="/movies/index.html" rel="section"><i class="fa fa-fw fa-film"></i>movie</a>
+
+  </li>
+        <li class="menu-item menu-item-books">
+
+    <a href="/books/index.html" rel="section"><i class="fa fa-fw fa-book"></i>books</a>
+
+  </li>
+  </ul>
+
+</nav>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope="" itemtype="http://schema.org/Article" class="post-block " lang="zh-cn">
+    <link itemprop="mainEntityOfPage" href="https://blog.lovezhy.cc/2020/03/14/搞懂内存屏障-CPU的演进/">
+
+    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="zhy">
+      <meta itemprop="description" content="敌视现实">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="LoveZhy">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          搞懂内存屏障-CPU的演进
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+              
+
+              <time title="Created: 2020-03-14 00:00:00 / Modified: 14:17:43" itemprop="dateCreated datePublished" datetime="2020-03-14T00:00:00+08:00">2020-03-14</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
+                  <a href="/categories/刨根究底/" itemprop="url" rel="index">
+                    <span itemprop="name">刨根究底</span>
+                  </a>
+                </span>
+            </span>
+
+          
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="fa fa-comment-o"></i>
+      </span>
+      <span class="post-meta-item-text">Disqus: </span>
+    
+    <a title="disqus" href="/2020/03/14/搞懂内存屏障-CPU的演进/#disqus_thread" itemprop="discussionUrl">
+      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2020/03/14/搞懂内存屏障-CPU的演进/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>内存屏障是随着SMP系统的出现而出现的，也就意味着在单核的机器上，不需要任何的内存屏障。</p>
+<p>所以要想理解内存屏障的意义，我们需要知道CPU从单核到多核，究竟修改了什么，需要我们引入内存屏障</p>
+<a id="more"></a>
+<h1 id="单核时代"><a href="#单核时代" class="headerlink" title="单核时代"></a>单核时代</h1><p>如果我们把CPU看做黑盒的话，简单的计算机中，除了CPU负责运算外，还需要存储系统进行存储。这个存储系统就是主存。<br><img src="/images/cpu演进/1.png" alt=""></p>
+<p>但是问题来了，我们知道cpu的速度其实是很快很快的，但是主存的写入和读取的速度过慢，如果这么运行的话，会导致cpu的很多时间都浪费了。</p>
+<p>如果在cpu和主存中间，加入了很多的cache系统，通常来说有L1，L2，L3等。<br><img src="/images/cpu演进/2.png" alt=""><br>cache的速度比主存快的多，这样会大大的提高性能。</p>
+<p>在单核的系统中，当然是没问题的，因为只有一个CPU，所有的读取和写入都是它。<br>虽然一个值可能在主存和Cache中都有，但是都以Cache中的为准就行了。</p>
+<h1 id="多核时代"><a href="#多核时代" class="headerlink" title="多核时代"></a>多核时代</h1><p>但是引入了SMP多核系统后，每个核心都有一个属于他自己的Cache。<br><img src="/images/cpu演进/3.png" alt=""></p>
+<p>这就导致了一个问题。<br>我们知道Cache中的值其实是主存中的拷贝。<br>对一个值的修改先写到Cache中，再写到主存中，具体写入延迟不定。<br>对一个值的读取也是先从主存中读取到Cache中，CPU再从Cache中读取，什么时候失效也是不定。</p>
+<p>多核的系统中，每个核心都有自己的Cache，并且是互相不可见的。<br>这就导致值的写入延迟和延迟失效都会导致数据不一致的问题。</p>
+<p>怎么解决呢？<br>这个时候其实有个简单的方案：</p>
+<ol>
+<li>每次写入Cache时，锁总线，同步再写入主存</li>
+<li>每次读取值时，锁总线，从主存中读。</li>
+</ol>
+<p>但是如果使用这种方案的话，那Cache基本就废了，毫无用处。</p>
+<p>那怎么办呢？<br>那就让CPU的Cache“互相可见”吧。<br>于是MESI协议就诞生了。</p>
+<h1 id="MESI协议"><a href="#MESI协议" class="headerlink" title="MESI协议"></a>MESI协议</h1><p>MESI协议，是一种缓存一致性协议，顾名思义，就是解决各个核心的Cache之间，对于同一个值的一致性问题。</p>
+<p>首先我们要知道，Cache其实是分块的，类似于磁盘的分页，Cache的每一块叫一个CacheLine，对于Cache的基本操作都是以CacheLine为基本单位。</p>
+<p>MESI协议定义每个CacheLine有4种状态：</p>
+<ol>
+<li>Modified：表示这个CacheLine对应的主存数据，只在当前核心中，并且已经被当前核心修改过，和主存中不一样。</li>
+<li>Exclusive：该CacheLine对应的主存数据只在当前核心中，当前核心还未修改该CacheLine。</li>
+<li>Shared：该CacheLine对应的主存数据，也会在别的核心中，但是大家都不能修改，相当于只读。</li>
+<li>Invalid：协议未使用</li>
+</ol>
+<p>同时定义了CPU之间可以互发的六种消息：</p>
+<ol>
+<li>Read：由某个cpu发出给其他的cpu和主存，包含要读的主存地址</li>
+<li>Read Response：由主存或者其他的cpu发出的对于Read的响应，收到响应后把CacheLine放入自己的核心缓存中</li>
+<li>Invalidate：请求中包含需要失效的数据地址，当收到Invalidate请求后，核心必须要删除这部分数据地址</li>
+<li>Invalidate Ack：当核心删除Invalidate请求的数据地址后，发送Ack给来源的CPU</li>
+<li>WriteBack：当CacheLine为Modify状态时，核心将该数据写回到主存时发出</li>
+</ol>
+<p>说到这里你可以明白了MESI大致的作用：<br>当某个核心想要修改某个CacheLine的数据时，由于该CacheLine可能也在其他的核心中，所以必须要发消息给其他的核心，先移除对应的CacheLine。<br>同时，如果其他的核心有对应的CacheLine，必须先从自己的Cache中移除。以免自己读到已经被修改过的数据。</p>
+<p>具体的操作流程有点复杂，估计读者也没耐心读完，这里就略过了。<br>想要详细了解的可以阅读本文的参考文章。</p>
+<h1 id="StoreBuffer和InvalidaQueue"><a href="#StoreBuffer和InvalidaQueue" class="headerlink" title="StoreBuffer和InvalidaQueue"></a>StoreBuffer和InvalidaQueue</h1><p>有了MESI协议，Cache还是派的上用场，但是每次写入都得通知其他的核心，同时接收到其他核心的写入，还得把自己的那部分CacheLine失效。<br>必然会拖慢很多的性能。</p>
+<p>比如说，当Core0想要修改a的值，但是发现a并不在CacheLine中，或者在CacheLine中，是Shared状态，这个时候他并不能直接修改a的值，他需要发消息给他的Core Invalidate这部分CacheLine，等所有的Core返回Ack的时候，他才能修改。<br>这部分时间cpu属于Stall状态。<br>那怎么办呢？<br>于是在写入Cache前，加入了一个Store Buffer。<br><img src="/images/cpu演进/4.png" alt=""></p>
+<p>当需要写入一个值的时候，如果这个值的CacheLine并不在当前核心，或者该CacheLine并不是Modified或者Exclusive状态，先写入StoreBuffer，等其他的CPU的Ack到来时候，在把StoreBuffer中的值写入Cache。<br>同时，由于对该核心而言，一个值可能已经被修改了，但是并不在Cache中，而是在StoreBuffer中，所以读取的时候，以StoreBuffer的为准。</p>
+<p>除了写入一个值时，需要进行等待，当收到Invalidate请求时，CPU也得放下手中的活，把CacheLine删除发送Ack才能继续。<br>这部分时间能不能缩减呢？<br>我们引入InvalidateQueue。<br><img src="/images/cpu演进/5.png" alt=""><br>当接收到其他的Invalidate请求是，我们将请求放在InvalidateQueue中，并立马返回Ack。</p>
+<h1 id="StoreBuffer导致的问题"><a href="#StoreBuffer导致的问题" class="headerlink" title="StoreBuffer导致的问题"></a>StoreBuffer导致的问题</h1><p>我们首先看一段代码：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">foo</span><span class="params">(<span class="keyword">void</span>)</span> </span>&#123;</span><br><span class="line">    a=<span class="number">1</span>;  <span class="comment">//S1</span></span><br><span class="line">    b=<span class="number">1</span>;  <span class="comment">//S2</span></span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">bar</span><span class="params">(<span class="keyword">void</span>)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">while</span> (b == <span class="number">0</span>) <span class="keyword">continue</span>;  <span class="comment">//L1</span></span><br><span class="line">    <span class="keyword">assert</span>(a == <span class="number">1</span>);           <span class="comment">//L2</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如果CPU0执行foo函数，CPU1执行bar函数。<br>同时a的值所在的CacheLine并不在CPU0中，b的值所在的CacheLine在CPU0中，并且是Exlusive状态。</p>
+<ol>
+<li>CPU0执行S1，发现a不在CacheLine中，发送Read Validate消息给主存和CPU1。同时把a=1的值放入StoreBuffer。</li>
+<li>CPU0执行S2，b值所在的CacheLine在CPU0中，并且是Exlusive状态，于是直接修改为1，放入CPU缓存。</li>
+<li>这个时候CPU1启动运行bar函数，发现b不在CacheLine中，于是广播Read，获取b的值</li>
+<li>CPU0得到这个Read b的消息，把b的值发送回去</li>
+<li>CPU1得到b的值为1，L1通过</li>
+<li>CPU1执行L2，a在CacheLine中并且是0，assert fail</li>
+<li>CPU1得到第1步的Read Validate消息，把a所在的CacheLine移除。</li>
+</ol>
+<p>步骤有点复杂，简单讲就是，需要耐心阅读。<br>核心就是第1步的Read Validate消息，CPU1延迟到第7步才收到。</p>
+<p>那怎么避免这种情况呢？<br>我们能不能让StoreBuffer退化到没有之前的流程？<br>也就是把第一步中的操作中，写入StoreBuffer后，不允许执行后续的操作，直到收到Validate Ack消息。<br>于是我们引入sfence()函数，遇到这个函数时，必须等到所有的Validate Ack，并且把StoreBuffer全部Flush到Cache，清空StoreBuffer。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">foo</span><span class="params">(<span class="keyword">void</span>)</span> </span>&#123;</span><br><span class="line">    a=<span class="number">1</span>;  <span class="comment">//S1</span></span><br><span class="line">    sfence();</span><br><span class="line">    b=<span class="number">1</span>;  <span class="comment">//S2</span></span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">bar</span><span class="params">(<span class="keyword">void</span>)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">while</span> (b == <span class="number">0</span>) <span class="keyword">continue</span>;  <span class="comment">//L1</span></span><br><span class="line">    <span class="keyword">assert</span>(a == <span class="number">1</span>);           <span class="comment">//L2</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h1 id="InvalidateQueue导致的问题"><a href="#InvalidateQueue导致的问题" class="headerlink" title="InvalidateQueue导致的问题"></a>InvalidateQueue导致的问题</h1><p>还是看这段代码：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">foo</span><span class="params">(<span class="keyword">void</span>)</span> </span>&#123;</span><br><span class="line">    a=<span class="number">1</span>;  <span class="comment">//S1</span></span><br><span class="line">    sfence();</span><br><span class="line">    b=<span class="number">1</span>;  <span class="comment">//S2</span></span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">bar</span><span class="params">(<span class="keyword">void</span>)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">while</span> (b == <span class="number">0</span>) <span class="keyword">continue</span>;  <span class="comment">//L1</span></span><br><span class="line">    <span class="keyword">assert</span>(a == <span class="number">1</span>);           <span class="comment">//L2</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>InvalidateQueue导致的就是，将CacheLine的移除时机变得不可确定。即使这个指示需要移除该CacheLine的Invalidate消息已经在InvalidateQueue中了，CPU还是会可能会从自己的Cache中读到旧的值。</p>
+<p>比如例子中：<br>Core0执行foo函数，此时a在Core1中。<br>Core0发送Read Invalidate消息，Core1返回a的值，同时将Invalidate消息放入InvalidateQueue。<br>Core0将a=1推送到Cache中。<br>Core0执行b=1，放入缓存中。<br>Core1发送Read b的消息，Core0返回b=1；<br>L1执行成功，Core1获取a的值，由于移除该CacheLine的Invalidate消息还在InvalidateQueue中，所以发现a的值在Cache中，并且为0。<br>于是assert fail。</p>
+<p>于是我们引入lfence()函数，该函数强制刷新InvalidateQueue。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">foo</span><span class="params">(<span class="keyword">void</span>)</span> </span>&#123;</span><br><span class="line">    a=<span class="number">1</span>;  <span class="comment">//S1</span></span><br><span class="line">    sfence();</span><br><span class="line">    b=<span class="number">1</span>;  <span class="comment">//S2</span></span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">bar</span><span class="params">(<span class="keyword">void</span>)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">while</span> (b == <span class="number">0</span>) <span class="keyword">continue</span>;  <span class="comment">//L1</span></span><br><span class="line">    lfence();</span><br><span class="line">    <span class="keyword">assert</span>(a == <span class="number">1</span>);           <span class="comment">//L2</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h1 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h1><p>前文提到的sfence()和lfence()，便是内存屏障。<br>一个是写屏障，也就是同步刷新StoreBuffer<br>一个是读屏障，也就是同步刷新InvalidateQueue。<br>也有mfence()，既刷新StoreBuffer，也刷新InvalidateQueue。</p>
+<h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p><a href="https://zhuanlan.zhihu.com/p/48157076" target="_blank" rel="noopener">高并发编程–多处理器编程中的一致性问题(上)</a><br><a href="https://zhuanlan.zhihu.com/p/55767485" target="_blank" rel="noopener">为什么需要内存屏障</a></p>
+
+    </div>
+
+    
+    
+    
+        
+
+<div>
+<ul class="post-copyright">
+  <li class="post-copyright-author">
+    <strong>Post author:  </strong>zhy
+  </li>
+  <li class="post-copyright-link">
+    <strong>Post link: </strong>
+    <a href="https://blog.lovezhy.cc/2020/03/14/搞懂内存屏障-CPU的演进/" title="搞懂内存屏障-CPU的演进">https://blog.lovezhy.cc/2020/03/14/搞懂内存屏障-CPU的演进/</a>
+  </li>
+  <li class="post-copyright-license">
+    <strong>Copyright Notice:  </strong>All articles in this blog are licensed under <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" rel="noopener" target="_blank"><i class="fa fa-fw fa-creative-commons"></i>BY-NC-SA</a> unless stating additionally.
+  </li>
+</ul>
+</div>
+
+        
+
+  <div class="followme">
+    <p>Welcome to my other publishing channels</p>
+
+    <div class="social-list">
+
+            <div class="social-item">
+              <a target="_blank" class="social-link" href="/atom.xml">
+                <span class="icon">
+                  <i class="fa fa-rss"></i>
+                </span>
+
+                <span class="label">RSS</span>
+              </a>
+            </div>
+    </div>
+  </div>
+
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/内存屏障/" rel="tag"># 内存屏障</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2020/03/09/搞懂内存屏障-CPU重排序/" rel="prev" title="搞懂内存屏障-CPU重排序">
+      <i class="fa fa-chevron-left"></i> 搞懂内存屏障-CPU重排序
+    </a></div>
+      <div class="post-nav-item"></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+    
+  <div class="comments">
+    <div id="disqus_thread">
+      <noscript>Please enable JavaScript to view the comments powered by Disqus.</noscript>
+    </div>
+  </div>
+  
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let activeClass = CONFIG.comments.activeClass;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#单核时代"><span class="nav-number">1.</span> <span class="nav-text">单核时代</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#多核时代"><span class="nav-number">2.</span> <span class="nav-text">多核时代</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#MESI协议"><span class="nav-number">3.</span> <span class="nav-text">MESI协议</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#StoreBuffer和InvalidaQueue"><span class="nav-number">4.</span> <span class="nav-text">StoreBuffer和InvalidaQueue</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#StoreBuffer导致的问题"><span class="nav-number">5.</span> <span class="nav-text">StoreBuffer导致的问题</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#InvalidateQueue导致的问题"><span class="nav-number">6.</span> <span class="nav-text">InvalidateQueue导致的问题</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#总结"><span class="nav-number">7.</span> <span class="nav-text">总结</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#参考"><span class="nav-number">8.</span> <span class="nav-text">参考</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">zhy</p>
+  <div class="site-description" itemprop="description">敌视现实</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">74</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">30</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">52</span>
+        <span class="site-state-item-name">tags</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/zhyzhyzhy" title="GitHub → https://github.com/zhyzhyzhy" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:zhuyichen1017@outlook.com" title="E-Mail → mailto:zhuyichen1017@outlook.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+  <div class="beian"><a href="http://www.beian.miit.gov.cn" rel="noopener" target="_blank">苏ICP备15058469号 </a>
+  </div>
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">zhy</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> v3.8.0
+  </div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">Theme – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> v7.7.1
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+<script src="/js/utils.js"></script><script src="/js/motion.js"></script>
+<script src="/js/schemes/pisces.js"></script>
+<script src="/js/next-boot.js"></script>
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+<script>
+  function loadCount() {
+    var d = document, s = d.createElement('script');
+    s.src = 'https://blog-lovezhy-cc-1.disqus.com/count.js';
+    s.id = 'dsq-count-scr';
+    (d.head || d.body).appendChild(s);
+  }
+  // defer loading until the whole page loading is completed
+  window.addEventListener('load', loadCount, false);
+</script>
+<script>
+  var disqus_config = function() {
+    this.page.url = "https://blog.lovezhy.cc/2020/03/14/搞懂内存屏障-CPU的演进/";
+    this.page.identifier = "2020/03/14/搞懂内存屏障-CPU的演进/";
+    this.page.title = "搞懂内存屏障-CPU的演进";
+    };
+  NexT.utils.loadComments(document.querySelector('#disqus_thread'), () => {
+    if (window.DISQUS) {
+      DISQUS.reset({
+        reload: true,
+        config: disqus_config
+      });
+    } else {
+      var d = document, s = d.createElement('script');
+      s.src = 'https://blog-lovezhy-cc-1.disqus.com/embed.js';
+      s.setAttribute('data-timestamp', '' + +new Date());
+      (d.head || d.body).appendChild(s);
+    }
+  });
+</script>
+
+</body>
+</html>
