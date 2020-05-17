@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 3.8.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+  <meta name="google-site-verification" content="wE7ISC42t3QOT-S-gdbdy_XsP3NB23Xi3alKNWXd0dA">
+  <meta name="baidu-site-verification" content="keFN8E7jd3">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="//fonts.googleapis.com/css?family=Operator Mono:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    hostname: new URL('https://blog.lovezhy.cc').hostname,
+    root: '/',
+    scheme: 'Muse',
+    version: '7.7.1',
+    exturl: false,
+    sidebar: {"position":"right","display":"always","padding":18,"offset":12,"onmobile":false},
+    copycode: {"enable":true,"show_result":true,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    comments: {"style":"tabs","active":"disqus","storage":true,"lazyload":false,"nav":null,"activeClass":"disqus"},
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: 'search.xml',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}
+  };
+</script>
+
+  <meta name="description" content="在小米有品的工作内容也算是和社交有点关系，会有类似微博的点赞，查看点赞列表的功能。这个功能看起来简单，其实做起来一点都不容易。为了避嫌，这里以微博为例，讲一讲自己的思考。类似的，还有关注列表等。这里就简单思考点赞列表。">
+<meta name="keywords" content="Redis,业务思考,Hbase,Pika,分库分表">
+<meta property="og:type" content="article">
+<meta property="og:title" content="业务思考-点赞列表怎么做">
+<meta property="og:url" content="https://blog.lovezhy.cc/2020/03/16/业务思考-点赞列表怎么做/index.html">
+<meta property="og:site_name" content="LoveZhy">
+<meta property="og:description" content="在小米有品的工作内容也算是和社交有点关系，会有类似微博的点赞，查看点赞列表的功能。这个功能看起来简单，其实做起来一点都不容易。为了避嫌，这里以微博为例，讲一讲自己的思考。类似的，还有关注列表等。这里就简单思考点赞列表。">
+<meta property="og:locale" content="zh-cn">
+<meta property="og:updated_time" content="2020-03-17T15:34:22.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="业务思考-点赞列表怎么做">
+<meta name="twitter:description" content="在小米有品的工作内容也算是和社交有点关系，会有类似微博的点赞，查看点赞列表的功能。这个功能看起来简单，其实做起来一点都不容易。为了避嫌，这里以微博为例，讲一讲自己的思考。类似的，还有关注列表等。这里就简单思考点赞列表。">
+
+<link rel="canonical" href="https://blog.lovezhy.cc/2020/03/16/业务思考-点赞列表怎么做/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true
+  };
+</script>
+
+  <title>业务思考-点赞列表怎么做 | LoveZhy</title>
+  
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-125642214-1"></script>
+    <script>
+      if (CONFIG.hostname === location.hostname) {
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'UA-125642214-1');
+      }
+    </script>
+
+
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?c1f963571cb3d8a4a5dc82346dc65842";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+<link rel="alternate" href="/atom.xml" title="LoveZhy" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">LoveZhy</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+  </div>
+
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-fw fa-user"></i>About</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>Tags</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>Categories</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>Archives</a>
+
+  </li>
+        <li class="menu-item menu-item-sitemap">
+
+    <a href="/sitemap.xml" rel="section"><i class="fa fa-fw fa-sitemap"></i>Sitemap</a>
+
+  </li>
+  </ul>
+
+</nav>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope="" itemtype="http://schema.org/Article" class="post-block " lang="zh-cn">
+    <link itemprop="mainEntityOfPage" href="https://blog.lovezhy.cc/2020/03/16/业务思考-点赞列表怎么做/">
+
+    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="zhy">
+      <meta itemprop="description" content="敌视现实">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="LoveZhy">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          业务思考-点赞列表怎么做
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2020-03-16 00:00:00" itemprop="dateCreated datePublished" datetime="2020-03-16T00:00:00+08:00">2020-03-16</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">Edited on</span>
+                <time title="Modified: 2020-03-17 23:34:22" itemprop="dateModified" datetime="2020-03-17T23:34:22+08:00">2020-03-17</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
+                  <a href="/categories/业务思考/" itemprop="url" rel="index">
+                    <span itemprop="name">业务思考</span>
+                  </a>
+                </span>
+            </span>
+
+          
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="fa fa-comment-o"></i>
+      </span>
+      <span class="post-meta-item-text">Disqus: </span>
+    
+    <a title="disqus" href="/2020/03/16/业务思考-点赞列表怎么做/#disqus_thread" itemprop="discussionUrl">
+      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2020/03/16/业务思考-点赞列表怎么做/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>在小米有品的工作内容也算是和社交有点关系，会有类似微博的点赞，查看点赞列表的功能。<br>这个功能看起来简单，其实做起来一点都不容易。<br>为了避嫌，这里以微博为例，讲一讲自己的思考。<br>类似的，还有关注列表等。这里就简单思考点赞列表。</p>
+<a id="more"></a>
+<h1 id="功能"><a href="#功能" class="headerlink" title="功能"></a>功能</h1><p>微博上，我们可以给一个具体的微博点赞，然后个人中心页面可以查看自己点赞的内容的历史<br>所以基本功能概括起来如下：</p>
+<ol>
+<li>给微博点赞/取消点赞</li>
+<li>查看是否给该微博点过赞</li>
+<li>查看历史点赞记录</li>
+</ol>
+<p>在要应对的数据量比较大情况下，要完全实现上面这三个功能也不容易。尤其是这种很典型的具体冷热属性的数据。<br>所以会有一些产品妥协策略：</p>
+<ol>
+<li>时间久远的微博，默认返回未点过赞  //这种产品可能会比较同意</li>
+<li>时间久远的微博，点赞记录中找不到  //这种一般不会同意的，放弃吧<br>为什么这么妥协会比较好做呢？下面再详细聊聊</li>
+</ol>
+<p>下面看看怎么实现</p>
+<h1 id="Redis"><a href="#Redis" class="headerlink" title="Redis"></a>Redis</h1><p>这个是最简单的实现方式<br>其实还有更简单的，就是只有Mysql，但是这种一般都不会使用的，除非自己写写应用。</p>
+<p>每个用户的点赞列表都存为一个ZSET<br><code>Key=weibo:like:${uid}</code><br><code>Value=${weiboId}，Score=${Time}</code></p>
+<ol>
+<li>点赞时加入到ZSET，取消点赞时从ZSET中删除</li>
+<li>查询是否点过赞使用zscore</li>
+<li>历史点赞记录用zrange</li>
+</ol>
+<h2 id="注意事项一"><a href="#注意事项一" class="headerlink" title="注意事项一"></a>注意事项一</h2><p>没问题吗？<br>是的，一般来说这么搞就行了，但是其实有个不小的瑕疵。<br>查询历史点赞记录用zrange。</p>
+<p>想象如下的例子：</p>
+<figure class="highlight"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">request: &#123;</span><br><span class="line">	page: 0,</span><br><span class="line">	pageSize: 10</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>好，我们用<code>zrange(key, page, pageSize)</code>返回前十条</p>
+<p>我看到自己的前十个点赞记录，卧槽太傻比了，全部取消点赞<br>ok，我们zrem() * 10次，把zset中前10个记录删除了。</p>
+<p>再来请求下一页：<br><figure class="highlight"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">request: &#123;</span><br><span class="line">	page: 1,</span><br><span class="line">	pageSize: 10</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>我们用<code>zrange(key, page, pageSize)</code>返回前十条</p>
+<p>发现问题了吗？<br>第二次zrange的10条，其实是最原始数据的20-30条。<br>中间有一页的点赞记录因为我们zrem的原因，加载不出来。</p>
+<p>这就是用zset做分页的普遍缺点。</p>
+<p>怎么解呢？<br>有个简单的方法，我们用<code>rangeByScore</code>方法，其实参数最大值，是上一页的最小的一个<code>Score</code>。<br>这样，前端每次的请求其实是带上上一页的最小的那个时间戳<br><figure class="highlight"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">request: &#123;</span><br><span class="line">	page: x,</span><br><span class="line">	pageSize: 10,</span><br><span class="line">	lastTime: 103232</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>这样就可以解决了。</p>
+<h2 id="注意事项二"><a href="#注意事项二" class="headerlink" title="注意事项二"></a>注意事项二</h2><p>但是还有个问题：<br>我点赞了微博id=23。<br>然后这条微博被用户删除了。<br>那我从zset中拉到这个id，组装数据时会发现id=23查找不到。</p>
+<p>这个时候其实有两种选择：</p>
+<ol>
+<li>告诉用户这个点赞内容被删除了，微博就是这么做的</li>
+<li>返回空</li>
+</ol>
+<p>返回空其实又带来一个问题<br>如果我很不巧，第4页的点赞微博都是一个人的，她清空了微博<br>那请求和响应就会变成这样：<br><figure class="highlight"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">request: &#123;</span><br><span class="line">	page: 3,</span><br><span class="line">	pageSize: 10,</span><br><span class="line">	lastTime: 103232</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">response: &#123;</span><br><span class="line">	[]</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>后端返回了一个空数据。</p>
+<p>如果这么定义的话，前端会以为已经请求空了，就会告诉用户已经没有数据了。</p>
+<p>这个时候其实就出BUG了。</p>
+<p>那这个怎么解呢？<br>很容易想到的就是：<br>response中带上total字段，前端判断后续有没有数据按照total来。<br>那其实和注意事项一又冲突了。不好。</p>
+<p>还有个解法：<br><figure class="highlight"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">response: &#123;</span><br><span class="line">	[],</span><br><span class="line">	hasNext: true</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>用<code>hasNext</code>告诉前端有没有后续数据了<br><code>hasNext</code>怎么来呢？<br>我们从zset中range获取的时候，如果拉出来的个数小于pageSize，那么就是false。<br>如果等于pageSize，那么就是true。</p>
+<h2 id="妥协策略"><a href="#妥协策略" class="headerlink" title="妥协策略"></a>妥协策略</h2><p>全存Redis，当然会有问题，数据量太大怎么办？<br>对于妥协策略1，我们定时的扫我们的Key（或者查询时，插入时异步操作），如果发现有些点赞记录太久远，就把Value删除。<br>这样我们的Redis负担就小点，<br>但是对不起，这样其实把妥协策略2也做了，是行不通的。</p>
+<h1 id="类Redis数据库"><a href="#类Redis数据库" class="headerlink" title="类Redis数据库"></a>类Redis数据库</h1><p>但是又不想抛弃Redis，因为Redis实现起来确实简单啊。<br>那怎么办？<br>类Redis数据库来救场了。</p>
+<p>类Redis说白了就是兼容Redis的指令，但是存储上，不全存内存，会存到磁盘上。<br>目前市面上比较流行的类Redis数据库有Pika，SSDB这种<br>具体笔者也没使用过，就不做评价，简单介绍下<br>小公司可以自己搭建着玩玩，但是大公司可能就没这个场景了，需要懂这个的运维来支持。</p>
+<h2 id="Pika"><a href="#Pika" class="headerlink" title="Pika"></a>Pika</h2><h2 id="SSDB"><a href="#SSDB" class="headerlink" title="SSDB"></a>SSDB</h2><h1 id="Redis-Mysql"><a href="#Redis-Mysql" class="headerlink" title="Redis + Mysql"></a>Redis + Mysql</h1><p>这种比较少见其实，但是好歹这两数据库在公司都是标配。<br>主要是Redis存热数据，Mysql存冷数据。</p>
+<p>写的时候双写<br>查询的时候先查Redis，Redis查不到再去查Mysql<br>分页查询的时候，查Redis，过期了就去Mysql捞一部分，然后存回Redis，设置个过期时间。<br>太久的就直接查Mysql，没必要存Redis了。</p>
+<p>但是这里得考虑几个问题：</p>
+<ol>
+<li>这种行为数据，实时写数据库一般不会同意的，可以先写Redis，然后搞个消息队列慢慢写数据库</li>
+<li>查是否给该文章点赞过，先查Redis，如果空了，再查Mysql。可能会出问题，有点隐患，不过也不用太担心，因为在Mysql中的一般就是冷数据库，问题不大。Redis存的容量大一点。</li>
+<li>分页查询点赞历史，先查Redis，到底了去查Mysql，这里切换的衔接逻辑得好好想想。问题也不是很大。</li>
+</ol>
+<p>看起来很不错是不是，但是这种方案，最大的问题还是Mysql。<br>你想想这个表里的数据长啥样？<br>就几个字段：</p>
+<ol>
+<li>id：自增主键</li>
+<li>uid：用户id</li>
+<li>weiboId：微博id</li>
+<li>createTime：点赞时间</li>
+<li>del：是否删除了（这个看公司吧，有的只允许逻辑删除）</li>
+</ol>
+<p>这表数据太简单了，如果真到微博那种量级，增长速度会很快很快。<br>假设用户200w，每个人点赞2篇内容，那么一天增长400w条记录，一年就146000w，14亿。<br>这谁顶得住。</p>
+<p>这种其实硬要解还是有点方法：</p>
+<ol>
+<li>压缩表：把字段weiboId，改成weiboIds，一行记录多存几个点赞记录。数据行数可以缩小几个量级，但是插入，查询和Redis衔接起来就比较复杂了。<strong>同时删除几乎不好做了。</strong></li>
+<li>分库分表。其实我感觉分库分表意义不大。</li>
+</ol>
+<h2 id="妥协策略-1"><a href="#妥协策略-1" class="headerlink" title="妥协策略"></a>妥协策略</h2><p>来看看这种方案，如果产品妥协了，会不会简单点：<br>妥协策略1：查是否点过赞，Redis查不到，就默认未点赞，不用去查Mysql了。<br>妥协策略2：查完Redis，去查Mysql，可以支持。</p>
+<p>其实再拓展下，如果产品妥协了策略1，那么写入的时候，只写Redis，然后再在某个时间点，把冷数据同步到Mysql就行。<br>这样就不用双写数据库了，同时同步的时候可以批量查入。</p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>所以综合来看，功能上，对热点数据的点赞/取消点赞/查询是否点赞比较好<br>如果你压缩数据行：对冷数据（Mysql中的数据），取消点赞，分页查询点赞记录比较复杂。<br>如果你不压缩：数据量太大</p>
+<h1 id="Redis-Hbase"><a href="#Redis-Hbase" class="headerlink" title="Redis + Hbase"></a>Redis + Hbase</h1><p>Redis + Hbase算是比较终极的方案了。<br>其实笔者对Hbase也不是很了解。<br>了解了再说吧。</p>
+
+    </div>
+
+    
+    
+    
+        
+
+<div>
+<ul class="post-copyright">
+  <li class="post-copyright-author">
+    <strong>Post author:  </strong>zhy
+  </li>
+  <li class="post-copyright-link">
+    <strong>Post link: </strong>
+    <a href="https://blog.lovezhy.cc/2020/03/16/业务思考-点赞列表怎么做/" title="业务思考-点赞列表怎么做">https://blog.lovezhy.cc/2020/03/16/业务思考-点赞列表怎么做/</a>
+  </li>
+  <li class="post-copyright-license">
+    <strong>Copyright Notice:  </strong>All articles in this blog are licensed under <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" rel="noopener" target="_blank"><i class="fa fa-fw fa-creative-commons"></i>BY-NC-SA</a> unless stating additionally.
+  </li>
+</ul>
+</div>
+
+        
+
+  <div class="followme">
+    <p>Welcome to my other publishing channels</p>
+
+    <div class="social-list">
+
+            <div class="social-item">
+              <a target="_blank" class="social-link" href="/atom.xml">
+                <span class="icon">
+                  <i class="fa fa-rss"></i>
+                </span>
+
+                <span class="label">RSS</span>
+              </a>
+            </div>
+    </div>
+  </div>
+
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/Redis/" rel="tag"># Redis</a>
+              <a href="/tags/业务思考/" rel="tag"># 业务思考</a>
+              <a href="/tags/Hbase/" rel="tag"># Hbase</a>
+              <a href="/tags/Pika/" rel="tag"># Pika</a>
+              <a href="/tags/分库分表/" rel="tag"># 分库分表</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2020/03/14/搞懂内存屏障-指令与JMM/" rel="prev" title="搞懂内存屏障-指令与JMM">
+      <i class="fa fa-chevron-left"></i> 搞懂内存屏障-指令与JMM
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2020/05/14/论文翻译 - Kafka~a Distributed Messaging System for Log Processing/" rel="next" title="论文翻译 - Kafka~a Distributed Messaging System for Log Processing">
+      论文翻译 - Kafka~a Distributed Messaging System for Log Processing <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+    
+  <div class="comments">
+    <div id="disqus_thread">
+      <noscript>Please enable JavaScript to view the comments powered by Disqus.</noscript>
+    </div>
+  </div>
+  
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let activeClass = CONFIG.comments.activeClass;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#功能"><span class="nav-number">1.</span> <span class="nav-text">功能</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Redis"><span class="nav-number">2.</span> <span class="nav-text">Redis</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#注意事项一"><span class="nav-number">2.1.</span> <span class="nav-text">注意事项一</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#注意事项二"><span class="nav-number">2.2.</span> <span class="nav-text">注意事项二</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#妥协策略"><span class="nav-number">2.3.</span> <span class="nav-text">妥协策略</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#类Redis数据库"><span class="nav-number">3.</span> <span class="nav-text">类Redis数据库</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#Pika"><span class="nav-number">3.1.</span> <span class="nav-text">Pika</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#SSDB"><span class="nav-number">3.2.</span> <span class="nav-text">SSDB</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Redis-Mysql"><span class="nav-number">4.</span> <span class="nav-text">Redis + Mysql</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#妥协策略-1"><span class="nav-number">4.1.</span> <span class="nav-text">妥协策略</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#总结"><span class="nav-number">4.2.</span> <span class="nav-text">总结</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Redis-Hbase"><span class="nav-number">5.</span> <span class="nav-text">Redis + Hbase</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">zhy</p>
+  <div class="site-description" itemprop="description">敌视现实</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">77</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">31</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">57</span>
+        <span class="site-state-item-name">tags</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/zhyzhyzhy" title="GitHub → https://github.com/zhyzhyzhy" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:zhuyichen1017@outlook.com" title="E-Mail → mailto:zhuyichen1017@outlook.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+  <div class="beian"><a href="http://www.beian.miit.gov.cn" rel="noopener" target="_blank">苏ICP备15058469号 </a>
+  </div>
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">zhy</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> v3.8.0
+  </div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">Theme – <a href="https://muse.theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a> v7.7.1
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+<script src="/js/utils.js"></script><script src="/js/motion.js"></script>
+<script src="/js/schemes/muse.js"></script>
+<script src="/js/next-boot.js"></script>
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+<script>
+  function loadCount() {
+    var d = document, s = d.createElement('script');
+    s.src = 'https://blog-lovezhy-cc-1.disqus.com/count.js';
+    s.id = 'dsq-count-scr';
+    (d.head || d.body).appendChild(s);
+  }
+  // defer loading until the whole page loading is completed
+  window.addEventListener('load', loadCount, false);
+</script>
+<script>
+  var disqus_config = function() {
+    this.page.url = "https://blog.lovezhy.cc/2020/03/16/业务思考-点赞列表怎么做/";
+    this.page.identifier = "2020/03/16/业务思考-点赞列表怎么做/";
+    this.page.title = "业务思考-点赞列表怎么做";
+    };
+  NexT.utils.loadComments(document.querySelector('#disqus_thread'), () => {
+    if (window.DISQUS) {
+      DISQUS.reset({
+        reload: true,
+        config: disqus_config
+      });
+    } else {
+      var d = document, s = d.createElement('script');
+      s.src = 'https://blog-lovezhy-cc-1.disqus.com/embed.js';
+      s.setAttribute('data-timestamp', '' + +new Date());
+      (d.head || d.body).appendChild(s);
+    }
+  });
+</script>
+
+</body>
+</html>

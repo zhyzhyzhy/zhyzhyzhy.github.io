@@ -23,7 +23,7 @@
   var CONFIG = {
     hostname: new URL('https://blog.lovezhy.cc').hostname,
     root: '/',
-    scheme: 'Gemini',
+    scheme: 'Muse',
     version: '7.7.1',
     exturl: false,
     sidebar: {"position":"right","display":"always","padding":18,"offset":12,"onmobile":false},
@@ -49,7 +49,7 @@
 </script>
 
   <meta name="description" content="前言通过前面我们知道，对于每个方法，HotSpot都维护两个计数器  Invocation Counter：方法被调用次数，每被调用一次都会+1 BackEdge Counter：专业的说法就是字节码在执行时的回跳次数。通俗点说就是，在For或者While循环中，每执行一次，都会+1。  并且我们知道对于一个方法，JIT有两种不同的编译方式  完整的原方法编译，就是把原本的方法逻辑进行编译。入参和">
-<meta name="keywords" content="HotSpot,Java,JIT">
+<meta name="keywords" content="Java,HotSpot,JIT">
 <meta property="og:type" content="article">
 <meta property="og:title" content="HotSpot原理指南-JIT触发条件">
 <meta property="og:url" content="https://blog.lovezhy.cc/2019/12/14/HotSpot原理指南-JIT触发条件/index.html">
@@ -185,16 +185,6 @@
         <li class="menu-item menu-item-sitemap">
 
     <a href="/sitemap.xml" rel="section"><i class="fa fa-fw fa-sitemap"></i>Sitemap</a>
-
-  </li>
-        <li class="menu-item menu-item-movie">
-
-    <a href="/movies/index.html" rel="section"><i class="fa fa-fw fa-film"></i>movie</a>
-
-  </li>
-        <li class="menu-item menu-item-books">
-
-    <a href="/books/index.html" rel="section"><i class="fa fa-fw fa-book"></i>books</a>
 
   </li>
   </ul>
@@ -401,8 +391,8 @@
 
       <footer class="post-footer">
           <div class="post-tags">
-              <a href="/tags/HotSpot/" rel="tag"># HotSpot</a>
               <a href="/tags/Java/" rel="tag"># Java</a>
+              <a href="/tags/HotSpot/" rel="tag"># HotSpot</a>
               <a href="/tags/JIT/" rel="tag"># JIT</a>
           </div>
 
@@ -412,8 +402,8 @@
         
     <div class="post-nav">
       <div class="post-nav-item">
-    <a href="/2019/11/30/银行报考指北/" rel="prev" title="银行报考指北">
-      <i class="fa fa-chevron-left"></i> 银行报考指北
+    <a href="/2019/11/30/HotSpot原理指南-OSR是什么/" rel="prev" title="HotSpot原理指南-OSR是什么">
+      <i class="fa fa-chevron-left"></i> HotSpot原理指南-OSR是什么
     </a></div>
       <div class="post-nav-item">
     <a href="/2020/01/04/HotSpot原理指南-分层编译/" rel="next" title="HotSpot原理指南-分层编译">
@@ -499,20 +489,20 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">75</span>
+          <span class="site-state-item-count">77</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
       <div class="site-state-item site-state-categories">
             <a href="/categories/">
           
-        <span class="site-state-item-count">27</span>
+        <span class="site-state-item-count">31</span>
         <span class="site-state-item-name">categories</span></a>
       </div>
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">52</span>
+        <span class="site-state-item-count">57</span>
         <span class="site-state-item-name">tags</span></a>
       </div>
   </nav>
@@ -556,7 +546,7 @@
   <div class="powered-by">Powered by <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> v3.8.0
   </div>
   <span class="post-meta-divider">|</span>
-  <div class="theme-info">Theme – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> v7.7.1
+  <div class="theme-info">Theme – <a href="https://muse.theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a> v7.7.1
   </div>
 
         
@@ -577,7 +567,7 @@
   <script src="/lib/velocity/velocity.min.js"></script>
   <script src="/lib/velocity/velocity.ui.min.js"></script>
 <script src="/js/utils.js"></script><script src="/js/motion.js"></script>
-<script src="/js/schemes/pisces.js"></script>
+<script src="/js/schemes/muse.js"></script>
 <script src="/js/next-boot.js"></script>
 
 

@@ -23,7 +23,7 @@
   var CONFIG = {
     hostname: new URL('https://blog.lovezhy.cc').hostname,
     root: '/',
-    scheme: 'Gemini',
+    scheme: 'Muse',
     version: '7.7.1',
     exturl: false,
     sidebar: {"position":"right","display":"always","padding":18,"offset":12,"onmobile":false},
@@ -49,7 +49,7 @@
 </script>
 
   <meta name="description" content="前言HotSpot的初衷是将运行环境分为Client和Server，并且为他们定制了不同的JIT策略以及不同的JIT编译器（C1和C2）。 设计出ClientMode的年代，个人PC的性能还比较低，无论是CPU资源还是内存资源都比较稀少且价格较高，所以C1节约资源的快速编译是很有必要的。 随着时代的发展，个人计算机的配置在慢慢升级，同时价格也在慢慢降低，在这种环境下，ClientMode并不是那么">
-<meta name="keywords" content="HotSpot,Java,JVM,JIT">
+<meta name="keywords" content="Java,HotSpot,JVM,JIT">
 <meta property="og:type" content="article">
 <meta property="og:title" content="HotSpot原理指南-分层编译">
 <meta property="og:url" content="https://blog.lovezhy.cc/2020/01/04/HotSpot原理指南-分层编译/index.html">
@@ -191,16 +191,6 @@
         <li class="menu-item menu-item-sitemap">
 
     <a href="/sitemap.xml" rel="section"><i class="fa fa-fw fa-sitemap"></i>Sitemap</a>
-
-  </li>
-        <li class="menu-item menu-item-movie">
-
-    <a href="/movies/index.html" rel="section"><i class="fa fa-fw fa-film"></i>movie</a>
-
-  </li>
-        <li class="menu-item menu-item-books">
-
-    <a href="/books/index.html" rel="section"><i class="fa fa-fw fa-book"></i>books</a>
 
   </li>
   </ul>
@@ -442,8 +432,8 @@
 
       <footer class="post-footer">
           <div class="post-tags">
-              <a href="/tags/HotSpot/" rel="tag"># HotSpot</a>
               <a href="/tags/Java/" rel="tag"># Java</a>
+              <a href="/tags/HotSpot/" rel="tag"># HotSpot</a>
               <a href="/tags/JVM/" rel="tag"># JVM</a>
               <a href="/tags/JIT/" rel="tag"># JIT</a>
           </div>
@@ -541,20 +531,20 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">75</span>
+          <span class="site-state-item-count">77</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
       <div class="site-state-item site-state-categories">
             <a href="/categories/">
           
-        <span class="site-state-item-count">27</span>
+        <span class="site-state-item-count">31</span>
         <span class="site-state-item-name">categories</span></a>
       </div>
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">52</span>
+        <span class="site-state-item-count">57</span>
         <span class="site-state-item-name">tags</span></a>
       </div>
   </nav>
@@ -598,7 +588,7 @@
   <div class="powered-by">Powered by <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> v3.8.0
   </div>
   <span class="post-meta-divider">|</span>
-  <div class="theme-info">Theme – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> v7.7.1
+  <div class="theme-info">Theme – <a href="https://muse.theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a> v7.7.1
   </div>
 
         
@@ -619,7 +609,7 @@
   <script src="/lib/velocity/velocity.min.js"></script>
   <script src="/lib/velocity/velocity.ui.min.js"></script>
 <script src="/js/utils.js"></script><script src="/js/motion.js"></script>
-<script src="/js/schemes/pisces.js"></script>
+<script src="/js/schemes/muse.js"></script>
 <script src="/js/next-boot.js"></script>
 
 
