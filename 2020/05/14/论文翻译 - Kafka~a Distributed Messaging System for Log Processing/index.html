@@ -59,10 +59,10 @@
 <meta property="og:image" content="https://blog.lovezhy.cc/images/Kafka论文/1.png">
 <meta property="og:image" content="https://blog.lovezhy.cc/images/Kafka论文/2.png">
 <meta property="og:image" content="https://blog.lovezhy.cc/images/Kafka论文/3.png">
-<meta property="og:image" content="https://blog.lovezhy.cc/Users/zhuyichen/Library/Application%20Support/typora-user-images/image-20200513201939870.png">
+<meta property="og:image" content="https://blog.lovezhy.cc/images/Kafka论文/6.png">
 <meta property="og:image" content="https://blog.lovezhy.cc/images/Kafka论文/4.png">
 <meta property="og:image" content="https://blog.lovezhy.cc/images/Kafka论文/5.png">
-<meta property="og:updated_time" content="2020-05-17T07:40:51.320Z">
+<meta property="og:updated_time" content="2020-05-17T07:57:24.778Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="论文翻译 - Kafka~a Distributed Messaging System for Log Processing">
 <meta name="twitter:description" content="原文地址：http://notes.stephenholiday.com/Kafka.pdf 太长不看： 相对于JMS等其他的消息系统，Kafka舍弃了很多功能，以达到性能上的提升。 论文讲述了Kafka设计上的取舍，以及提升性能的很多点。">
@@ -248,7 +248,7 @@
                   <i class="fa fa-calendar-check-o"></i>
                 </span>
                 <span class="post-meta-item-text">Edited on</span>
-                <time title="Modified: 2020-05-17 15:40:51" itemprop="dateModified" datetime="2020-05-17T15:40:51+08:00">2020-05-17</time>
+                <time title="Modified: 2020-05-17 15:57:24" itemprop="dateModified" datetime="2020-05-17T15:57:24+08:00">2020-05-17</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -543,7 +543,7 @@
 <p>前端服务会生成各种日志数据，并分批发布到本地的Kafka的Broker中。</p>
 <p>我们依靠硬件负载均衡器将发布请求均匀地分配给Kafka的Broker。</p>
 <p>Kafka的在线消费者在同一数据中心内的服务中运行。</p>
-<p><img src="/Users/zhuyichen/Library/Application Support/typora-user-images/image-20200513201939870.png" alt="image-20200513201939870" style="zoom:50%;"></p>
+<p><img src="/images/Kafka论文/6.png" alt="image-20200513201939870" style="zoom:50%;"></p>
 <p>我们还在每个数据中心单独部署了一个Kafka集群，用于离线分析，该集群在地理位置上靠近我们的Hadoop集群</p>
 <p>和其他数据仓库基础设施。</p>
 <p>这个Kafka实例运行一组嵌入式消费者，实时从数据中心的Kafka实例中拉取数据。</p>
