@@ -56,17 +56,17 @@
 <meta property="og:site_name" content="LoveZhy">
 <meta property="og:description" content="原文地址：http://notes.stephenholiday.com/Kafka.pdf 太长不看： 相对于JMS等其他的消息系统，Kafka舍弃了很多功能，以达到性能上的提升。 论文讲述了Kafka设计上的取舍，以及提升性能的很多点。">
 <meta property="og:locale" content="zh-cn">
-<meta property="og:image" content="https://blog.lovezhy.cc/Users/zhuyichen/Library/Application%20Support/typora-user-images/image-20200428203312364.png">
-<meta property="og:image" content="https://blog.lovezhy.cc/Users/zhuyichen/Library/Application%20Support/typora-user-images/image-20200506192830629.png">
-<meta property="og:image" content="https://blog.lovezhy.cc/Users/zhuyichen/Library/Application%20Support/typora-user-images/image-20200507194132517.png">
+<meta property="og:image" content="https://blog.lovezhy.cc/images/Kafka论文/1.png">
+<meta property="og:image" content="https://blog.lovezhy.cc/images/Kafka论文/2.png">
+<meta property="og:image" content="https://blog.lovezhy.cc/images/Kafka论文/3.png">
 <meta property="og:image" content="https://blog.lovezhy.cc/Users/zhuyichen/Library/Application%20Support/typora-user-images/image-20200513201939870.png">
-<meta property="og:image" content="https://blog.lovezhy.cc/Users/zhuyichen/Library/Application%20Support/typora-user-images/image-20200514202746023.png">
-<meta property="og:image" content="https://blog.lovezhy.cc/Users/zhuyichen/Library/Application%20Support/typora-user-images/image-20200514203355691.png">
-<meta property="og:updated_time" content="2020-05-15T09:05:23.201Z">
+<meta property="og:image" content="https://blog.lovezhy.cc/images/Kafka论文/4.png">
+<meta property="og:image" content="https://blog.lovezhy.cc/images/Kafka论文/5.png">
+<meta property="og:updated_time" content="2020-05-17T07:40:51.320Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="论文翻译 - Kafka~a Distributed Messaging System for Log Processing">
 <meta name="twitter:description" content="原文地址：http://notes.stephenholiday.com/Kafka.pdf 太长不看： 相对于JMS等其他的消息系统，Kafka舍弃了很多功能，以达到性能上的提升。 论文讲述了Kafka设计上的取舍，以及提升性能的很多点。">
-<meta name="twitter:image" content="https://blog.lovezhy.cc/Users/zhuyichen/Library/Application%20Support/typora-user-images/image-20200428203312364.png">
+<meta name="twitter:image" content="https://blog.lovezhy.cc/images/Kafka论文/1.png">
 
 <link rel="canonical" href="https://blog.lovezhy.cc/2020/05/14/论文翻译 - Kafka~a Distributed Messaging System for Log Processing/">
 
@@ -248,7 +248,7 @@
                   <i class="fa fa-calendar-check-o"></i>
                 </span>
                 <span class="post-meta-item-text">Edited on</span>
-                <time title="Modified: 2020-05-15 17:05:23" itemprop="dateModified" datetime="2020-05-15T17:05:23+08:00">2020-05-15</time>
+                <time title="Modified: 2020-05-17 15:40:51" itemprop="dateModified" datetime="2020-05-17T15:40:51+08:00">2020-05-17</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -318,12 +318,12 @@
 </ul>
 <p>这种生产、实时使用的日志数据给数据系统带来了新的挑战，因为它的数据量比 “真实 “的数据要大好几个数量级。</p>
 <p>例如，搜索、推荐和广告往往需要计算颗粒化的点击率，这不仅会产生每一个用户点击的日志记录，还会产生每个页面上几十个未点击的项目的日志记录。</p>
-<p>中国移动每天收集5-8TB的电话通话记录[11]，Facebook每天则收集了近6TB的各种用户活动事件[12]。</p>
+<p>中国移动每天收集5-8TB的电话通话记录，Facebook每天则收集了近6TB的各种用户活动事件。</p>
 <p>许多早期处理这类数据的系统都是依靠从生产服务器上实际收集日志文件进行分析。</p>
-<p>近年来，一些专门的分布式日志聚合器已经发布，包括Facebook的Scribe[6]、Yahoo的Data Highway[4]和Cloudera的Flume[3]。</p>
+<p>近年来，一些专门的分布式日志聚合器已经发布，包括Facebook的Scribe[6]、Yahoo的Data Highway和Cloudera的Flume。</p>
 <p>这些系统主要是为了收集日志数据，并将日志数据加载到数据仓库或Hadoop[8]中进行离线消费。</p>
 <p>在LinkedIn（一家社交网站），我们发现除了传统的离线分析之外，我们还需要以不超过几秒的延迟支持上述大部分实时应用。</p>
-<p>我们构建了一种新型的日志处理的消息传递系统，称为Kafka[18]，它结合了传统日志聚合器和消息传递系统的优点。</p>
+<p>我们构建了一种新型的日志处理的消息传递系统，称为Kafka，它结合了传统日志聚合器和消息传递系统的优点。</p>
 <p>一方面，Kafka具有分布式和可扩展性，并提供了高吞吐量。</p>
 <p>另一方面，Kafka提供了类似于消息传递系统的API，允许应用程序实时消耗日志事件。</p>
 <p>Kafka已经开源，并在LinkedIn的生产中成功使用了6个多月。</p>
@@ -337,11 +337,11 @@
 <li>我们在第6节中讨论了未来的工作</li>
 <li>在第6节中做了总结。</li>
 </ul>
-<h1 id="2-相关工作"><a href="#2-相关工作" class="headerlink" title="2. 相关工作"></a>2. 相关工作</h1><p>传统的企业消息系统<code>[1][7][15][17]</code>已经存在了很长时间，通常在处理异步数据流的事件总线中起着至关重要的作用。</p>
+<h1 id="2-相关工作"><a href="#2-相关工作" class="headerlink" title="2. 相关工作"></a>2. 相关工作</h1><p>传统的企业消息系统已经存在了很长时间，通常在处理异步数据流的事件总线中起着至关重要的作用。</p>
 <p>然而，有几个原因导致它们往往不能很好地适应日志处理。</p>
 <p>首先，企业级系统提供的特性与日志处理该有的不匹配。那些系统往往侧重于提供丰富的交付保证。</p>
-<p>例如，IBM Websphere MQ<code>[7]</code>具有事务式支持，允许一个应用程序将消息以原子方式插入到多个队列中。</p>
-<p>而JMS<code>[14]</code>规范允许每个消息在消费后被确认消费，消费顺序可能是无序的。（没看懂，对JMS不了解，脑补了下，乱序消费并幂等的意思？）</p>
+<p>例如，IBM Websphere MQ具有事务式支持，允许一个应用程序将消息以原子方式插入到多个队列中。</p>
+<p>而JMS规范允许每个消息在消费后被确认消费，消费顺序可能是无序的。（没看懂，对JMS不了解，脑补了下，乱序消费并幂等的意思？）</p>
 <p>这样的交付保证对于收集日志数据来说往往是矫枉过正的。偶尔丢失几个页面浏览事件当然不是世界末日。</p>
 <p>那些不需要的功能往往会增加这些系统的API和底层实现的复杂性。</p>
 <p>其次，相比较首要设计约束功能，许多系统并不是那样强烈地关注吞吐量。例如，JMS没有API允许生产者明确地将多个消息批量化为一个请求。这意味着每个消息都需要进行一次完整的TCP/IP往返，这对于我们领域的吞吐量要求是不可行的。</p>
@@ -350,7 +350,7 @@
 <p>导致如果出现消息累积，它们的性能就会大大降低。比如当数据仓库等离线消耗者对消息系统做周期性的大负载消费，而不是连续消费数据时。</p>
 <p>在过去几年里，已经建立了一些专门的日志聚合器。</p>
 <p>比如Facebook使用了一个叫Scribe的系统，每个前端机器可以通过网络向一组Scribe机器发送日志数据。</p>
-<p>每台Scribe机器聚合日志条目，并定期将其转储到HDFS<code>[9]</code>或NFS设备上。</p>
+<p>每台Scribe机器聚合日志条目，并定期将其转储到HDFS或NFS设备上。</p>
 <p>雅虎的数据高速公路项目也有类似的数据传递方式，一组机器聚合来自客户端的事件，按分钟保存为文件，然后将</p>
 <p>其添加到HDFS。</p>
 <p>Flume是Cloudera开发的一个比较新的日志聚合器。它支持可扩展的 “管道 “和 “数据下沉”，使流式日志数据的传</p>
@@ -361,7 +361,7 @@
 <p>息，避免被推送的消息淹没在比自己能承受的速度更快的消息中。</p>
 <p>拉动模式还可以让消费者很容易回传，我们在</p>
 <p>3.2节末尾讨论了这个好处的细节。</p>
-<p>最近，雅虎研究公司开发了一种新的分布式pub/sub系统，名为HedWig<code>[13]</code>。HedWig具有高度的可扩展性和可</p>
+<p>最近，雅虎研究公司开发了一种新的分布式pub/sub系统，名为HedWig。HedWig具有高度的可扩展性和可</p>
 <p>用性，并提供了强大的持久性保证。不过，它主要是用于存储资料库（data store）的提交日志。</p>
 <h1 id="3-Kafka架构和设计原则"><a href="#3-Kafka架构和设计原则" class="headerlink" title="3. Kafka架构和设计原则"></a>3. Kafka架构和设计原则</h1><p>由于现有的各种消息系统的局限性，我们开发了一种新的基于消息传递的日志聚合器Kafka。</p>
 <p>我们首先介绍一下Kafka中的基本概念。</p>
@@ -389,7 +389,7 @@
 <p> <strong>Sample consumer code</strong>:</p>
 </blockquote>
 <figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">streams[] = Consumer.createMessageStreams(“topic1”, <span class="number">1</span>) <span class="keyword">for</span> (message : streams[<span class="number">0</span>]) &#123;</span><br><span class="line"></span><br><span class="line">bytes = message.payload();</span><br><span class="line"> <span class="comment">// do something with the bytes</span></span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p><img src="/Users/zhuyichen/Library/Application Support/typora-user-images/image-20200428203312364.png" alt="image-20200428203312364" style="zoom:50%;"></p>
+<p><img src="/images/Kafka论文/1.png" alt="image-20200428203312364" style="zoom:50%;"></p>
 <p>Kafka的整体架构如图1所示。</p>
 <p>由于Kafka是分布式的，所以一个Kafka集群通常由多个Broker组成。</p>
 <p>为了平衡负载，一个主题被划分成多个分区，每个Broker存储一个或多个分区。</p>
@@ -416,7 +416,7 @@
 <p>每个Broker在内存中保存一个排序的偏移量列表，包括每个段文件中第一个消息的偏移量。Broker<br>通过搜索偏移量列表来定位所请求的报文所在的段文件，并将数据发回给消费者。</p>
 <p>当消费者收到一条消息后，它计算出下一条要消费的消息的偏移量，并在下一次拉取请求中使用它。</p>
 <p>Kafka日志和内存中索引的布局如图2所示。每个框显示了一条消息的偏移量。</p>
-<p><img src="/Users/zhuyichen/Library/Application Support/typora-user-images/image-20200506192830629.png" alt="image-20200506192830629" style="zoom:50%;"></p>
+<p><img src="/images/Kafka论文/2.png" alt="image-20200506192830629" style="zoom:50%;"></p>
 <p><strong>2. 高效的传输</strong>: 我们在Kafka中传输数据的时候非常谨慎。</p>
 <p>早前，我们已经表明，生产者可以在一次发送请求中提交一组消息。</p>
 <p>虽然消费者API每次迭代一条消息，但在实际运行中，每一个消费者的拉动请求也会检索到多个消</p>
@@ -506,7 +506,7 @@
 <p>消费者的故障会导致其在消费者注册表中的记录和所有权注册表中的所有分区记录丢失。</p>
 <p>每个消费者都会在Broker注册表和消费者注册表上注册一个Zookeeper的Watcher，每当Broker集合或消费者组</p>
 <p>发生变化时，都会收到通知。</p>
-<p><img src="/Users/zhuyichen/Library/Application Support/typora-user-images/image-20200507194132517.png" alt="image-20200507194132517" style="zoom:50%;"></p>
+<p><img src="/images/Kafka论文/3.png" alt="image-20200507194132517" style="zoom:50%;"></p>
 <p>在消费者的初始启动过程中，或者当消费者通过Watcher收到关于Broker/消费者变更的通知时，消费者会启动一</p>
 <p>个重新平衡过程，以确定它应该消费的新分区。</p>
 <p>在算法1中描述了这个过程。</p>
@@ -589,7 +589,7 @@
 <p>x轴代表的是随着时间的推移向Broker发送的数据量，单位为MB，y轴对应的是生产者吞吐量，单位为每秒的消息量。</p>
 <p>平均而言，Kafka在批处理大小为1和50的情况下，Kafka可以以每秒5万条和40万条消息的速度分别发布消息。</p>
 <p>这些数字比ActiveMQ高了好几个数量级，而且至少是比RabbitMQ高2倍。</p>
-<p><img src="/Users/zhuyichen/Library/Application Support/typora-user-images/image-20200514202746023.png" alt="image-20200514202746023" style="zoom:50%;"></p>
+<p><img src="/images/Kafka论文/4.png" alt="image-20200514202746023" style="zoom:50%;"></p>
 <p>Kafka的表现要好得多有几个原因。</p>
 <p>首先，Kafka生产者目前不等待Broker的回执，以Broker能处理的速度发送消息。</p>
 <p>这大大增加了发布者的吞吐量。</p>
@@ -614,7 +614,7 @@
 <p>由于所有的消息都适合在内存中，所以所有的系统都是从底层文件系统的页面缓存或一些内存中的缓冲区中提供数</p>
 <p>据。</p>
 <p>结果如图5所示。</p>
-<p><img src="/Users/zhuyichen/Library/Application Support/typora-user-images/image-20200514203355691.png" alt="image-20200514203355691" style="zoom:50%;"></p>
+<p><img src="/images/Kafka论文/5.png" alt="image-20200514203355691" style="zoom:50%;"></p>
 <p>Kafka平均每秒消费22000条消息，是ActiveMQ和RabbitMQ的4倍多。</p>
 <p>我们可以想到几个原因。</p>
 <p>首先，由于Kafka有更有效的存储格式，所以消费者从Broker那里传输的字节数更少。</p>
