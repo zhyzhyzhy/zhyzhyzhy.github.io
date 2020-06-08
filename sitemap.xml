@@ -2,6 +2,20 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   
   <url>
+    <loc>https://blog.lovezhy.cc/2020/06/08/%E8%AE%BA%E6%96%87%E7%BF%BB%E8%AF%91-What%E2%80%99s-Really-New-with-NewSQL/</loc>
+    
+    <lastmod>2020-06-08T15:21:22.775Z</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>https://blog.lovezhy.cc/2019/01/03/%E7%A3%81%E7%9B%98%EF%BC%8CIO%E4%B8%8E%E4%B8%AD%E6%96%AD/</loc>
+    
+    <lastmod>2020-05-27T03:14:17.056Z</lastmod>
+    
+  </url>
+  
+  <url>
     <loc>https://blog.lovezhy.cc/2020/05/14/%E8%AE%BA%E6%96%87%E7%BF%BB%E8%AF%91%20-%20Kafka~a%20Distributed%20Messaging%20System%20for%20Log%20Processing/</loc>
     
     <lastmod>2020-05-17T07:57:24.778Z</lastmod>
@@ -474,13 +488,6 @@
     <loc>https://blog.lovezhy.cc/2018/11/02/%E4%BB%8ENetty%E7%9C%8B%E5%AF%B9%E8%B1%A1%E6%B1%A0%E5%AE%9E%E7%8E%B0/</loc>
     
     <lastmod>2020-02-29T14:33:48.249Z</lastmod>
-    
-  </url>
-  
-  <url>
-    <loc>https://blog.lovezhy.cc/2019/01/03/%E7%A3%81%E7%9B%98%EF%BC%8CIO%E4%B8%8E%E4%B8%AD%E6%96%AD/</loc>
-    
-    <lastmod>2020-02-29T14:33:24.698Z</lastmod>
     
   </url>
   
