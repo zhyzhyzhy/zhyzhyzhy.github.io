@@ -209,6 +209,418 @@
   
   
   <article itemscope="" itemtype="http://schema.org/Article" class="post-block home" lang="zh-cn">
+    <link itemprop="mainEntityOfPage" href="https://blog.lovezhy.cc/2018/05/01/分布式基础知识/">
+
+    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="zhy">
+      <meta itemprop="description" content="敌视现实">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="LoveZhy">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          
+            <a href="/2018/05/01/分布式基础知识/" class="post-title-link" itemprop="url">分布式基础知识</a>
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2018-05-01 00:00:00" itemprop="dateCreated datePublished" datetime="2018-05-01T00:00:00+08:00">2018-05-01</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">Edited on</span>
+                <time title="Modified: 2020-02-29 22:42:13" itemprop="dateModified" datetime="2020-02-29T22:42:13+08:00">2020-02-29</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
+                  <a href="/categories/分布式/" itemprop="url" rel="index">
+                    <span itemprop="name">分布式</span>
+                  </a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h2 id="分布式，集群，单点问题"><a href="#分布式，集群，单点问题" class="headerlink" title="分布式，集群，单点问题"></a>分布式，集群，单点问题</h2><p>与分布式相对应的就是单机的概念。<br>比如一个服务，依赖<code>nginx</code>，<code>tomcat</code>，<code>mysql</code>，<code>redis</code> 这么多组件。<br>单机的话可能就部署在一个服务器上。<br>这样的话容易服务器挂了，整个服务就不可用了。<br>同时可扩展性不是很好，一台普通的机器用来跑简单的服务还是可以的，万一是个需要高并发的，数据量比较大的呢，那就只能去买大型机了，但是大型机价格昂贵。同时还是避免不了如果机器挂了，整个服务就不可用的问题。<br>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2018/05/01/分布式基础知识/#more" rel="contents">
+                Read more &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </p></div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+        
+  
+  
+  <article itemscope="" itemtype="http://schema.org/Article" class="post-block home" lang="zh-cn">
+    <link itemprop="mainEntityOfPage" href="https://blog.lovezhy.cc/2018/04/11/brpc-doc笔记/">
+
+    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="zhy">
+      <meta itemprop="description" content="敌视现实">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="LoveZhy">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          
+            <a href="/2018/04/11/brpc-doc笔记/" class="post-title-link" itemprop="url">brpc-doc笔记</a>
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2018-04-11 00:00:00" itemprop="dateCreated datePublished" datetime="2018-04-11T00:00:00+08:00">2018-04-11</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">Edited on</span>
+                <time title="Modified: 2020-02-29 22:45:17" itemprop="dateModified" datetime="2020-02-29T22:45:17+08:00">2020-02-29</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
+                  <a href="/categories/文档笔记/" itemprop="url" rel="index">
+                    <span itemprop="name">文档笔记</span>
+                  </a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h2 id="原子指令"><a href="#原子指令" class="headerlink" title="原子指令"></a>原子指令</h2><p>在涉及到多线程时一般会用到锁。</p>
+<p>但是重量级锁带来的race condition又会大量的消耗性能。</p>
+<p>于是有了乐观锁，典型的就是借助原子指令，CAS来进行操作。这个还依赖的是硬件的发展。<br>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2018/04/11/brpc-doc笔记/#more" rel="contents">
+                Read more &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </p></div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+        
+  
+  
+  <article itemscope="" itemtype="http://schema.org/Article" class="post-block home" lang="zh-cn">
+    <link itemprop="mainEntityOfPage" href="https://blog.lovezhy.cc/2018/04/01/在ubuntu16.04上搭建hadoop环境/">
+
+    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="zhy">
+      <meta itemprop="description" content="敌视现实">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="LoveZhy">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          
+            <a href="/2018/04/01/在ubuntu16.04上搭建hadoop环境/" class="post-title-link" itemprop="url">在ubunut16.04上搭建hadoop环境</a>
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2018-04-01 00:00:00" itemprop="dateCreated datePublished" datetime="2018-04-01T00:00:00+08:00">2018-04-01</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">Edited on</span>
+                <time title="Modified: 2020-02-29 22:44:36" itemprop="dateModified" datetime="2020-02-29T22:44:36+08:00">2020-02-29</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
+                  <a href="/categories/技术却无分类/" itemprop="url" rel="index">
+                    <span itemprop="name">技术却无分类</span>
+                  </a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>首先我们需要安装几个常用的软件</p>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2018/04/01/在ubuntu16.04上搭建hadoop环境/#more" rel="contents">
+                Read more &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+        
+  
+  
+  <article itemscope="" itemtype="http://schema.org/Article" class="post-block home" lang="zh-cn">
+    <link itemprop="mainEntityOfPage" href="https://blog.lovezhy.cc/2018/04/01/vim技巧/">
+
+    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="zhy">
+      <meta itemprop="description" content="敌视现实">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="LoveZhy">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          
+            <a href="/2018/04/01/vim技巧/" class="post-title-link" itemprop="url">Vim技巧</a>
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2018-04-01 00:00:00" itemprop="dateCreated datePublished" datetime="2018-04-01T00:00:00+08:00">2018-04-01</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">Edited on</span>
+                <time title="Modified: 2020-02-29 22:52:21" itemprop="dateModified" datetime="2020-02-29T22:52:21+08:00">2020-02-29</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
+                  <a href="/categories/技术却无分类/" itemprop="url" rel="index">
+                    <span itemprop="name">技术却无分类</span>
+                  </a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h3 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h3><p>其实我们不一定所有配置都要写在.vimrc里面的<br>偶尔在vim的命令行里执行一些小程序也是很方便的</p>
+<h3 id="改tab为space"><a href="#改tab为space" class="headerlink" title="改tab为space"></a>改tab为space</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">:<span class="built_in">set</span> expandtab</span><br><span class="line">:%retab</span><br></pre></td></tr></table></figure>
+<h3 id="翻半页"><a href="#翻半页" class="headerlink" title="翻半页"></a>翻半页</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 下半页</span></span><br><span class="line">&lt;C<span class="_">-d</span>&gt;</span><br><span class="line"><span class="comment"># 上半页</span></span><br><span class="line">&lt;C-u&gt;</span><br></pre></td></tr></table></figure>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+        
+  
+  
+  <article itemscope="" itemtype="http://schema.org/Article" class="post-block home" lang="zh-cn">
+    <link itemprop="mainEntityOfPage" href="https://blog.lovezhy.cc/2018/03/03/spi和破坏双亲委派/">
+
+    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="zhy">
+      <meta itemprop="description" content="敌视现实">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="LoveZhy">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          
+            <a href="/2018/03/03/spi和破坏双亲委派/" class="post-title-link" itemprop="url">spi和破坏双亲委派</a>
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2018-03-03 00:00:00" itemprop="dateCreated datePublished" datetime="2018-03-03T00:00:00+08:00">2018-03-03</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">Edited on</span>
+                <time title="Modified: 2020-02-29 22:52:56" itemprop="dateModified" datetime="2020-02-29T22:52:56+08:00">2020-02-29</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java基础/" itemprop="url" rel="index">
+                    <span itemprop="name">Java基础</span>
+                  </a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h2 id="Java-SPI"><a href="#Java-SPI" class="headerlink" title="Java SPI"></a>Java SPI</h2><p>Java的spi约定是在源代码目录下的<code>META-INF/services</code>中，新建一个文件，文件名是接口的全限定名，内容是我们想要进行动态Loader的类的全限定名。</p>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2018/03/03/spi和破坏双亲委派/#more" rel="contents">
+                Read more &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+        
+  
+  
+  <article itemscope="" itemtype="http://schema.org/Article" class="post-block home" lang="zh-cn">
     <link itemprop="mainEntityOfPage" href="https://blog.lovezhy.cc/2018/02/24/AQS和ReentrantLock/">
 
     <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
@@ -375,6 +787,89 @@
   
   
   <article itemscope="" itemtype="http://schema.org/Article" class="post-block home" lang="zh-cn">
+    <link itemprop="mainEntityOfPage" href="https://blog.lovezhy.cc/2018/02/18/pigeon的服务注册与发现/">
+
+    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="zhy">
+      <meta itemprop="description" content="敌视现实">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="LoveZhy">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          
+            <a href="/2018/02/18/pigeon的服务注册与发现/" class="post-title-link" itemprop="url">Pigeon的服务注册与发现</a>
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2018-02-18 00:00:00" itemprop="dateCreated datePublished" datetime="2018-02-18T00:00:00+08:00">2018-02-18</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">Edited on</span>
+                <time title="Modified: 2020-02-29 22:51:45" itemprop="dateModified" datetime="2020-02-29T22:51:45+08:00">2020-02-29</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
+                  <a href="/categories/Pigeon/" itemprop="url" rel="index">
+                    <span itemprop="name">Pigeon</span>
+                  </a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p><code>pigeon</code>是大众点评内部一直在使用的<code>rpc</code>框架，同时带有服务治理的功能。<br>组件是使用<code>zookeeper</code> + <code>netty</code> + <code>jetty</code>完成。<br>现在也已经开源</p>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2018/02/18/pigeon的服务注册与发现/#more" rel="contents">
+                Read more &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+        
+  
+  
+  <article itemscope="" itemtype="http://schema.org/Article" class="post-block home" lang="zh-cn">
     <link itemprop="mainEntityOfPage" href="https://blog.lovezhy.cc/2018/02/18/pigeon中的核心类和作用/">
 
     <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
@@ -436,89 +931,6 @@
           <!--noindex-->
             <div class="post-button">
               <a class="btn" href="/2018/02/18/pigeon中的核心类和作用/#more" rel="contents">
-                Read more &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-        
-  
-  
-  <article itemscope="" itemtype="http://schema.org/Article" class="post-block home" lang="zh-cn">
-    <link itemprop="mainEntityOfPage" href="https://blog.lovezhy.cc/2018/02/18/pigeon的服务注册与发现/">
-
-    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="zhy">
-      <meta itemprop="description" content="敌视现实">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="LoveZhy">
-    </span>
-      <header class="post-header">
-        <h1 class="post-title" itemprop="name headline">
-          
-            <a href="/2018/02/18/pigeon的服务注册与发现/" class="post-title-link" itemprop="url">Pigeon的服务注册与发现</a>
-        </h1>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2018-02-18 00:00:00" itemprop="dateCreated datePublished" datetime="2018-02-18T00:00:00+08:00">2018-02-18</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-calendar-check-o"></i>
-                </span>
-                <span class="post-meta-item-text">Edited on</span>
-                <time title="Modified: 2020-02-29 22:51:45" itemprop="dateModified" datetime="2020-02-29T22:51:45+08:00">2020-02-29</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/Pigeon/" itemprop="url" rel="index">
-                    <span itemprop="name">Pigeon</span>
-                  </a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p><code>pigeon</code>是大众点评内部一直在使用的<code>rpc</code>框架，同时带有服务治理的功能。<br>组件是使用<code>zookeeper</code> + <code>netty</code> + <code>jetty</code>完成。<br>现在也已经开源</p>
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2018/02/18/pigeon的服务注册与发现/#more" rel="contents">
                 Read more &raquo;
               </a>
             </div>
@@ -1471,419 +1883,6 @@
   
   
 
-        
-  
-  
-  <article itemscope="" itemtype="http://schema.org/Article" class="post-block home" lang="zh-cn">
-    <link itemprop="mainEntityOfPage" href="https://blog.lovezhy.cc/2017/08/09/Java泛型数组/">
-
-    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="zhy">
-      <meta itemprop="description" content="敌视现实">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="LoveZhy">
-    </span>
-      <header class="post-header">
-        <h1 class="post-title" itemprop="name headline">
-          
-            <a href="/2017/08/09/Java泛型数组/" class="post-title-link" itemprop="url">Java泛型</a>
-        </h1>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2017-08-09 00:00:00" itemprop="dateCreated datePublished" datetime="2017-08-09T00:00:00+08:00">2017-08-09</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-calendar-check-o"></i>
-                </span>
-                <span class="post-meta-item-text">Edited on</span>
-                <time title="Modified: 2020-02-29 22:38:34" itemprop="dateModified" datetime="2020-02-29T22:38:34+08:00">2020-02-29</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/Java基础/" itemprop="url" rel="index">
-                    <span itemprop="name">Java基础</span>
-                  </a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h3 id="Java泛型的实现"><a href="#Java泛型的实现" class="headerlink" title="Java泛型的实现"></a>Java泛型的实现</h3><p>提到Java的泛型一般人都会想到类型擦除(Type Erasure)机制。<br>如果你没想到，请去补一补。。。。  </p>
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2017/08/09/Java泛型数组/#more" rel="contents">
-                Read more &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-        
-  
-  
-  <article itemscope="" itemtype="http://schema.org/Article" class="post-block home" lang="zh-cn">
-    <link itemprop="mainEntityOfPage" href="https://blog.lovezhy.cc/2017/08/05/Java内部类/">
-
-    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="zhy">
-      <meta itemprop="description" content="敌视现实">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="LoveZhy">
-    </span>
-      <header class="post-header">
-        <h1 class="post-title" itemprop="name headline">
-          
-            <a href="/2017/08/05/Java内部类/" class="post-title-link" itemprop="url">Java内部类</a>
-        </h1>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2017-08-05 00:00:00" itemprop="dateCreated datePublished" datetime="2017-08-05T00:00:00+08:00">2017-08-05</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-calendar-check-o"></i>
-                </span>
-                <span class="post-meta-item-text">Edited on</span>
-                <time title="Modified: 2020-02-29 22:38:30" itemprop="dateModified" datetime="2020-02-29T22:38:30+08:00">2020-02-29</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/Java基础/" itemprop="url" rel="index">
-                    <span itemprop="name">Java基础</span>
-                  </a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h3 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h3><p>最近看《Java编程思想》，看了内部类的讲解，发现自己好多都没听过或者没注意到。   </p>
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2017/08/05/Java内部类/#more" rel="contents">
-                Read more &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-        
-  
-  
-  <article itemscope="" itemtype="http://schema.org/Article" class="post-block home" lang="zh-cn">
-    <link itemprop="mainEntityOfPage" href="https://blog.lovezhy.cc/2017/08/02/libevent简单使用/">
-
-    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="zhy">
-      <meta itemprop="description" content="敌视现实">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="LoveZhy">
-    </span>
-      <header class="post-header">
-        <h1 class="post-title" itemprop="name headline">
-          
-            <a href="/2017/08/02/libevent简单使用/" class="post-title-link" itemprop="url">Libevent简单使用</a>
-        </h1>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2017-08-02 00:00:00" itemprop="dateCreated datePublished" datetime="2017-08-02T00:00:00+08:00">2017-08-02</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-calendar-check-o"></i>
-                </span>
-                <span class="post-meta-item-text">Edited on</span>
-                <time title="Modified: 2020-02-29 22:53:26" itemprop="dateModified" datetime="2020-02-29T22:53:26+08:00">2020-02-29</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/技术却无分类/" itemprop="url" rel="index">
-                    <span itemprop="name">技术却无分类</span>
-                  </a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>最近想要自己写一个简单的<code>http server</code>，因为之前的那个是<code>epoll</code>的，只能运行在<code>linux</code>平台上。<br>于是我便找到了平台通用的<code>libevent</code>。  </p>
-<p><code>libevent</code>是事件驱动的，支持异步的网络框架。  </p>
-<p>十分值得学习。</p>
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2017/08/02/libevent简单使用/#more" rel="contents">
-                Read more &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-        
-  
-  
-  <article itemscope="" itemtype="http://schema.org/Article" class="post-block home" lang="zh-cn">
-    <link itemprop="mainEntityOfPage" href="https://blog.lovezhy.cc/2017/07/26/叶子/">
-
-    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="zhy">
-      <meta itemprop="description" content="敌视现实">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="LoveZhy">
-    </span>
-      <header class="post-header">
-        <h1 class="post-title" itemprop="name headline">
-          
-            <a href="/2017/07/26/叶子/" class="post-title-link" itemprop="url">叶子</a>
-        </h1>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2017-07-26 00:00:00" itemprop="dateCreated datePublished" datetime="2017-07-26T00:00:00+08:00">2017-07-26</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-calendar-check-o"></i>
-                </span>
-                <span class="post-meta-item-text">Edited on</span>
-                <time title="Modified: 2020-02-29 22:43:52" itemprop="dateModified" datetime="2020-02-29T22:43:52+08:00">2020-02-29</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/我的生活/" itemprop="url" rel="index">
-                    <span itemprop="name">我的生活</span>
-                  </a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p><img src="/images/2017-07-26_16-27-15.jpg" alt="叶子"></p>
-<p>去帮室友拿快递的时候看到的。<br>暑假没人打扫。<br>落了满地。</p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-        
-  
-  
-  <article itemscope="" itemtype="http://schema.org/Article" class="post-block home" lang="zh-cn">
-    <link itemprop="mainEntityOfPage" href="https://blog.lovezhy.cc/2017/07/21/PathVariable及route设计/">
-
-    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="zhy">
-      <meta itemprop="description" content="敌视现实">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="LoveZhy">
-    </span>
-      <header class="post-header">
-        <h1 class="post-title" itemprop="name headline">
-          
-            <a href="/2017/07/21/PathVariable及route设计/" class="post-title-link" itemprop="url">PathVariable及路由设计</a>
-        </h1>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2017-07-21 00:00:00" itemprop="dateCreated datePublished" datetime="2017-07-21T00:00:00+08:00">2017-07-21</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-calendar-check-o"></i>
-                </span>
-                <span class="post-meta-item-text">Edited on</span>
-                <time title="Modified: 2017-08-04 23:43:40" itemprop="dateModified" datetime="2017-08-04T23:43:40+08:00">2017-08-04</time>
-              </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h3 id="项目源码"><a href="#项目源码" class="headerlink" title="项目源码"></a><a href="https://github.com/zhyzhyzhy/NoName/tree/master/src/main/java/com/noname/web/route" target="_blank" rel="noopener">项目源码</a></h3><h4 id="PathVariable"><a href="#PathVariable" class="headerlink" title="@PathVariable"></a><code>@PathVariable</code></h4><p>在web后端框架中，路由设计是很重要的一步。<br>各个框架对接口设计的支持大多差不多，其中必然有</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">@GET(&quot;/users/&#123;id&#125;/&quot;)   </span><br><span class="line">@GET(&quot;/users/:id/&quot;)</span><br></pre></td></tr></table></figure>
-<p>这样的标准。</p>
-<p>其中<code>{id}</code>和<code>:id</code>表示是一个不确定的值，这个随着<code>rustful</code>的兴起也变得常用起来<br>比如我想要查看<code>id = 1</code>的用户的信息，那么我的请求便是<code>/users/1</code><br>如果查看<code>id = 321</code>的用户信息，请求的便是<code>/users/321</code>。</p>
-<p>那么这个id便是一个不确定量。  </p>
-<p>于是对于这个方法而言这个id值便是参数，在我们调用时需要传进去。  </p>
-<p>在<code>Spring MVC</code>中，完整的方法是这样 </p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@GetMapping</span>(<span class="string">"/employer/&#123;phoneNumber&#125;"</span>)  </span><br><span class="line"><span class="keyword">public</span> ResponseEntity&lt;?&gt; findByPhoneNumber(<span class="meta">@PathVariable</span> String phoneNumber) &#123;  </span><br><span class="line">  </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>所以这就要求我们在设计框架时还需要利用反射把请求的uri的特定路径值作为参数传进方法中。</p>
-<h4 id="route设计"><a href="#route设计" class="headerlink" title="route设计"></a>route设计</h4><p>正常我们进行反射调用时，像这样</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">method().invoke(object(), paramters());</span><br></pre></td></tr></table></figure>
-<p>首先<code>route</code>中需要有这个对应的<code>Method</code>，其次对应的对象也应该在其中，然后是参数。  </p>
-<p>于是我设计为</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Route</span> </span>&#123;</span><br><span class="line">	<span class="comment">//对应的uri</span></span><br><span class="line">	<span class="keyword">private</span> String path;</span><br><span class="line">	<span class="comment">//method所在的对象</span></span><br><span class="line">	<span class="keyword">private</span> Object object;</span><br><span class="line">	<span class="comment">//对应的路由method</span></span><br><span class="line">	<span class="keyword">private</span> Method method;</span><br><span class="line">	<span class="comment">//对应的方法，比如GET，POST等</span></span><br><span class="line">	<span class="keyword">private</span> HttpMethod httpMethod;</span><br><span class="line">	<span class="comment">//对应的参数</span></span><br><span class="line">	<span class="keyword">private</span> Object[] paramters;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<h4 id="路由匹配"><a href="#路由匹配" class="headerlink" title="路由匹配"></a>路由匹配</h4><p>那么问题来了，对于不同的uri，我们应该怎么匹配路由呢。</p>
-<p>我想到的是用正则<br>设计一个这样的Map</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Map&lt;Pattern, Route&gt; routeMap = <span class="keyword">new</span> HashMap&lt;&gt;();</span><br></pre></td></tr></table></figure>
-<p>对于<code>/users/{id}/</code>这样的字符串，我们需要产生一个<code>pattern</code>出来。  </p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//根据参数进行正则替换</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> Pattern <span class="title">pathCompiler</span><span class="params">(String path, Method method)</span> </span>&#123;</span><br><span class="line">    Parameter[] parameters = method.getParameters();</span><br><span class="line">    <span class="keyword">for</span> (Parameter parameter : parameters) &#123;</span><br><span class="line">        <span class="keyword">if</span> (parameter.getAnnotations() == <span class="keyword">null</span>) &#123;</span><br><span class="line">            <span class="keyword">continue</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        Annotation annotation = parameter.getAnnotations()[<span class="number">0</span>];</span><br><span class="line">        <span class="keyword">if</span> (annotation <span class="keyword">instanceof</span> PathVariable) &#123;</span><br><span class="line">            <span class="comment">//如果是字符串</span></span><br><span class="line">            <span class="keyword">if</span> (parameter.getType() == String.class) &#123;</span><br><span class="line">                path = path.replace(<span class="string">"&#123;"</span> + parameter.getName()+<span class="string">"&#125;"</span>,<span class="string">"[0-9\\d\\D]*"</span>);</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="comment">//如果是数字</span></span><br><span class="line">            <span class="keyword">else</span> <span class="keyword">if</span> (parameter.getType() == Integer.class</span><br><span class="line">                    || parameter.getType() == Long.class) &#123;</span><br><span class="line">  </span><br><span class="line">                path = path.replace(<span class="string">"&#123;"</span> + parameter.getName()+<span class="string">"&#125;"</span>,<span class="string">"[0-9]*"</span>);</span><br><span class="line">            &#125;</span><br><span class="line">  </span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> Pattern.compile(path);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>键为<code>url</code>的<code>Pattern</code>，那么在匹配时只要遍历一下</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//保存着所有的路由</span></span><br><span class="line">Map&lt;Pattern, Route&gt; routeMap = <span class="keyword">new</span> HashMap&lt;&gt;();</span><br><span class="line">  </span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> Route <span class="title">findRoute</span><span class="params">(String path, HttpMethod method)</span> </span>&#123;</span><br><span class="line">	<span class="keyword">for</span> (Pattern pattern : routeMap.keySet()) &#123;</span><br><span class="line">		<span class="keyword">if</span> (pattern.matcher(path).matches()) &#123;</span><br><span class="line">			<span class="keyword">if</span> (routeMap.get(pattern).getHttpMethod().equals(method)) &#123;</span><br><span class="line">				<span class="comment">/* 进行参数的赋值 *／</span></span><br><span class="line"><span class="comment">				return routeMap.get(pattern);</span></span><br><span class="line"><span class="comment">			&#125;</span></span><br><span class="line"><span class="comment">		&#125;</span></span><br><span class="line"><span class="comment">	&#125;</span></span><br><span class="line"><span class="comment">	return null;</span></span><br><span class="line"><span class="comment">&#125;</span></span><br></pre></td></tr></table></figure>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
   </div>
 
   
@@ -1954,7 +1953,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">83</span>
+          <span class="site-state-item-count">88</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>

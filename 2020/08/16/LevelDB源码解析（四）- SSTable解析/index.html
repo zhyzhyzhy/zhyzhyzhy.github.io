@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 3.8.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+  <meta name="google-site-verification" content="wE7ISC42t3QOT-S-gdbdy_XsP3NB23Xi3alKNWXd0dA">
+  <meta name="baidu-site-verification" content="keFN8E7jd3">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="//fonts.googleapis.com/css?family=Operator Mono:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    hostname: new URL('https://blog.lovezhy.cc').hostname,
+    root: '/',
+    scheme: 'Muse',
+    version: '7.7.1',
+    exturl: false,
+    sidebar: {"position":"right","display":"always","padding":18,"offset":12,"onmobile":false},
+    copycode: {"enable":true,"show_result":true,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    comments: {"style":"tabs","active":"disqus","storage":true,"lazyload":false,"nav":null},
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: 'search.xml',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}
+  };
+</script>
+
+  <meta name="description" content="前言SSTable就是把一个跳表放入一个文件，但是我们不仅仅是把KeyValue写入文件就结束了，还需要做一些其他的事：  写入KV SSTable的一些元信息，如最大Key，最小Key，KV的个数等。 为KV维护一定的索引，加速查找 进行一定比例的数据压缩 数据完整性校验  文件的大体格式如下：  文件的格式大致分为一个一个的Block  Data Block存储的是数据，就是KV。 MetaI">
+<meta name="keywords" content="LevelDB">
+<meta property="og:type" content="article">
+<meta property="og:title" content="LevelDB源码解析（四）- SSTable解析">
+<meta property="og:url" content="https://blog.lovezhy.cc/2020/08/16/LevelDB源码解析（四）- SSTable解析/index.html">
+<meta property="og:site_name" content="LoveZhy">
+<meta property="og:description" content="前言SSTable就是把一个跳表放入一个文件，但是我们不仅仅是把KeyValue写入文件就结束了，还需要做一些其他的事：  写入KV SSTable的一些元信息，如最大Key，最小Key，KV的个数等。 为KV维护一定的索引，加速查找 进行一定比例的数据压缩 数据完整性校验  文件的大体格式如下：  文件的格式大致分为一个一个的Block  Data Block存储的是数据，就是KV。 MetaI">
+<meta property="og:locale" content="zh-cn">
+<meta property="og:image" content="https://blog.lovezhy.cc/Users/zhuyichen/Documents/我的坚果云/one/积累/孵化成功/levelDB/images/sstable1.png">
+<meta property="og:image" content="https://blog.lovezhy.cc/Users/zhuyichen/Documents/我的坚果云/one/积累/孵化成功/levelDB/images/sstable2.png">
+<meta property="og:image" content="https://blog.lovezhy.cc/Users/zhuyichen/Documents/我的坚果云/one/积累/孵化成功/levelDB/images/sstable3.png">
+<meta property="og:image" content="https://blog.lovezhy.cc/Users/zhuyichen/Documents/我的坚果云/one/积累/孵化成功/levelDB/images/sstable4.png">
+<meta property="og:updated_time" content="2020-08-15T10:47:49.369Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="LevelDB源码解析（四）- SSTable解析">
+<meta name="twitter:description" content="前言SSTable就是把一个跳表放入一个文件，但是我们不仅仅是把KeyValue写入文件就结束了，还需要做一些其他的事：  写入KV SSTable的一些元信息，如最大Key，最小Key，KV的个数等。 为KV维护一定的索引，加速查找 进行一定比例的数据压缩 数据完整性校验  文件的大体格式如下：  文件的格式大致分为一个一个的Block  Data Block存储的是数据，就是KV。 MetaI">
+<meta name="twitter:image" content="https://blog.lovezhy.cc/Users/zhuyichen/Documents/我的坚果云/one/积累/孵化成功/levelDB/images/sstable1.png">
+
+<link rel="canonical" href="https://blog.lovezhy.cc/2020/08/16/LevelDB源码解析（四）- SSTable解析/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true
+  };
+</script>
+
+  <title>LevelDB源码解析（四）- SSTable解析 | LoveZhy</title>
+  
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-125642214-1"></script>
+    <script>
+      if (CONFIG.hostname === location.hostname) {
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'UA-125642214-1');
+      }
+    </script>
+
+
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?c1f963571cb3d8a4a5dc82346dc65842";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+<link rel="alternate" href="/atom.xml" title="LoveZhy" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">LoveZhy</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+  </div>
+
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-fw fa-user"></i>About</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>Tags</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>Categories</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>Archives</a>
+
+  </li>
+        <li class="menu-item menu-item-sitemap">
+
+    <a href="/sitemap.xml" rel="section"><i class="fa fa-fw fa-sitemap"></i>Sitemap</a>
+
+  </li>
+  </ul>
+
+</nav>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope="" itemtype="http://schema.org/Article" class="post-block " lang="zh-cn">
+    <link itemprop="mainEntityOfPage" href="https://blog.lovezhy.cc/2020/08/16/LevelDB源码解析（四）- SSTable解析/">
+
+    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="zhy">
+      <meta itemprop="description" content="敌视现实">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="LoveZhy">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          LevelDB源码解析（四）- SSTable解析
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2020-08-16 00:00:00" itemprop="dateCreated datePublished" datetime="2020-08-16T00:00:00+08:00">2020-08-16</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">Edited on</span>
+                <time title="Modified: 2020-08-15 18:47:49" itemprop="dateModified" datetime="2020-08-15T18:47:49+08:00">2020-08-15</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
+                  <a href="/categories/LevelDB/" itemprop="url" rel="index">
+                    <span itemprop="name">LevelDB</span>
+                  </a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>SSTable就是把一个跳表放入一个文件，但是我们不仅仅是把KeyValue写入文件就结束了，还需要做一些其他的事：</p>
+<ol>
+<li>写入KV</li>
+<li>SSTable的一些元信息，如最大Key，最小Key，KV的个数等。</li>
+<li>为KV维护一定的索引，加速查找</li>
+<li>进行一定比例的数据压缩</li>
+<li>数据完整性校验</li>
+</ol>
+<p>文件的大体格式如下：</p>
+<p><img src="/Users/zhuyichen/Documents/我的坚果云/one/积累/孵化成功/levelDB/images/sstable1.png" alt="image-20200724153236851" style="zoom:50%;"></p>
+<p>文件的格式大致分为一个一个的Block</p>
+<ol>
+<li>Data Block存储的是数据，就是KV。</li>
+<li>MetaIndex Block</li>
+<li>Index Block</li>
+<li>Footer</li>
+</ol>
+<p>其中在源码中，DataBlock是大头，2和3叫Footer。</p>
+<p>MetaIndex在Java版本的实现中是个空Block。</p>
+<p>这三个Block的底层实现都是BlockBuilder，BlockBuilder是个存储KV的格式。</p>
+<p>个人感觉上其实BlockBuilder是为了DataBlock打造的，而IndexBlock只是恰好复用了一下。</p>
+<p>所以下文将的DataBlock其实就是DataBlock的机制。</p>
+<h1 id="DataBlock"><a href="#DataBlock" class="headerlink" title="DataBlock"></a>DataBlock</h1><p>BlockBuilder的切分是根据每个Block的大小定的。</p>
+<p>当一个Block的大小超过4 * 1024，也就是4M的时候，就会阶段，重启一个Block。</p>
+<p>在Block内部的数据，也不是全部堆在一起，而是分为一组一组的，叫做DataGroup（非官方定义，我定的名字）。</p>
+<p>分组个数是固定的，根据配置的blockRestartInterval来，默认是16个KV一组。</p>
+<p>为什么要进行分组呢，其实这里要提一下写入数据时的压缩。</p>
+<p>比如连续的两个Key，”the car”和”the car window”，他们有共同的前缀”the car”，对于这个前缀，我们可以只写入一份来起到数据压缩的效果。</p>
+<p>如果我们不分组，那么我们找到一个Key，想知道他原来的Key是啥，得遍历前面所有的Key，这是不现实的。</p>
+<p>所以每隔16个KV，我们就从头开始存储，不计算与之前的Key的共同前缀了。</p>
+<p>假设我们put三个Entry，三个InternalKey如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="number">1</span>. userKey=foo123, seq = <span class="number">3</span>, type=VALUE, value = <span class="string">"fvdnvfdn"</span></span><br><span class="line"><span class="number">2</span>. userKey=foo456, seq = <span class="number">4</span>, type=VALUE, value = <span class="string">"nvjkdfniq"</span></span><br><span class="line"><span class="number">3</span>. userKey=foo444, seq = <span class="number">1</span>, type=VALUE, value = <span class="string">"vfnvfdn233"</span></span><br></pre></td></tr></table></figure>
+<p>写SSTable了，真正写入的Bytes，会对InternalKey调用encode方法</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> Slice <span class="title">encode</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    Slice slice = Slices.allocate(userKey.length() + SIZE_OF_LONG);</span><br><span class="line">    SliceOutput sliceOutput = slice.output();</span><br><span class="line">    sliceOutput.writeBytes(userKey);</span><br><span class="line">    sliceOutput.writeLong(SequenceNumber.packSequenceAndValueType(sequenceNumber, valueType));</span><br><span class="line">    <span class="keyword">return</span> slice;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>大致就是把seq + valueType拼成一个Long类型，和userKey合在了一起。</p>
+<p>写入一个KV的操作基本流程如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">int</span> sharedKeyBytes = calculateSharedBytes(key, lastKey);  <span class="comment">// 1</span></span><br><span class="line"><span class="keyword">int</span> nonSharedKeyBytes = key.length() - sharedKeyBytes;    <span class="comment">// 2</span></span><br><span class="line">VariableLengthQuantity.writeVariableLengthInt(sharedKeyBytes, block);     <span class="comment">// 3</span></span><br><span class="line">VariableLengthQuantity.writeVariableLengthInt(nonSharedKeyBytes, block);  <span class="comment">// 4</span></span><br><span class="line">VariableLengthQuantity.writeVariableLengthInt(value.length(), block);     <span class="comment">// 5</span></span><br><span class="line">block.writeBytes(key, sharedKeyBytes, nonSharedKeyBytes);                 <span class="comment">// 6</span></span><br><span class="line">block.writeBytes(value, <span class="number">0</span>, value.length());                               <span class="comment">// 7</span></span><br></pre></td></tr></table></figure>
+<p>这里我们以</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="number">1</span>. userKey=foo123, seq = <span class="number">3</span>, type=VALUE, value = <span class="string">"fvdnvfdn"</span></span><br><span class="line"><span class="number">2</span>. userKey=foo456, seq = <span class="number">4</span>, type=VALUE, value = <span class="string">"nvjkdfniq"</span></span><br></pre></td></tr></table></figure>
+<p>这两个KeyValue为例，假设<code>foo123</code>已经被写入了，就是<code>lastKey</code>，当前的<code>Key=foo456</code>，其实实际上不是这样的，这里实际拿到的值已经被拼了末尾的Long类型进去，这里为了好解释。同时写入数值也会做相应的转换，这里先忽略。</p>
+<ol>
+<li><code>foo123</code>和<code>foo456</code>的<code>sharedKeyBytes</code>，也就是开始的<code>foo</code>，数值为3</li>
+<li><code>nonSharedKeyBytes</code>也即是<code>456</code>，数值也是3</li>
+<li>这一步写入<code>sharedKeyBytes</code>值到文件中，文件内容变成 <code>3</code></li>
+<li>写入<code>nonSharedKeyBytes</code>，文件内容为<code>3 | 3</code></li>
+<li>写入Value的长度，文件内容变成<code>3 | 3 | 8 |</code></li>
+<li>写入非共同前缀的字符也就是456，文件内容为 <code>3 | 3 | 8 | 456 |</code></li>
+<li>写入Value的值，文件内容为 <code>3 | 3 | 8 | 456 | fvdnvfdn</code></li>
+</ol>
+<p>所以整体来看，一个DataGroup中每行Record的数据如下：</p>
+<p><img src="/Users/zhuyichen/Documents/我的坚果云/one/积累/孵化成功/levelDB/images/sstable2.png" alt="image-20200724153236851" style="zoom:50%;"></p>
+<p>前面提到，每个DataGroup有16行，超过16行之后，就会置LastKey为空，然后下一行开始的sharedKeyBytes就是0，nonSharedKeyBytes就是当前Key的完整长度。</p>
+<p>下面就要为每个DataGroup建立索引，记录每个DataGroup的开始位置。</p>
+<p>变量<code>restartPositions</code>就是为这个索引准备的。</p>
+<p><img src="/Users/zhuyichen/Documents/我的坚果云/one/积累/孵化成功/levelDB/images/sstable3.png" alt="image-20200724153236851" style="zoom:50%;"></p>
+<p>第一个DataGroup的位置就是0。</p>
+<p>数据写完之后，把每个DataGroup的开始Offset写入到这个Block中。</p>
+<p>看源码：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> Slice <span class="title">finish</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (!finished) &#123;</span><br><span class="line">       finished = <span class="keyword">true</span>;</span><br><span class="line">       <span class="keyword">if</span> (entryCount &gt; <span class="number">0</span>) &#123;</span><br><span class="line">            restartPositions.write(block); <span class="comment">//1</span></span><br><span class="line">            block.writeInt(restartPositions.size());</span><br><span class="line">       &#125;</span><br><span class="line">       <span class="keyword">else</span> &#123;</span><br><span class="line">            block.writeInt(<span class="number">0</span>);</span><br><span class="line">       &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> block.slice();</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">//1的源码</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">write</span><span class="params">(SliceOutput sliceOutput)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">int</span> index = <span class="number">0</span>; index &lt; size; index++) &#123;</span><br><span class="line">        sliceOutput.writeInt(values[index]);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>数据写完后，如果符合压缩条件，还要进行数据压缩。</p>
+<p>最后补上Trailer，Trailer就一个Byte和一个Int，Byte表示压缩方式，Int表示对数据的CRC32，用来验证数据完整性。</p>
+<p>最后整个DataBlock的数据如下：</p>
+<p><img src="/Users/zhuyichen/Documents/我的坚果云/one/积累/孵化成功/levelDB/images/sstable4.png" alt="image-20200724153236851" style="zoom:50%;"></p>
+<h1 id="Index-Block"><a href="#Index-Block" class="headerlink" title="Index Block"></a>Index Block</h1><p>Index Block的内容每次写入一个DataBlock都会新增。</p>
+<p>这里的代码其实还比较绕人，主要是<code>findShortestSeparator</code>这个方法。</p>
+<p>让我们先抛开源代码，想一想对DataBlock建立索引需要记录哪些信息。</p>
+<ol>
+<li>最大Key，最小Key</li>
+<li>KV的个数</li>
+<li>StartOffset，EndOffset</li>
+</ol>
+<p>先来看看最大Key和最小Key的问题。</p>
+<p>建立这个索引，主要是为了搜索Key，和最大的比较和最小的比较一下，就能知道是否在这个DataBlock中。</p>
+<p>那么</p>
+<p>问题1：是否需要最小Key？看源码，是Index Block中并没有存。</p>
+<p>问题2：是否需要最大Key？是需要的，不过这里并没有存最大Key是什么。为什么？</p>
+<p>或者我们再反问一句，存最大Key的意义是为了记录这个DataBlock里面的数据的边界，如果我们存储比MaxKey稍大一点的Key是不是也是同样的效果呢？</p>
+<p>举个例子：MaxKey = helloworld，下一个Block的最小Key是hellozoomer，那么我们存储hellox，是不是可以起到同样的效果呢？</p>
+<p>这就是方法<code>findShortestSeparator</code>的功能。</p>
+<blockquote>
+<p> 算出来一个Key，这个Key &gt; MaxKey &amp;&amp; Key &lt; nextBlockFirstKey。能够起到和MaxKey一样的作用，同时存储时能够压缩空间。</p>
+</blockquote>
+<p>解决了问题2，我们再来看看问题1，为啥IndexBlock中没有存MinIndex，我感觉是这样</p>
+<blockquote>
+<p>又不是不能用。</p>
+<p>shortestSeparator既可以表示前一个Block的MaxKey，又可以表示后一个Block的MinKey</p>
+<p>IndexBlock复用的DataBlock的格式，存储MinKey不太方便</p>
+<p>按照上面一个观点，其实一个DataBlock中的KV的个数，在IndexBlock中也没有存储。</p>
+</blockquote>
+<p>其实如果我们看到后面那个，<code>BlockIterator::seak</code>方法，进行二分查找的时候，是直接seek到那个位置，然后读取出第一个Key的。</p>
+<p>下面看看IndexBlock的存储。</p>
+<p>每写完一个DataBlock，会返回这个DataBlock的两个数值</p>
+<ol>
+<li>offset：在文件中的offset</li>
+<li>dataSize：block的存储长度</li>
+</ol>
+<p>在IndexBlock中，将shorttestSeparator作为key，（offset + dataSize)统一作为Value，构造出一个KV的结构放进去。</p>
+<p>其实IndexBlock和DataBlock底层都是BlockBuilder的实现。</p>
+<p>所以IndexBlock的格式和DataBlock是一样的。</p>
+<h1 id="MetaIndex-Block"><a href="#MetaIndex-Block" class="headerlink" title="MetaIndex Block"></a>MetaIndex Block</h1><p>我看Java版本的实现中是个空Block。</p>
+<h1 id="Footer"><a href="#Footer" class="headerlink" title="Footer"></a>Footer</h1><p>Footer主要是为了记录MetaIndexBlock和IndexBlock的位置信息和一些填充字段和MagicWord。</p>
+<p>直接上源码：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">writeFooter</span><span class="params">(Footer footer, SliceOutput sliceOutput)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="comment">// remember the starting write index so we can calculate the padding</span></span><br><span class="line">    <span class="keyword">int</span> startingWriteIndex = sliceOutput.size();</span><br><span class="line"></span><br><span class="line">    <span class="comment">// write metaindex and index handles</span></span><br><span class="line">    writeBlockHandleTo(footer.getMetaindexBlockHandle(), sliceOutput); <span class="comment">//1</span></span><br><span class="line">    writeBlockHandleTo(footer.getIndexBlockHandle(), sliceOutput); <span class="comment">//2</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">// write padding</span></span><br><span class="line">    sliceOutput.writeZero(ENCODED_LENGTH - SIZE_OF_LONG - (sliceOutput.size() - startingWriteIndex));<span class="comment">//3</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">// write magic number as two (little endian) integers</span></span><br><span class="line">    sliceOutput.writeInt((<span class="keyword">int</span>) TableBuilder.TABLE_MAGIC_NUMBER); <span class="comment">//4</span></span><br><span class="line">    sliceOutput.writeInt((<span class="keyword">int</span>) (TableBuilder.TABLE_MAGIC_NUMBER &gt;&gt;&gt; <span class="number">32</span>));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<ol>
+<li>写入MetaIndexBlock的位置信息（offset + size）</li>
+<li>写入IndexBlock的位置信息（offset + size）</li>
+<li>padding</li>
+<li>MagicNumber</li>
+</ol>
+<h1 id="Table的读取和iterator"><a href="#Table的读取和iterator" class="headerlink" title="Table的读取和iterator"></a>Table的读取和iterator</h1><p>对SSTable的读取，需要传入的是SSTable的fileChannel，然后进行初始化：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="title">Table</span><span class="params">(String name, FileChannel fileChannel, Comparator&lt;Slice&gt; comparator)</span> </span>&#123;</span><br><span class="line">    <span class="comment">//...</span></span><br><span class="line">    <span class="keyword">this</span>.name = name;</span><br><span class="line">    <span class="keyword">this</span>.fileChannel = fileChannel;</span><br><span class="line"></span><br><span class="line">    Footer footer = init();  <span class="comment">// 1</span></span><br><span class="line">    indexBlock = readBlock(footer.getIndexBlockHandle()); <span class="comment">//2</span></span><br><span class="line">    metaindexBlockHandle = footer.getMetaindexBlockHandle();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<ol>
+<li>seek到文件的尾部，把MetaIndexBlock的位置信息 + IndexBlock的位置信息读取出来</li>
+<li>把IndexBlock的信息全部读取到内存中来</li>
+</ol>
+<p>因为DataBlock和IndexBlock的底层都是Block，所以这里先提一下对Block的迭代方法：</p>
+<p>实现类是<code>BlockIterator</code></p>
+<p>再回顾下之前的Block的格式</p>
+<blockquote>
+<p> 数据每16个KV一组分为DataGroup，在Block的尾部记录每个DataGroup的位置信息，也就是重启点位置。</p>
+</blockquote>
+<p>这里的迭代分几个重要的点：</p>
+<ol>
+<li>重启点的信息可以全部在初始化的时候就反序列化成数组</li>
+<li>遍历DataGroup的KV时，需要记录上一个Key的原始值，不然不好恢复出当前Key的值</li>
+<li>二分搜索时，转化成对RestartPositions数组的二分搜索</li>
+</ol>
+<p>讲完了对Block的迭代，下面讲讲对SSTable的迭代</p>
+<p>对SSTable的迭代在方法<code>Table::iterator</code>中</p>
+<p>方法的实现如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> TableIterator <span class="title">iterator</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">new</span> TableIterator(<span class="keyword">this</span>, indexBlock.iterator());</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这里的<code>TableIterator</code>的实现思想和Block的迭代的实现思想差不多。</p>
+<p>IndexBlock的KV，是对前面DataBlock的【分割Key】+ 位置信息的保存。</p>
+<p>所以这里的<code>TableIterator</code>的实现思想是：</p>
+<ol>
+<li>遍历时，转化成对IndexBlock和DataBlock的双层遍历。</li>
+<li>每次读取一个DataBlock在内存中。如果当前DataBlock遍历结束，就从IndexBlock读取下一个DataBlock的位置，seek到那个位置，把下一个DataBlock全部读取到内存中，再对这个DataBlock进行遍历。</li>
+<li>二分查找，先对IndexBlock进行二分查找，找到【分割Key】的所在的DataBlock的位置信息，然后再读取改DataBlock，在这个DataBlock中进行二分搜索。</li>
+</ol>
+
+    </div>
+
+    
+    
+    
+        
+
+<div>
+<ul class="post-copyright">
+  <li class="post-copyright-author">
+    <strong>Post author:  </strong>zhy
+  </li>
+  <li class="post-copyright-link">
+    <strong>Post link: </strong>
+    <a href="https://blog.lovezhy.cc/2020/08/16/LevelDB源码解析（四）- SSTable解析/" title="LevelDB源码解析（四）- SSTable解析">https://blog.lovezhy.cc/2020/08/16/LevelDB源码解析（四）- SSTable解析/</a>
+  </li>
+  <li class="post-copyright-license">
+    <strong>Copyright Notice:  </strong>All articles in this blog are licensed under <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" rel="noopener" target="_blank"><i class="fa fa-fw fa-creative-commons"></i>BY-NC-SA</a> unless stating additionally.
+  </li>
+</ul>
+</div>
+
+        
+
+  <div class="followme">
+    <p>Welcome to my other publishing channels</p>
+
+    <div class="social-list">
+
+            <div class="social-item">
+              <a target="_blank" class="social-link" href="/atom.xml">
+                <span class="icon">
+                  <i class="fa fa-rss"></i>
+                </span>
+
+                <span class="label">RSS</span>
+              </a>
+            </div>
+    </div>
+  </div>
+
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/LevelDB/" rel="tag"># LevelDB</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2020/08/15/LevelDB源码解析（三）- MemTable解析/" rel="prev" title="LevelDB源码解析（三）- MemTable解析">
+      <i class="fa fa-chevron-left"></i> LevelDB源码解析（三）- MemTable解析
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2020/08/17/LevelDB源码解析（五）- CURRENT和Manifest/" rel="next" title="LevelDB源码解析（五）- CURRENT和Manifest">
+      LevelDB源码解析（五）- CURRENT和Manifest <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+    <div class="comments" id="gitalk-container"></div>
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let activeClass = CONFIG.comments.activeClass;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#前言"><span class="nav-number">1.</span> <span class="nav-text">前言</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#DataBlock"><span class="nav-number"></span> <span class="nav-text">DataBlock</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Index-Block"><span class="nav-number"></span> <span class="nav-text">Index Block</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#MetaIndex-Block"><span class="nav-number"></span> <span class="nav-text">MetaIndex Block</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Footer"><span class="nav-number"></span> <span class="nav-text">Footer</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Table的读取和iterator"><span class="nav-number"></span> <span class="nav-text">Table的读取和iterator</span></a></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">zhy</p>
+  <div class="site-description" itemprop="description">敌视现实</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">88</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">33</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">60</span>
+        <span class="site-state-item-name">tags</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/zhyzhyzhy" title="GitHub → https://github.com/zhyzhyzhy" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:zhuyichen1017@outlook.com" title="E-Mail → mailto:zhuyichen1017@outlook.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+  <div class="beian"><a href="http://www.beian.miit.gov.cn" rel="noopener" target="_blank">苏ICP备15058469号 </a>
+  </div>
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">zhy</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> v3.8.0
+  </div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">Theme – <a href="https://muse.theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a> v7.7.1
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+<script src="/js/utils.js"></script><script src="/js/motion.js"></script>
+<script src="/js/schemes/muse.js"></script>
+<script src="/js/next-boot.js"></script>
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+<link rel="stylesheet" href="//cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.css">
+
+<script>
+NexT.utils.loadComments(document.querySelector('#gitalk-container'), () => {
+  NexT.utils.getScript('//cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.js', () => {
+    var gitalk = new Gitalk({
+      clientID: '397fc9b869aab02e85ba',
+      clientSecret: 'fb88003acd1df02f7ad1d3f19b54e8ce0f09932d',
+      repo: 'zhyzhyzhy.github.io',
+      owner: 'zhyzhyzhy',
+      admin: ['zhyzhyzhy'],
+      id: '667997c6e1710e1e4d9e272108983bd0',
+        language: 'zh_CN',
+      distractionFreeMode: true
+    });
+    gitalk.render('gitalk-container');
+  }, window.Gitalk);
+});
+</script>
+
+</body>
+</html>
