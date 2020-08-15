@@ -48,18 +48,18 @@
   };
 </script>
 
-  <meta name="description" content="Log文件初始化： 在DbImpl的构造函数中，申请了一个新的FileNumber，然后对log对象进行了初始化。 12long logFileNumber = versions.getNextFileNumber();this.log = Logs.createLogWriter(new File(databaseDir, Filename.logFileName(logFileNumber))">
+  <meta name="description" content="前言数据库中基本都有WAL功能，LevelDB也不例外，不过这里的WAL功能实现比较简单">
 <meta name="keywords" content="LevelDB">
 <meta property="og:type" content="article">
 <meta property="og:title" content="LevelDB源码解析（六）- WAL和Log文件">
 <meta property="og:url" content="https://blog.lovezhy.cc/2020/08/18/LevelDB源码解析（六）- WAL和Log文件/index.html">
 <meta property="og:site_name" content="LoveZhy">
-<meta property="og:description" content="Log文件初始化： 在DbImpl的构造函数中，申请了一个新的FileNumber，然后对log对象进行了初始化。 12long logFileNumber = versions.getNextFileNumber();this.log = Logs.createLogWriter(new File(databaseDir, Filename.logFileName(logFileNumber))">
+<meta property="og:description" content="前言数据库中基本都有WAL功能，LevelDB也不例外，不过这里的WAL功能实现比较简单">
 <meta property="og:locale" content="zh-cn">
-<meta property="og:updated_time" content="2020-08-15T10:48:00.192Z">
+<meta property="og:updated_time" content="2020-08-15T10:55:53.439Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="LevelDB源码解析（六）- WAL和Log文件">
-<meta name="twitter:description" content="Log文件初始化： 在DbImpl的构造函数中，申请了一个新的FileNumber，然后对log对象进行了初始化。 12long logFileNumber = versions.getNextFileNumber();this.log = Logs.createLogWriter(new File(databaseDir, Filename.logFileName(logFileNumber))">
+<meta name="twitter:description" content="前言数据库中基本都有WAL功能，LevelDB也不例外，不过这里的WAL功能实现比较简单">
 
 <link rel="canonical" href="https://blog.lovezhy.cc/2020/08/18/LevelDB源码解析（六）- WAL和Log文件/">
 
@@ -241,7 +241,7 @@
                   <i class="fa fa-calendar-check-o"></i>
                 </span>
                 <span class="post-meta-item-text">Edited on</span>
-                <time title="Modified: 2020-08-15 18:48:00" itemprop="dateModified" datetime="2020-08-15T18:48:00+08:00">2020-08-15</time>
+                <time title="Modified: 2020-08-15 18:55:53" itemprop="dateModified" datetime="2020-08-15T18:55:53+08:00">2020-08-15</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -266,22 +266,20 @@
     <div class="post-body" itemprop="articleBody">
 
       
-        <p>Log文件初始化：</p>
-<p>在DbImpl的构造函数中，申请了一个新的FileNumber，然后对log对象进行了初始化。</p>
+        <h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>数据库中基本都有WAL功能，LevelDB也不例外，不过这里的WAL功能实现比较简单</p>
+<a id="more"></a>
+<h2 id="Log文件初始化"><a href="#Log文件初始化" class="headerlink" title="Log文件初始化"></a>Log文件初始化</h2><p>在DbImpl的构造函数中，申请了一个新的FileNumber，然后对log对象进行了初始化。</p>
 <figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">long</span> logFileNumber = versions.getNextFileNumber();</span><br><span class="line"><span class="keyword">this</span>.log = Logs.createLogWriter(<span class="keyword">new</span> File(databaseDir, Filename.logFileName(logFileNumber)), logFileNumber);</span><br></pre></td></tr></table></figure>
 <p>所以这个Log文件每次启动都会创建一个新的。</p>
-<p>写入：</p>
-<p>Log的写入也比较简单，每次进行put的时候，将KV序列化特定的格式，然后append进日志系统。</p>
+<h2 id="写入"><a href="#写入" class="headerlink" title="写入"></a>写入</h2><p>Log的写入也比较简单，每次进行put的时候，将KV序列化特定的格式，然后append进日志系统。</p>
 <figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> Snapshot <span class="title">writeInternal</span><span class="params">(WriteBatchImpl updates, WriteOptions options)</span> </span>&#123;</span><br><span class="line">  	 <span class="comment">//...</span></span><br><span class="line">     <span class="comment">// Log write</span></span><br><span class="line">     Slice record = writeWriteBatch(updates, sequenceBegin);</span><br><span class="line">     log.addRecord(record, options.sync());     </span><br><span class="line">     <span class="comment">//... </span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>更迭：</p>
-<p>在正常的运行中，Log日志会更迭吗？</p>
+<h2 id="更迭"><a href="#更迭" class="headerlink" title="更迭"></a>更迭</h2><p>在正常的运行中，Log日志会更迭吗？</p>
 <p>因为如果不更迭的话，日志会越来越多，单文件可能会越来越多。</p>
 <p>同时我们知道Log格式的文件仅仅支持从头开始遍历的，在Recover的时候，从头到尾遍历一个大文件也是个问题。</p>
 <p>在<code>makeRoomForWrite</code>中，如果MemTable需要进行Compact的时候，就会强制关闭当前的Log，再创建一个新的Log。</p>
 <figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">makeRoomForWrite</span><span class="params">(<span class="keyword">boolean</span> force)</span> </span>&#123;</span><br><span class="line">    <span class="comment">// ... </span></span><br><span class="line">    log.close();</span><br><span class="line">    <span class="keyword">long</span> logNumber = versions.getNextFileNumber();</span><br><span class="line">    <span class="keyword">this</span>.log = Logs.createLogWriter(<span class="keyword">new</span> File(databaseDir, Filename.logFileName(logNumber)), logNumber);        </span><br><span class="line">    <span class="comment">// ...</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 <p>注意：makeRoomForWrite并不是每次调用都会走到这个逻辑的。</p>
-<p>删除：</p>
-<p>什么时候删除呢？</p>
+<h2 id="删除"><a href="#删除" class="headerlink" title="删除"></a>删除</h2><p>什么时候删除呢？</p>
 <p>前面我们看到每次启动时，会新生成一个新的Log，每次CompactMemTable的时候，也会新生成一个新的，那么旧的什么时候删除呢？</p>
 <p>答案在<code>deleteObsoleteFiles</code>方法中。</p>
 <p>方法内容如名字，其实这个方法不止删除了旧的Log文件。</p>
@@ -291,8 +289,7 @@
 <p>如果Compact后，持久化了，自然就不需要这个文件了。</p>
 <p>所以在VersionSet::logAndApply后，都会清理旧的Log文件。</p>
 <p>因为每次VersionEdit生成后，NewVersion的所有SSTable就已经确定了，新的KV记录则在新的Log日志中，也就不需要再知道旧的Log日志文件是啥了。</p>
-<p>recover：</p>
-<p>结合了WAL的性质，我们来了解下，recover的内容。</p>
+<h2 id="Recover"><a href="#Recover" class="headerlink" title="Recover"></a>Recover</h2><p>结合了WAL的性质，我们来了解下，recover的内容。</p>
 <p>按照理解，Recover时，主要把有内容还是MemTable中，还没持久化到磁盘上，这个时候需要找到这个MemTable对于的Log文件，遍历这个文件内容，再Append一遍就行。</p>
 <p>我们结合DbImpl的构造函数一起来看看：</p>
 <figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="title">DbImpl</span><span class="params">(Options options, File databaseDir)</span> </span>&#123;</span><br><span class="line">  <span class="comment">// ...</span></span><br><span class="line">  versions = <span class="keyword">new</span> VersionSet(databaseDir, tableCache, internalKeyComparator); </span><br><span class="line">  <span class="comment">// load  (and recover) current version</span></span><br><span class="line">  versions.recover(); <span class="comment">// 1</span></span><br><span class="line">  <span class="keyword">long</span> minLogNumber = versions.getLogNumber();</span><br><span class="line">  <span class="keyword">long</span> previousLogNumber = versions.getPrevLogNumber();</span><br><span class="line">  </span><br><span class="line">  List&lt;File&gt; filenames = Filename.listFiles(databaseDir);</span><br><span class="line">  List&lt;Long&gt; logs = <span class="keyword">new</span> ArrayList&lt;&gt;();</span><br><span class="line">  <span class="keyword">for</span> (File filename : filenames) &#123;</span><br><span class="line">    FileInfo fileInfo = Filename.parseFileName(filename);</span><br><span class="line">    <span class="keyword">if</span> (fileInfo != <span class="keyword">null</span> &amp;&amp; fileInfo.getFileType() == FileType.LOG &amp;&amp; ((fileInfo.getFileNumber() &gt;= minLogNumber) || (fileInfo.getFileNumber() == previousLogNumber))) &#123;</span><br><span class="line">      logs.add(fileInfo.getFileNumber());  <span class="comment">// 2</span></span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="comment">// Recover in the order in which the logs were generated</span></span><br><span class="line">  VersionEdit edit = <span class="keyword">new</span> VersionEdit();</span><br><span class="line">  Collections.sort(logs);</span><br><span class="line">  <span class="keyword">for</span> (Long fileNumber : logs) &#123;</span><br><span class="line">    <span class="keyword">long</span> maxSequence = recoverLogFile(fileNumber, edit);  <span class="comment">// 3</span></span><br><span class="line">    <span class="keyword">if</span> (versions.getLastSequence() &lt; maxSequence) &#123;</span><br><span class="line">      versions.setLastSequence(maxSequence);</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="comment">// open transaction log</span></span><br><span class="line">  <span class="keyword">long</span> logFileNumber = versions.getNextFileNumber(); </span><br><span class="line">  <span class="keyword">this</span>.log = Logs.createLogWriter(<span class="keyword">new</span> File(databaseDir, Filename.logFileName(logFileNumber)), logFileNumber);</span><br><span class="line">  edit.setLogNumber(log.getFileNumber());</span><br><span class="line">  <span class="comment">// apply recovered edits</span></span><br><span class="line">  versions.logAndApply(edit); <span class="comment">// 4</span></span><br><span class="line">  <span class="comment">// cleanup unused files</span></span><br><span class="line">  deleteObsoleteFiles(); <span class="comment">// 5 </span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
@@ -424,6 +421,7 @@
 
       <!--noindex-->
       <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#前言"><span class="nav-number">1.</span> <span class="nav-text">前言</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Log文件初始化"><span class="nav-number">2.</span> <span class="nav-text">Log文件初始化</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#写入"><span class="nav-number">3.</span> <span class="nav-text">写入</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#更迭"><span class="nav-number">4.</span> <span class="nav-text">更迭</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#删除"><span class="nav-number">5.</span> <span class="nav-text">删除</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Recover"><span class="nav-number">6.</span> <span class="nav-text">Recover</span></a></li></ol></div>
       </div>
       <!--/noindex-->
 

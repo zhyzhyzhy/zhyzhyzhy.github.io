@@ -48,21 +48,21 @@
   };
 </script>
 
-  <meta name="description" content="在LevelDB中，MemTable其实就是在内存中的一个跳表。 1private final ConcurrentSkipListMap&amp;lt;InternalKey, Slice&amp;gt; table; 稍等，为什么table的Key不是String，而是InternalKey？ InternalKey我们看看InternalKey的定义 123456public class InternalK">
+  <meta name="description" content="前言在LevelDB中，MemTable其实就是在内存中的一个跳表。 1private final ConcurrentSkipListMap&amp;lt;InternalKey, Slice&amp;gt; table; 稍等，为什么table的Key不是String，而是InternalKey？">
 <meta name="keywords" content="LevelDB">
 <meta property="og:type" content="article">
 <meta property="og:title" content="LevelDB源码解析（三）- MemTable解析">
 <meta property="og:url" content="https://blog.lovezhy.cc/2020/08/15/LevelDB源码解析（三）- MemTable解析/index.html">
 <meta property="og:site_name" content="LoveZhy">
-<meta property="og:description" content="在LevelDB中，MemTable其实就是在内存中的一个跳表。 1private final ConcurrentSkipListMap&amp;lt;InternalKey, Slice&amp;gt; table; 稍等，为什么table的Key不是String，而是InternalKey？ InternalKey我们看看InternalKey的定义 123456public class InternalK">
+<meta property="og:description" content="前言在LevelDB中，MemTable其实就是在内存中的一个跳表。 1private final ConcurrentSkipListMap&amp;lt;InternalKey, Slice&amp;gt; table; 稍等，为什么table的Key不是String，而是InternalKey？">
 <meta property="og:locale" content="zh-cn">
-<meta property="og:image" content="https://blog.lovezhy.cc/Users/zhuyichen/Documents/我的坚果云/one/积累/孵化成功/LevelDB/images/memtable1.png">
-<meta property="og:image" content="https://blog.lovezhy.cc/Users/zhuyichen/Documents/我的坚果云/one/积累/孵化成功/LevelDB/images/memtable2.png">
-<meta property="og:updated_time" content="2020-08-15T10:34:02.830Z">
+<meta property="og:image" content="https://blog.lovezhy.cc/images/leveldb/memtable1.png">
+<meta property="og:image" content="https://blog.lovezhy.cc/images/leveldb/memtable2.png">
+<meta property="og:updated_time" content="2020-08-15T10:58:24.460Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="LevelDB源码解析（三）- MemTable解析">
-<meta name="twitter:description" content="在LevelDB中，MemTable其实就是在内存中的一个跳表。 1private final ConcurrentSkipListMap&amp;lt;InternalKey, Slice&amp;gt; table; 稍等，为什么table的Key不是String，而是InternalKey？ InternalKey我们看看InternalKey的定义 123456public class InternalK">
-<meta name="twitter:image" content="https://blog.lovezhy.cc/Users/zhuyichen/Documents/我的坚果云/one/积累/孵化成功/LevelDB/images/memtable1.png">
+<meta name="twitter:description" content="前言在LevelDB中，MemTable其实就是在内存中的一个跳表。 1private final ConcurrentSkipListMap&amp;lt;InternalKey, Slice&amp;gt; table; 稍等，为什么table的Key不是String，而是InternalKey？">
+<meta name="twitter:image" content="https://blog.lovezhy.cc/images/leveldb/memtable1.png">
 
 <link rel="canonical" href="https://blog.lovezhy.cc/2020/08/15/LevelDB源码解析（三）- MemTable解析/">
 
@@ -238,7 +238,7 @@
               <span class="post-meta-item-text">Posted on</span>
               
 
-              <time title="Created: 2020-08-15 00:00:00 / Modified: 18:34:02" itemprop="dateCreated datePublished" datetime="2020-08-15T00:00:00+08:00">2020-08-15</time>
+              <time title="Created: 2020-08-15 00:00:00 / Modified: 18:58:24" itemprop="dateCreated datePublished" datetime="2020-08-15T00:00:00+08:00">2020-08-15</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -263,9 +263,10 @@
     <div class="post-body" itemprop="articleBody">
 
       
-        <p>在LevelDB中，MemTable其实就是在内存中的一个跳表。</p>
+        <h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>在LevelDB中，MemTable其实就是在内存中的一个跳表。</p>
 <figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">final</span> ConcurrentSkipListMap&lt;InternalKey, Slice&gt; table;</span><br></pre></td></tr></table></figure>
 <p>稍等，为什么table的Key不是<code>String</code>，而是<code>InternalKey</code>？</p>
+<a id="more"></a>
 <h2 id="InternalKey"><a href="#InternalKey" class="headerlink" title="InternalKey"></a>InternalKey</h2><p>我们看看InternalKey的定义</p>
 <figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">InternalKey</span></span></span><br><span class="line"><span class="class"></span>&#123;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">final</span> Slice userKey;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">final</span> <span class="keyword">long</span> sequenceNumber;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">final</span> ValueType valueType;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 <p>里面包含三个字段，分别是</p>
@@ -283,8 +284,7 @@
 </ol>
 <p>这个时候，我们抛出一个问题，第2条put执行完之后，在MemTable中还有没有internelKey1？</p>
 <p>其实这个问题取决于compare方法。</p>
-<p>#comparator</p>
-<p>新建这个跳表的时候，传入的<code>comparator</code>是<code>InternalKeyComparator</code>。</p>
+<h2 id="comparator"><a href="#comparator" class="headerlink" title="comparator"></a>comparator</h2><p>新建这个跳表的时候，传入的<code>comparator</code>是<code>InternalKeyComparator</code>。</p>
 <figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">InternalKeyComparator#compare</span><br><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">int</span> <span class="title">compare</span><span class="params">(InternalKey left, InternalKey right)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">int</span> result = userComparator.compare(left.getUserKey(), right.getUserKey()); <span class="comment">//1</span></span><br><span class="line">    <span class="keyword">if</span> (result != <span class="number">0</span>) &#123;</span><br><span class="line">        <span class="keyword">return</span> result;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> Long.compare(right.getSequenceNumber(), left.getSequenceNumber()); <span class="comment">//2</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 <ol>
 <li>这里的<code>userComparator</code>是<code>BytewiseComparator</code>，而<code>BytewiseComparator</code>就是简单的比较<code>userKey</code>了。我们三次操作的userKey都是<code>foo</code>，所以这里返回的是<code>0</code></li>
@@ -293,7 +293,7 @@
 <p>所以这里问题解答出来了，执行完这三个语句之后，三个InternalKey都会在跳表中，同时seqNum越大的，排名越靠前。</p>
 <p>所以这就导致我们对某个userKey进行search的时候，我们的InternelKey的构造，userKey=foo，seq=currentSeq，valueType=Value。</p>
 <p>这样查找的时候，使用ceilingEntry方法查找，这个方法查找的是最近的一个和他一样或者比他大的。</p>
-<h1 id="compact"><a href="#compact" class="headerlink" title="compact"></a>compact</h1><p>一个MemTable什么时候停止写入，变成磁盘的SSTable呢？</p>
+<h2 id="compact"><a href="#compact" class="headerlink" title="compact"></a>compact</h2><p>一个MemTable什么时候停止写入，变成磁盘的SSTable呢？</p>
 <p>答案在<code>makeRoomForWrite</code>方法中：</p>
 <figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">memTable.approximateMemoryUsage() &lt;= options.writeBufferSize()</span><br></pre></td></tr></table></figure>
 <p>这里的<code>options.writeBufferSize</code>，默认情况下是4 &lt;&lt; 20，也就是4G。</p>
@@ -306,15 +306,14 @@
 <p>这个方法中，overlapInLevel方法是判断新SSTable的userKey范围是否与这一层的某个文件userKey的范围重合。</p>
 <p>如果不重合，就直接下沉到下一个Level进行查找。</p>
 <p>图例：MemTable变成了SSTable，范围是13 ~ 18。那么他会放到哪一层呢？</p>
-<p><img src="/Users/zhuyichen/Documents/我的坚果云/one/积累/孵化成功/LevelDB/images/memtable1.png" alt="image-20200709113619550" style="zoom:50%;"></p>
+<p><img src="/images/leveldb/memtable1.png" style="zoom:50%;"></p>
 <ol>
 <li>首先看Level 0，没有一个SSTable的Key范围和他有重合的</li>
 <li>再看Level 1，还是没有一个SSTable的Key范围和他有重合的。</li>
 <li>再次下沉到Level 2，发现第一个SSTable与他有重合。</li>
 <li>所以新的SSTable会被放到Level 1。</li>
 </ol>
-<p>最终结果如下图所示。</p>
-<p><img src="/Users/zhuyichen/Documents/我的坚果云/one/积累/孵化成功/LevelDB/images/memtable2.png" style="zoom:50%;"></p>
+<p>最终结果如下图所示。<br><img src="/images/leveldb/memtable2.png" style="zoom:50%;"></p>
 
     </div>
 
@@ -436,7 +435,7 @@
 
       <!--noindex-->
       <div class="post-toc-wrap sidebar-panel">
-          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#InternalKey"><span class="nav-number">1.</span> <span class="nav-text">InternalKey</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#compact"><span class="nav-number"></span> <span class="nav-text">compact</span></a></div>
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#前言"><span class="nav-number">1.</span> <span class="nav-text">前言</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#InternalKey"><span class="nav-number">2.</span> <span class="nav-text">InternalKey</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#comparator"><span class="nav-number">3.</span> <span class="nav-text">comparator</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#compact"><span class="nav-number">4.</span> <span class="nav-text">compact</span></a></li></ol></div>
       </div>
       <!--/noindex-->
 

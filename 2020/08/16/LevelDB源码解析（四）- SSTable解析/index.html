@@ -56,15 +56,15 @@
 <meta property="og:site_name" content="LoveZhy">
 <meta property="og:description" content="前言SSTable就是把一个跳表放入一个文件，但是我们不仅仅是把KeyValue写入文件就结束了，还需要做一些其他的事：  写入KV SSTable的一些元信息，如最大Key，最小Key，KV的个数等。 为KV维护一定的索引，加速查找 进行一定比例的数据压缩 数据完整性校验  文件的大体格式如下：  文件的格式大致分为一个一个的Block  Data Block存储的是数据，就是KV。 MetaI">
 <meta property="og:locale" content="zh-cn">
-<meta property="og:image" content="https://blog.lovezhy.cc/Users/zhuyichen/Documents/我的坚果云/one/积累/孵化成功/levelDB/images/sstable1.png">
-<meta property="og:image" content="https://blog.lovezhy.cc/Users/zhuyichen/Documents/我的坚果云/one/积累/孵化成功/levelDB/images/sstable2.png">
-<meta property="og:image" content="https://blog.lovezhy.cc/Users/zhuyichen/Documents/我的坚果云/one/积累/孵化成功/levelDB/images/sstable3.png">
-<meta property="og:image" content="https://blog.lovezhy.cc/Users/zhuyichen/Documents/我的坚果云/one/积累/孵化成功/levelDB/images/sstable4.png">
-<meta property="og:updated_time" content="2020-08-15T10:47:49.369Z">
+<meta property="og:image" content="https://blog.lovezhy.cc/images/leveldb/sstable1.png">
+<meta property="og:image" content="https://blog.lovezhy.cc/images/leveldb/sstable2.png">
+<meta property="og:image" content="https://blog.lovezhy.cc/images/leveldb/sstable3.png">
+<meta property="og:image" content="https://blog.lovezhy.cc/images/leveldb/sstable4.png">
+<meta property="og:updated_time" content="2020-08-15T11:01:28.241Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="LevelDB源码解析（四）- SSTable解析">
 <meta name="twitter:description" content="前言SSTable就是把一个跳表放入一个文件，但是我们不仅仅是把KeyValue写入文件就结束了，还需要做一些其他的事：  写入KV SSTable的一些元信息，如最大Key，最小Key，KV的个数等。 为KV维护一定的索引，加速查找 进行一定比例的数据压缩 数据完整性校验  文件的大体格式如下：  文件的格式大致分为一个一个的Block  Data Block存储的是数据，就是KV。 MetaI">
-<meta name="twitter:image" content="https://blog.lovezhy.cc/Users/zhuyichen/Documents/我的坚果云/one/积累/孵化成功/levelDB/images/sstable1.png">
+<meta name="twitter:image" content="https://blog.lovezhy.cc/images/leveldb/sstable1.png">
 
 <link rel="canonical" href="https://blog.lovezhy.cc/2020/08/16/LevelDB源码解析（四）- SSTable解析/">
 
@@ -246,7 +246,7 @@
                   <i class="fa fa-calendar-check-o"></i>
                 </span>
                 <span class="post-meta-item-text">Edited on</span>
-                <time title="Modified: 2020-08-15 18:47:49" itemprop="dateModified" datetime="2020-08-15T18:47:49+08:00">2020-08-15</time>
+                <time title="Modified: 2020-08-15 19:01:28" itemprop="dateModified" datetime="2020-08-15T19:01:28+08:00">2020-08-15</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -280,7 +280,7 @@
 <li>数据完整性校验</li>
 </ol>
 <p>文件的大体格式如下：</p>
-<p><img src="/Users/zhuyichen/Documents/我的坚果云/one/积累/孵化成功/levelDB/images/sstable1.png" alt="image-20200724153236851" style="zoom:50%;"></p>
+<p><img src="/images/leveldb/sstable1.png" style="zoom:50%;"></p>
 <p>文件的格式大致分为一个一个的Block</p>
 <ol>
 <li>Data Block存储的是数据，就是KV。</li>
@@ -293,7 +293,8 @@
 <p>这三个Block的底层实现都是BlockBuilder，BlockBuilder是个存储KV的格式。</p>
 <p>个人感觉上其实BlockBuilder是为了DataBlock打造的，而IndexBlock只是恰好复用了一下。</p>
 <p>所以下文将的DataBlock其实就是DataBlock的机制。</p>
-<h1 id="DataBlock"><a href="#DataBlock" class="headerlink" title="DataBlock"></a>DataBlock</h1><p>BlockBuilder的切分是根据每个Block的大小定的。</p>
+<a id="more"></a>
+<h2 id="DataBlock"><a href="#DataBlock" class="headerlink" title="DataBlock"></a>DataBlock</h2><p>BlockBuilder的切分是根据每个Block的大小定的。</p>
 <p>当一个Block的大小超过4 * 1024，也就是4M的时候，就会阶段，重启一个Block。</p>
 <p>在Block内部的数据，也不是全部堆在一起，而是分为一组一组的，叫做DataGroup（非官方定义，我定的名字）。</p>
 <p>分组个数是固定的，根据配置的blockRestartInterval来，默认是16个KV一组。</p>
@@ -321,11 +322,11 @@
 <li>写入Value的值，文件内容为 <code>3 | 3 | 8 | 456 | fvdnvfdn</code></li>
 </ol>
 <p>所以整体来看，一个DataGroup中每行Record的数据如下：</p>
-<p><img src="/Users/zhuyichen/Documents/我的坚果云/one/积累/孵化成功/levelDB/images/sstable2.png" alt="image-20200724153236851" style="zoom:50%;"></p>
+<p><img src="/images/leveldb/sstable2.png" style="zoom:50%;"></p>
 <p>前面提到，每个DataGroup有16行，超过16行之后，就会置LastKey为空，然后下一行开始的sharedKeyBytes就是0，nonSharedKeyBytes就是当前Key的完整长度。</p>
 <p>下面就要为每个DataGroup建立索引，记录每个DataGroup的开始位置。</p>
 <p>变量<code>restartPositions</code>就是为这个索引准备的。</p>
-<p><img src="/Users/zhuyichen/Documents/我的坚果云/one/积累/孵化成功/levelDB/images/sstable3.png" alt="image-20200724153236851" style="zoom:50%;"></p>
+<p><img src="/images/leveldb/sstable3.png" style="zoom:50%;"></p>
 <p>第一个DataGroup的位置就是0。</p>
 <p>数据写完之后，把每个DataGroup的开始Offset写入到这个Block中。</p>
 <p>看源码：</p>
@@ -333,8 +334,8 @@
 <p>数据写完后，如果符合压缩条件，还要进行数据压缩。</p>
 <p>最后补上Trailer，Trailer就一个Byte和一个Int，Byte表示压缩方式，Int表示对数据的CRC32，用来验证数据完整性。</p>
 <p>最后整个DataBlock的数据如下：</p>
-<p><img src="/Users/zhuyichen/Documents/我的坚果云/one/积累/孵化成功/levelDB/images/sstable4.png" alt="image-20200724153236851" style="zoom:50%;"></p>
-<h1 id="Index-Block"><a href="#Index-Block" class="headerlink" title="Index Block"></a>Index Block</h1><p>Index Block的内容每次写入一个DataBlock都会新增。</p>
+<p><img src="/images/leveldb/sstable4.png" style="zoom:50%;"></p>
+<h2 id="Index-Block"><a href="#Index-Block" class="headerlink" title="Index Block"></a>Index Block</h2><p>Index Block的内容每次写入一个DataBlock都会新增。</p>
 <p>这里的代码其实还比较绕人，主要是<code>findShortestSeparator</code>这个方法。</p>
 <p>让我们先抛开源代码，想一想对DataBlock建立索引需要记录哪些信息。</p>
 <ol>
@@ -370,8 +371,8 @@
 <p>在IndexBlock中，将shorttestSeparator作为key，（offset + dataSize)统一作为Value，构造出一个KV的结构放进去。</p>
 <p>其实IndexBlock和DataBlock底层都是BlockBuilder的实现。</p>
 <p>所以IndexBlock的格式和DataBlock是一样的。</p>
-<h1 id="MetaIndex-Block"><a href="#MetaIndex-Block" class="headerlink" title="MetaIndex Block"></a>MetaIndex Block</h1><p>我看Java版本的实现中是个空Block。</p>
-<h1 id="Footer"><a href="#Footer" class="headerlink" title="Footer"></a>Footer</h1><p>Footer主要是为了记录MetaIndexBlock和IndexBlock的位置信息和一些填充字段和MagicWord。</p>
+<h2 id="MetaIndex-Block"><a href="#MetaIndex-Block" class="headerlink" title="MetaIndex Block"></a>MetaIndex Block</h2><p>我看Java版本的实现中是个空Block。</p>
+<h2 id="Footer"><a href="#Footer" class="headerlink" title="Footer"></a>Footer</h2><p>Footer主要是为了记录MetaIndexBlock和IndexBlock的位置信息和一些填充字段和MagicWord。</p>
 <p>直接上源码：</p>
 <figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">writeFooter</span><span class="params">(Footer footer, SliceOutput sliceOutput)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="comment">// remember the starting write index so we can calculate the padding</span></span><br><span class="line">    <span class="keyword">int</span> startingWriteIndex = sliceOutput.size();</span><br><span class="line"></span><br><span class="line">    <span class="comment">// write metaindex and index handles</span></span><br><span class="line">    writeBlockHandleTo(footer.getMetaindexBlockHandle(), sliceOutput); <span class="comment">//1</span></span><br><span class="line">    writeBlockHandleTo(footer.getIndexBlockHandle(), sliceOutput); <span class="comment">//2</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">// write padding</span></span><br><span class="line">    sliceOutput.writeZero(ENCODED_LENGTH - SIZE_OF_LONG - (sliceOutput.size() - startingWriteIndex));<span class="comment">//3</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">// write magic number as two (little endian) integers</span></span><br><span class="line">    sliceOutput.writeInt((<span class="keyword">int</span>) TableBuilder.TABLE_MAGIC_NUMBER); <span class="comment">//4</span></span><br><span class="line">    sliceOutput.writeInt((<span class="keyword">int</span>) (TableBuilder.TABLE_MAGIC_NUMBER &gt;&gt;&gt; <span class="number">32</span>));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 <ol>
@@ -380,7 +381,7 @@
 <li>padding</li>
 <li>MagicNumber</li>
 </ol>
-<h1 id="Table的读取和iterator"><a href="#Table的读取和iterator" class="headerlink" title="Table的读取和iterator"></a>Table的读取和iterator</h1><p>对SSTable的读取，需要传入的是SSTable的fileChannel，然后进行初始化：</p>
+<h2 id="Table的读取和iterator"><a href="#Table的读取和iterator" class="headerlink" title="Table的读取和iterator"></a>Table的读取和iterator</h2><p>对SSTable的读取，需要传入的是SSTable的fileChannel，然后进行初始化：</p>
 <figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="title">Table</span><span class="params">(String name, FileChannel fileChannel, Comparator&lt;Slice&gt; comparator)</span> </span>&#123;</span><br><span class="line">    <span class="comment">//...</span></span><br><span class="line">    <span class="keyword">this</span>.name = name;</span><br><span class="line">    <span class="keyword">this</span>.fileChannel = fileChannel;</span><br><span class="line"></span><br><span class="line">    Footer footer = init();  <span class="comment">// 1</span></span><br><span class="line">    indexBlock = readBlock(footer.getIndexBlockHandle()); <span class="comment">//2</span></span><br><span class="line">    metaindexBlockHandle = footer.getMetaindexBlockHandle();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 <ol>
 <li>seek到文件的尾部，把MetaIndexBlock的位置信息 + IndexBlock的位置信息读取出来</li>
@@ -531,7 +532,7 @@
 
       <!--noindex-->
       <div class="post-toc-wrap sidebar-panel">
-          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#前言"><span class="nav-number">1.</span> <span class="nav-text">前言</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#DataBlock"><span class="nav-number"></span> <span class="nav-text">DataBlock</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Index-Block"><span class="nav-number"></span> <span class="nav-text">Index Block</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#MetaIndex-Block"><span class="nav-number"></span> <span class="nav-text">MetaIndex Block</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Footer"><span class="nav-number"></span> <span class="nav-text">Footer</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Table的读取和iterator"><span class="nav-number"></span> <span class="nav-text">Table的读取和iterator</span></a></div>
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#前言"><span class="nav-number">1.</span> <span class="nav-text">前言</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#DataBlock"><span class="nav-number">2.</span> <span class="nav-text">DataBlock</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Index-Block"><span class="nav-number">3.</span> <span class="nav-text">Index Block</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#MetaIndex-Block"><span class="nav-number">4.</span> <span class="nav-text">MetaIndex Block</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Footer"><span class="nav-number">5.</span> <span class="nav-text">Footer</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Table的读取和iterator"><span class="nav-number">6.</span> <span class="nav-text">Table的读取和iterator</span></a></li></ol></div>
       </div>
       <!--/noindex-->
 

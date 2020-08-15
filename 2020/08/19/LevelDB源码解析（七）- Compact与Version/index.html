@@ -48,22 +48,22 @@
   };
 </script>
 
-  <meta name="description" content="一. Version和VersionSetLevelDB算是实现了功能上的多版本控制。利用的是Version和VersionSet两个类。 当然这里的多版本控制肯定不是MVCC那么复杂，这里实现多版本的功能，我理解是为了解决两个操作的冲突：  读取和迭代操作 后台异步Compact操作  因为LevelDB的compact操作，其实是把多个文件合并成多个文件。 从SSTable那一章节，我们其实知">
+  <meta name="description" content="前言这一节讲述最复杂的Version以及Compact的部分">
 <meta name="keywords" content="LevelDB">
 <meta property="og:type" content="article">
 <meta property="og:title" content="LevelDB源码解析（七）- Compact与Version">
 <meta property="og:url" content="https://blog.lovezhy.cc/2020/08/19/LevelDB源码解析（七）- Compact与Version/index.html">
 <meta property="og:site_name" content="LoveZhy">
-<meta property="og:description" content="一. Version和VersionSetLevelDB算是实现了功能上的多版本控制。利用的是Version和VersionSet两个类。 当然这里的多版本控制肯定不是MVCC那么复杂，这里实现多版本的功能，我理解是为了解决两个操作的冲突：  读取和迭代操作 后台异步Compact操作  因为LevelDB的compact操作，其实是把多个文件合并成多个文件。 从SSTable那一章节，我们其实知">
+<meta property="og:description" content="前言这一节讲述最复杂的Version以及Compact的部分">
 <meta property="og:locale" content="zh-cn">
-<meta property="og:image" content="https://blog.lovezhy.cc/Users/zhuyichen/Documents/我的坚果云/one/积累/孵化成功/LevelDB/images/compact.png">
-<meta property="og:image" content="https://blog.lovezhy.cc/Users/zhuyichen/Documents/我的坚果云/one/积累/孵化成功/LevelDB/images/compact1.png">
-<meta property="og:image" content="https://blog.lovezhy.cc/Users/zhuyichen/Documents/我的坚果云/one/积累/孵化成功/LevelDB/images/compact2.png">
-<meta property="og:updated_time" content="2020-08-15T10:49:26.433Z">
+<meta property="og:image" content="https://blog.lovezhy.cc/images/leveldb/compact.png">
+<meta property="og:image" content="https://blog.lovezhy.cc/images/leveldb/compact1.png">
+<meta property="og:image" content="https://blog.lovezhy.cc/images/leveldb/compact2.png">
+<meta property="og:updated_time" content="2020-08-15T10:59:53.629Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="LevelDB源码解析（七）- Compact与Version">
-<meta name="twitter:description" content="一. Version和VersionSetLevelDB算是实现了功能上的多版本控制。利用的是Version和VersionSet两个类。 当然这里的多版本控制肯定不是MVCC那么复杂，这里实现多版本的功能，我理解是为了解决两个操作的冲突：  读取和迭代操作 后台异步Compact操作  因为LevelDB的compact操作，其实是把多个文件合并成多个文件。 从SSTable那一章节，我们其实知">
-<meta name="twitter:image" content="https://blog.lovezhy.cc/Users/zhuyichen/Documents/我的坚果云/one/积累/孵化成功/LevelDB/images/compact.png">
+<meta name="twitter:description" content="前言这一节讲述最复杂的Version以及Compact的部分">
+<meta name="twitter:image" content="https://blog.lovezhy.cc/images/leveldb/compact.png">
 
 <link rel="canonical" href="https://blog.lovezhy.cc/2020/08/19/LevelDB源码解析（七）- Compact与Version/">
 
@@ -245,7 +245,7 @@
                   <i class="fa fa-calendar-check-o"></i>
                 </span>
                 <span class="post-meta-item-text">Edited on</span>
-                <time title="Modified: 2020-08-15 18:49:26" itemprop="dateModified" datetime="2020-08-15T18:49:26+08:00">2020-08-15</time>
+                <time title="Modified: 2020-08-15 18:59:53" itemprop="dateModified" datetime="2020-08-15T18:59:53+08:00">2020-08-15</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -270,7 +270,9 @@
     <div class="post-body" itemprop="articleBody">
 
       
-        <h2 id="一-Version和VersionSet"><a href="#一-Version和VersionSet" class="headerlink" title="一. Version和VersionSet"></a>一. Version和VersionSet</h2><p>LevelDB算是实现了功能上的多版本控制。利用的是Version和VersionSet两个类。</p>
+        <h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>这一节讲述最复杂的Version以及Compact的部分</p>
+<a id="more"></a>
+<h2 id="一-Version和VersionSet"><a href="#一-Version和VersionSet" class="headerlink" title="一.  Version和VersionSet"></a>一.  Version和VersionSet</h2><p>LevelDB算是实现了功能上的多版本控制。利用的是Version和VersionSet两个类。</p>
 <p>当然这里的多版本控制肯定不是MVCC那么复杂，这里实现多版本的功能，我理解是为了解决两个操作的冲突：</p>
 <ol>
 <li>读取和迭代操作</li>
@@ -284,7 +286,7 @@
 <p>迭代可能是个很长的操作，这中间不能保证不会发生Compact，所以干脆就搞个Version，把每次Compact后的SSTable集合存储起来。</p>
 <p>这样迭代的时候，先拿到当前的Version。</p>
 <p>DBImpl的Versions和CurrentVersion的初始化变量如下：</p>
-<p><img src="/Users/zhuyichen/Documents/我的坚果云/one/积累/孵化成功/LevelDB/images/compact.png" alt="image-20200727162405941" style="zoom:50%;"></p>
+<p><img src="/images/leveldb/compact.png" style="zoom:50%;"></p>
 <p>我们先来看Version类中存储的变量：</p>
 <ol>
 <li><p>存储每个Level的SSTable集合：</p>
@@ -316,7 +318,7 @@
 <figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Compaction</span> </span>&#123;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">final</span> <span class="keyword">int</span> level; <span class="comment">// 需要compact的Level</span></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">final</span> List&lt;FileMetaData&gt; levelInputs; <span class="comment">//level对应的需要compact的SSTable</span></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">final</span> List&lt;FileMetaData&gt; levelUpInputs; <span class="comment">//下一层Level对应的需要compact的SSTable</span></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">final</span> List&lt;FileMetaData&gt; grandparents; <span class="comment">//再下一层level对应的需要compact的SSTable</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 <p>得到了这些文件之后，下一步就是对这么文件进行合并。</p>
 <p>合并的过程其实就是多路归并的过程。</p>
-<p><img src="/Users/zhuyichen/Documents/我的坚果云/one/积累/孵化成功/LevelDB/images/compact1.png" alt="image-20200727162405941" style="zoom:50%;"></p>
+<p><img src="/images/leveldb/compact1.png" style="zoom:50%;"></p>
 <p><strong>从iterator的视角来看，其实相同的UserKey已经按照seqNum的顺序从大到小排列好了。</strong></p>
 <p>所以我们进行迭代的时候，看到的数据大致如下：</p>
 <figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="number">1</span>. UserKey = <span class="string">"foo123"</span>, seq = <span class="number">34</span>，Type=VALUE</span><br><span class="line"><span class="number">2</span>. UserKey = <span class="string">"foo123"</span>, seq = <span class="number">20</span>，Type=VALUE</span><br><span class="line"><span class="number">3</span>. UserKey = <span class="string">"foo123"</span>, seq = <span class="number">18</span>，Type=DELETE</span><br><span class="line"><span class="number">4</span>. UserKey = <span class="string">"foo123"</span>, seq = <span class="number">8</span>， Type=VALUE</span><br><span class="line"></span><br><span class="line"><span class="number">5</span>. UserKey = <span class="string">"foo456"</span>, seq = <span class="number">213</span>,Type=DETELE</span><br><span class="line"><span class="number">6</span>. UserKey = <span class="string">"foo456"</span>, seq = <span class="number">200</span>,Type=VALUE</span><br><span class="line"><span class="number">7</span>. UserKey = <span class="string">"foo456"</span>, seq = <span class="number">93</span>, Type=VALUE</span><br></pre></td></tr></table></figure>
@@ -383,7 +385,7 @@
 <p>1 针对Level0的searchMiss的情况</p>
 <p>我们知道Level0的SSTable之间的Key并不是顺序的，互相之间可能overlap。那么在查找一个Key的时候，仅仅从最大key和最小key才判断，可能命中好几个SSTable。</p>
 <p>比如如下场景的Level0：</p>
-<p><img src="/Users/zhuyichen/Documents/我的坚果云/one/积累/孵化成功/LevelDB/images/compact2.png" alt="image-20200727162405941" style="zoom:50%;"></p>
+<p><img src="/images/leveldb/compact2.png" style="zoom:50%;"></p>
 <p>我们要查找19这个Key，会发现符合条件的有3个。</p>
 <p>我们要查找22这个Key，会发现符合条件的有2个。</p>
 <p>遇到超过一个SSTable需要查找的情况，我们认为情况不太好，但是只谈性质不谈次数就是耍流氓。</p>
@@ -551,7 +553,7 @@
 
       <!--noindex-->
       <div class="post-toc-wrap sidebar-panel">
-          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#一-Version和VersionSet"><span class="nav-number">1.</span> <span class="nav-text">一. Version和VersionSet</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#二-Compact"><span class="nav-number">2.</span> <span class="nav-text">二. Compact</span></a></li></ol></div>
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#前言"><span class="nav-number">1.</span> <span class="nav-text">前言</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#一-Version和VersionSet"><span class="nav-number">2.</span> <span class="nav-text">一.  Version和VersionSet</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#二-Compact"><span class="nav-number">3.</span> <span class="nav-text">二. Compact</span></a></li></ol></div>
       </div>
       <!--/noindex-->
 
