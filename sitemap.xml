@@ -2,6 +2,20 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   
   <url>
+    <loc>https://blog.lovezhy.cc/about/index.html</loc>
+    
+    <lastmod>2020-08-24T14:30:01.906Z</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>https://blog.lovezhy.cc/2019/01/01/%E6%88%91%E7%9A%842018/</loc>
+    
+    <lastmod>2020-08-24T14:29:04.215Z</lastmod>
+    
+  </url>
+  
+  <url>
     <loc>https://blog.lovezhy.cc/2020/08/19/LevelDB%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90%EF%BC%88%E4%B8%83%EF%BC%89-%20Compact%E4%B8%8EVersion/</loc>
     
     <lastmod>2020-08-18T07:44:52.874Z</lastmod>
@@ -401,13 +415,6 @@
   </url>
   
   <url>
-    <loc>https://blog.lovezhy.cc/2019/01/01/%E6%88%91%E7%9A%842018/</loc>
-    
-    <lastmod>2020-02-29T14:43:26.211Z</lastmod>
-    
-  </url>
-  
-  <url>
     <loc>https://blog.lovezhy.cc/2018/05/01/%E5%88%86%E5%B8%83%E5%BC%8F%E5%9F%BA%E7%A1%80%E7%9F%A5%E8%AF%86/</loc>
     
     <lastmod>2020-02-29T14:42:13.175Z</lastmod>
@@ -593,13 +600,6 @@
     <loc>https://blog.lovezhy.cc/2019/03/29/Java%E4%B8%ADFileLock%E7%9A%84%E5%AE%9E%E7%8E%B0%E7%BB%86%E8%8A%82/</loc>
     
     <lastmod>2020-02-23T10:30:12.584Z</lastmod>
-    
-  </url>
-  
-  <url>
-    <loc>https://blog.lovezhy.cc/about/index.html</loc>
-    
-    <lastmod>2020-02-23T09:00:37.961Z</lastmod>
     
   </url>
   
