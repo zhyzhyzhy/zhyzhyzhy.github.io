@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 3.8.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+  <meta name="google-site-verification" content="wE7ISC42t3QOT-S-gdbdy_XsP3NB23Xi3alKNWXd0dA">
+  <meta name="baidu-site-verification" content="keFN8E7jd3">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="//fonts.googleapis.com/css?family=Operator Mono:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    hostname: new URL('https://blog.lovezhy.cc').hostname,
+    root: '/',
+    scheme: 'Muse',
+    version: '7.7.1',
+    exturl: false,
+    sidebar: {"position":"right","display":"always","padding":18,"offset":12,"onmobile":false},
+    copycode: {"enable":true,"show_result":true,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    comments: {"style":"tabs","active":"disqus","storage":true,"lazyload":false,"nav":null},
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: 'search.xml',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}
+  };
+</script>
+
+  <meta name="description" content="一. 前言Disruptor几乎是每个Java开发绕不过去的坎，其实我想学习这个框架很久了，之前打开看了几次，但是有点复杂就放弃了。 这一次看到了Mpsc，心里在构思多生产者多消费者的队列怎么怎么做，自然就想到了RingBuffer。 有了上文的基础，下面我们就Disruptor来看看多生产者多消费者是怎么实现的。 注意：这个文章并不是特别的分析Disruptor是怎么实现高性能的，诸如网上说的那">
+<meta name="keywords" content="Java">
+<meta property="og:type" content="article">
+<meta property="og:title" content="从Mpsc到RingBuffer（三）- Disruptor">
+<meta property="og:url" content="https://blog.lovezhy.cc/2020/08/30/从Mpsc到RingBuffer（三）- Disruptor/index.html">
+<meta property="og:site_name" content="LoveZhy">
+<meta property="og:description" content="一. 前言Disruptor几乎是每个Java开发绕不过去的坎，其实我想学习这个框架很久了，之前打开看了几次，但是有点复杂就放弃了。 这一次看到了Mpsc，心里在构思多生产者多消费者的队列怎么怎么做，自然就想到了RingBuffer。 有了上文的基础，下面我们就Disruptor来看看多生产者多消费者是怎么实现的。 注意：这个文章并不是特别的分析Disruptor是怎么实现高性能的，诸如网上说的那">
+<meta property="og:locale" content="zh-cn">
+<meta property="og:image" content="https://blog.lovezhy.cc/images/ringbuffer/9.png">
+<meta property="og:image" content="https://blog.lovezhy.cc/images/ringbuffer/10.png">
+<meta property="og:image" content="https://blog.lovezhy.cc/images/ringbuffer/11.png">
+<meta property="og:image" content="https://blog.lovezhy.cc/images/ringbuffer/12.png">
+<meta property="og:image" content="https://blog.lovezhy.cc/images/ringbuffer/13.png">
+<meta property="og:image" content="https://blog.lovezhy.cc/images/ringbuffer/14.png">
+<meta property="og:image" content="https://blog.lovezhy.cc/images/ringbuffer/15.png">
+<meta property="og:updated_time" content="2020-08-29T16:51:46.193Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="从Mpsc到RingBuffer（三）- Disruptor">
+<meta name="twitter:description" content="一. 前言Disruptor几乎是每个Java开发绕不过去的坎，其实我想学习这个框架很久了，之前打开看了几次，但是有点复杂就放弃了。 这一次看到了Mpsc，心里在构思多生产者多消费者的队列怎么怎么做，自然就想到了RingBuffer。 有了上文的基础，下面我们就Disruptor来看看多生产者多消费者是怎么实现的。 注意：这个文章并不是特别的分析Disruptor是怎么实现高性能的，诸如网上说的那">
+<meta name="twitter:image" content="https://blog.lovezhy.cc/images/ringbuffer/9.png">
+
+<link rel="canonical" href="https://blog.lovezhy.cc/2020/08/30/从Mpsc到RingBuffer（三）- Disruptor/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true
+  };
+</script>
+
+  <title>从Mpsc到RingBuffer（三）- Disruptor | LoveZhy</title>
+  
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-125642214-1"></script>
+    <script>
+      if (CONFIG.hostname === location.hostname) {
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'UA-125642214-1');
+      }
+    </script>
+
+
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?c1f963571cb3d8a4a5dc82346dc65842";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+<link rel="alternate" href="/atom.xml" title="LoveZhy" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">LoveZhy</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+  </div>
+
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-fw fa-user"></i>About</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>Tags</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>Categories</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>Archives</a>
+
+  </li>
+        <li class="menu-item menu-item-sitemap">
+
+    <a href="/sitemap.xml" rel="section"><i class="fa fa-fw fa-sitemap"></i>Sitemap</a>
+
+  </li>
+  </ul>
+
+</nav>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope="" itemtype="http://schema.org/Article" class="post-block " lang="zh-cn">
+    <link itemprop="mainEntityOfPage" href="https://blog.lovezhy.cc/2020/08/30/从Mpsc到RingBuffer（三）- Disruptor/">
+
+    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="zhy">
+      <meta itemprop="description" content="敌视现实">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="LoveZhy">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          从Mpsc到RingBuffer（三）- Disruptor
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+              
+
+              <time title="Created: 2020-08-30 00:00:00 / Modified: 00:51:46" itemprop="dateCreated datePublished" datetime="2020-08-30T00:00:00+08:00">2020-08-30</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
+                  <a href="/categories/RingBuffer/" itemprop="url" rel="index">
+                    <span itemprop="name">RingBuffer</span>
+                  </a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h1 id="一-前言"><a href="#一-前言" class="headerlink" title="一. 前言"></a>一. 前言</h1><p>Disruptor几乎是每个Java开发绕不过去的坎，其实我想学习这个框架很久了，之前打开看了几次，但是有点复杂就放弃了。</p>
+<p>这一次看到了Mpsc，心里在构思多生产者多消费者的队列怎么怎么做，自然就想到了RingBuffer。</p>
+<p>有了上文的基础，下面我们就Disruptor来看看多生产者多消费者是怎么实现的。</p>
+<p>注意：这个文章并不是特别的分析Disruptor是怎么实现高性能的，诸如网上说的那些伪共享之类，</p>
+<p>就是带大家看看源码实现。</p>
+<a id="more"></a>
+<h1 id="二-使用"><a href="#二-使用" class="headerlink" title="二. 使用"></a>二. 使用</h1><p>先定义Event和它的Factory，就是承载在队列中的元素</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">LongEvent</span> </span>&#123;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">long</span> value;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">set</span><span class="params">(<span class="keyword">long</span> value)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">this</span>.value = value;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">LongEventFactory</span> <span class="keyword">implements</span> <span class="title">EventFactory</span>&lt;<span class="title">LongEvent</span>&gt; </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> LongEvent <span class="title">newInstance</span><span class="params">()</span></span></span><br><span class="line"><span class="function">    </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">new</span> LongEvent();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>之所以要定义这2个，是因为RingBuffer在初始化的时候，会为数组中的每个元素预先分配Event。</p>
+<p>这样我们加入元素的时候，实际上RingBuffer会直接返回LongEvent给你，你要做的就是把Value给Set进去就行了。</p>
+<p>下面你要定义EventHandler，就是处理这个事件的类，重写他的onEvent方法：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="class"><span class="keyword">class</span> <span class="title">LongEventHandler</span> <span class="keyword">implements</span> <span class="title">WorkHandler</span>&lt;<span class="title">LongEvent</span>&gt; </span>&#123;</span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">onEvent</span><span class="params">(LongEvent longEvent)</span> <span class="keyword">throws</span> Exception </span>&#123;</span><br><span class="line">        System.out.println(<span class="string">"Event: "</span> + event);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>下面就可以把整个Disruptor跑起来了：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">public static void run() &#123;</span><br><span class="line">    EventFactory&lt;LongEvent&gt; eventFactory = new LongEventFactory();</span><br><span class="line">    ExecutorService executor = Executors.newFixedThreadPool(3); //3个线程</span><br><span class="line">    int ringBufferSize = 1024 * 1024; // RingBuffer 大小，必须是 2 的 N 次方；</span><br><span class="line">    Disruptor&lt;LongEvent&gt; disruptor = new Disruptor&lt;LongEvent&gt;(eventFactory,</span><br><span class="line">                ringBufferSize, executor, ProducerType.SINGLE,</span><br><span class="line">                new YieldingWaitStrategy());</span><br><span class="line">    WorkHandler&lt;LongEvent&gt; eventHandler = new LongEventHandler();</span><br><span class="line">    disruptor.handleEventsWithWorkerPool(eventHandler, eventHandler,eventHandler);</span><br><span class="line">    disruptor.start();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<ol>
+<li><p>这个方法的原始定义是<code>public EventHandlerGroup&lt;T&gt; handleEventsWithWorkerPool(final WorkHandler&lt;T&gt;... workHandlers)</code></p>
+<p>也就是说我们是传一个Handler数组进去，具体有什么区别，是disruptor使用的区别。</p>
+<p>我们这里就假设，我们这么传入，就是有3个Consumer并发的去消费就好。</p>
+</li>
+</ol>
+<p>生产事件并且写入RingBuffer：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">RingBuffer&lt;LongEvent&gt; ringBuffer = disruptor.getRingBuffer();</span><br><span class="line"></span><br><span class="line"><span class="keyword">long</span> sequence = ringBuffer.next();<span class="comment">//请求下一个事件序号；</span></span><br><span class="line"><span class="keyword">try</span> &#123;</span><br><span class="line">        LongEvent event = ringBuffer.get(sequence);<span class="comment">//获取该序号对应的事件对象；</span></span><br><span class="line">        <span class="keyword">long</span> data = <span class="number">12</span>;</span><br><span class="line">        event.set(data);</span><br><span class="line">    &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">        ringBuffer.publish(sequence);<span class="comment">//发布事件；</span></span><br><span class="line">		&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h1 id="三-Sequence和数组序号"><a href="#三-Sequence和数组序号" class="headerlink" title="三. Sequence和数组序号"></a>三. Sequence和数组序号</h1><p>这个类，单独领出来说，因为容易和Sequencer混淆。</p>
+<p>其实我感觉这里的取名不是很好。</p>
+<p>Sequence简单说就是个AtomicLong，主要就是个计数器。</p>
+<p>但是它不做减法，只做加法。</p>
+<p>这里所有用到Sequence的地方，无一例外的都是用来标志数组的位置的。</p>
+<p>假设数组的长度是N，那么某一时刻Sequence指向的数组的第(seq &amp; mask)个元素</p>
+<p>其中mask = length - 1</p>
+<h1 id="四-Sequencer"><a href="#四-Sequencer" class="headerlink" title="四. Sequencer"></a>四. Sequencer</h1><p>这里的Sequencer是核心组件，主要是为生产者使用，我们知道循环数组是维护在RingBuffer中的。</p>
+<p>但是生产者原子占领Position，都在Sequencer中，在Sequencer中执行成功了，</p>
+<p>就可以直接去RingBuffer得到相应的数组元素，往里面set数值。</p>
+<p>对应这句话：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">long</span> sequence = ringBuffer.next();</span><br></pre></td></tr></table></figure>
+<p>就是托管至Sequencer操作的。</p>
+<p>正常我们来想，对ReadIndex需要维护自己的Seq，所有的消费者都只要一个就够了</p>
+<p>但是Disruptor并不是，他为每个消费者都维护了一个Seq。</p>
+<p>在消费者中的Seq表示从它的视角中的ReadIndex。</p>
+<p><img src="/images/ringbuffer/9.png" alt="image-20200826221709219" style="zoom:50%;"></p>
+<p>如上图，我们有三个Consumer，对于每个Consumer而言，因为每次获取的一批的可消费事件不同，所以在他们眼中的ReadIndex也是不同的。</p>
+<p>我们如果要知道整体的ReadIndex是啥，就是取这三个中最大的一个Seq就行。</p>
+<p>在Sequencer初始化的时候，它会收集所有的Consumer的Seq，放在gatingSequences数组中。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="class"><span class="keyword">class</span> <span class="title">AbstractSequencer</span> <span class="keyword">implements</span> <span class="title">Sequencer</span> </span>&#123;</span><br><span class="line">  <span class="keyword">protected</span> <span class="keyword">volatile</span> Sequence[] gatingSequences = <span class="keyword">new</span> Sequence[<span class="number">0</span>];</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>下面我们来看看<code>public long next(int n)</code>的具体实现。</p>
+<h2 id="4-1-SingleProducerSequencer"><a href="#4-1-SingleProducerSequencer" class="headerlink" title="4.1 SingleProducerSequencer"></a>4.1 SingleProducerSequencer</h2><p>这个Sequencer表示的是单生产者，所以它的生产方法不用考虑线程并发的问题。</p>
+<h3 id="next"><a href="#next" class="headerlink" title="next"></a>next</h3><p>他只要往下分配就行了，但是因为是循环数组，所以他需要考虑不能把还没来得及消费的Position给覆盖了。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">protected</span> <span class="keyword">long</span> nextValue = -<span class="number">1</span>;</span><br><span class="line"><span class="keyword">protected</span> <span class="keyword">long</span> cachedValue = -<span class="number">1</span>;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">long</span> <span class="title">next</span><span class="params">(<span class="keyword">int</span> n)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">long</span> nextValue = <span class="keyword">this</span>.nextValue;</span><br><span class="line">    <span class="keyword">long</span> nextSequence = nextValue + n;</span><br><span class="line">    <span class="keyword">long</span> wrapPoint = nextSequence - bufferSize;</span><br><span class="line">    <span class="keyword">long</span> cachedGatingSequence = <span class="keyword">this</span>.cachedValue;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (wrapPoint &gt; cachedGatingSequence || cachedGatingSequence &gt; nextValue)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">long</span> minSequence;</span><br><span class="line">        <span class="keyword">while</span> (wrapPoint &gt; (minSequence = Util.getMinimumSequence(gatingSequences, nextValue)))</span><br><span class="line">        &#123;</span><br><span class="line">            LockSupport.parkNanos(<span class="number">1L</span>); <span class="comment">// <span class="doctag">TODO:</span> Use waitStrategy to spin?</span></span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">this</span>.cachedValue = minSequence;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">this</span>.nextValue = nextSequence;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> nextSequence;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>我说实话，不太好理解。写的真绕人。</p>
+<p>这里的nextValue就是上一次Produce完的Position位置，而nextSequence表示我们要取下N个后的位置，</p>
+<p>比如下图中n=4时，next和nextSequence的关系，而wrapPoint指的是上一级的位置。</p>
+<p><img src="/images/ringbuffer/10.png" alt="image-20200826221709219" style="zoom:50%;"></p>
+<p>这里的cacheValue，其实就是minSequence的缓存，而minSequence的值是</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Util.getMinimumSequence(gatingSequences, next)</span><br></pre></td></tr></table></figure>
+<p>就是所有消费者的Seq和nextValue中的最小的一个。</p>
+<p>我们照着上面这个bufferSize=8的图，其中紫色的格子表示我们想要获取的，而红色格子表示还未被消费的。</p>
+<p>我们申请成功，至少要保证这种关系的正确。</p>
+<ol>
+<li>WrapPoint要小于所有消费者的Seq</li>
+</ol>
+<p>但是为什么swapPoint还要小于nextValue呢？这个不是显而易见的吗？</p>
+<p>其实我们n是有限制的，对于n的限制，也是不能大于bufferSize的长度的。</p>
+<p><img src="/images/ringbuffer/11.png" alt="image-20200826221709219" style="zoom:50%;"></p>
+<p>比如上面这种情况，直接bufferSize + 3个position，导致swapPoint比next还大，显然是不行的。</p>
+<p>所以条件2：</p>
+<ol>
+<li>wrapPoint要小于nextValue，也即保证n不能大于bufferSize。</li>
+</ol>
+<p>这里比较困惑的地方可能就是cachedGatingSequence这个值了，</p>
+<p>这个值就是上述两个条件的缓存，这里缓存一下估计也是为了优化吧。</p>
+<p>不过写的确实看不太明白。</p>
+<p>注意这里的<code>AbstractSequencer</code>中的<code>Sequence cursor</code>这个变量。</p>
+<p>这个就是我们说的Sequencer这个变量。</p>
+<p>但是在Next方法中，完全没用到这个变量，而是直接用的<code>SingleProducerSequencer</code>中的<code>nextValue</code></p>
+<p>但是在MultiProducerSequencer的实现中，确实强依赖<code>cursor</code>这个变量的。</p>
+<p>怎么说呢，可以说设计得不是很友好吧。</p>
+<p>我感觉<code>SinleProducerSequencer</code>其实也可以用<code>cursor</code>标记producer的位置，但是这样就引入了CAS，性能并没有那么好。</p>
+<h3 id="publish"><a href="#publish" class="headerlink" title="publish"></a>publish</h3><p>获取next成功，下面就是publish操作了，让我们看看publish中做了什么</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">publish</span><span class="params">(<span class="keyword">long</span> sequence)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    cursor.set(sequence);</span><br><span class="line">    waitStrategy.signalAllWhenBlocking();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这里的publish比较简单，就是直接设置新的cursor指针就行。</p>
+<p><img src="/images/ringbuffer/12.png" alt="image-20200826221709219" style="zoom:50%;"></p>
+<p>如果你看过上一篇文章，你可能会记得这张图，这里的cursor是大于两个Producer线程的。</p>
+<p>但是WriteCursor之前的元素可能还没写入进入。</p>
+<p>但是在本地的SingleProducer中，其实流程和这个还不太一致。</p>
+<p><img src="/images/ringbuffer/13.png" alt="image-20200826221709219" style="zoom:50%;"></p>
+<p>在SingleProducerSequencer中，虽然Producer已经调用成功了next，但是writeCursor仍然停留在之前的位置，每次publish一个position的元素后，writeCusor就往前加一格。</p>
+<p>所以使用SingleProducerSequencer时，消费者每次读取的位置中，元素肯定已经被写入了。不会出现读到空的情况。</p>
+<h3 id="getHighestPublishedSequence"><a href="#getHighestPublishedSequence" class="headerlink" title="getHighestPublishedSequence"></a>getHighestPublishedSequence</h3><p>这个方法，其实是为了对照下面的MultiProducerSequencer而加的。</p>
+<p>这个方法的原型是</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">long</span> <span class="title">getHighestPublishedSequence</span><span class="params">(<span class="keyword">long</span> lowerBound, <span class="keyword">long</span> availableSequence)</span></span></span><br></pre></td></tr></table></figure>
+<p>传入lowerBound和availableSequence，返回最大可用的Seq是什么。</p>
+<p>显然就是给消费者使用的。</p>
+<p>对于SingleProducer而言，显然是直接返回availableSequence就行。</p>
+<h2 id="4-2-MultiProducerSequencer"><a href="#4-2-MultiProducerSequencer" class="headerlink" title="4.2 MultiProducerSequencer"></a>4.2 MultiProducerSequencer</h2><p>这个实现类是针对多个Producer。</p>
+<p>这里多个Producer争夺Index的变量，就是<code>AbstractSequencer</code>中的<code>Sequence cursor</code>。</p>
+<h3 id="next-1"><a href="#next-1" class="headerlink" title="next"></a>next</h3><p>来看看它的next方法：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">long</span> <span class="title">next</span><span class="params">(<span class="keyword">int</span> n)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">long</span> current;</span><br><span class="line">    <span class="keyword">long</span> next;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">do</span> &#123;</span><br><span class="line">        current = cursor.get();</span><br><span class="line">        next = current + n;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">long</span> wrapPoint = next - bufferSize;</span><br><span class="line">        <span class="keyword">long</span> cachedGatingSequence = gatingSequenceCache.get();</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (wrapPoint &gt; cachedGatingSequence || cachedGatingSequence &gt; current)</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">long</span> gatingSequence = Util.getMinimumSequence(gatingSequences, current);</span><br><span class="line"></span><br><span class="line">            <span class="keyword">if</span> (wrapPoint &gt; gatingSequence)</span><br><span class="line">            &#123;</span><br><span class="line">                LockSupport.parkNanos(<span class="number">1</span>); </span><br><span class="line">                <span class="keyword">continue</span>;</span><br><span class="line">            &#125;</span><br><span class="line">            gatingSequenceCache.set(gatingSequence);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">else</span> <span class="keyword">if</span> (cursor.compareAndSet(current, next))</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125; <span class="keyword">while</span> (<span class="keyword">true</span>);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> next;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>是不是感觉很亲切。</p>
+<p>其实这里和SinpleProducer的方法并没有什么大的区别。</p>
+<p>唯一的问题就是这里的current是可能被多线程访问的，所以每次<code>wrapPoint &gt; gatingSequence</code>，都要重新获取一次。</p>
+<p>满足条件后，设置新的WriteIndex，要使用cursor的cas操作，防止多线程操作。</p>
+<p><img src="/images/ringbuffer/14.png" alt="image-20200826221709219" style="zoom:50%;"></p>
+<p>注意这里，在获取next的时候，就已经改动了WriteCursor，所以和SingleProducerSequencer相比，这里有可能出现上图的状态。</p>
+<p>如果消费者这个时候，直接读WriteCursor之前的元素，很可能还没有写入成功。</p>
+<p>那怎么办呢？</p>
+<p>在MultiProducerSequencer中，额外定义了一个数组</p>
+<p><code>private final int[] availableBuffer;</code></p>
+<p>这个数组表示的就是对应的循环数组中元素的写入情况。</p>
+<p>具体得我们看看它的publish方法做了什么？</p>
+<h3 id="publish-1"><a href="#publish-1" class="headerlink" title="publish"></a>publish</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">publish</span><span class="params">(<span class="keyword">final</span> <span class="keyword">long</span> sequence)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    setAvailable(sequence);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">setAvailable</span><span class="params">(<span class="keyword">final</span> <span class="keyword">long</span> sequence)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    setAvailableBufferValue(calculateIndex(sequence), calculateAvailabilityFlag(sequence));</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">int</span> <span class="title">calculateAvailabilityFlag</span><span class="params">(<span class="keyword">final</span> <span class="keyword">long</span> sequence)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">return</span> (<span class="keyword">int</span>) (sequence &gt;&gt;&gt; indexShift);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">setAvailableBufferValue</span><span class="params">(<span class="keyword">int</span> index, <span class="keyword">int</span> flag)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">     <span class="keyword">long</span> bufferAddress = (index * SCALE) + BASE;</span><br><span class="line">     UNSAFE.putOrderedInt(availableBuffer, bufferAddress, flag);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>怎么用一个int表示这个位置的元素已经被写入成功了呢？</p>
+<p>我们记得我们的offset计算公式<code>((int) sequence) &amp; indexMask;</code></p>
+<p>而Sequence是每次递增的，不会重复的。</p>
+<p>所以原理类似，<code>calculateAvailabilityFlag</code>方法，就是把将Seq稍作变化。</p>
+<p>在整个publish方法中，就是把<code>availableBuffer</code>中响应的位置置为写入成功。</p>
+<h3 id="getHighestPublishedSequence-1"><a href="#getHighestPublishedSequence-1" class="headerlink" title="getHighestPublishedSequence"></a>getHighestPublishedSequence</h3><p>对于SingleProducer而言，直接返回availableSequence。</p>
+<p>而对于MultiProducer，虽然WriteCursor已经分配好了，但是可能Producer还没有完成赋值。</p>
+<p>所以我们需要查阅<code>availableBuffer</code>，看看具体有没有被赋值成功。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">long</span> <span class="title">getHighestPublishedSequence</span><span class="params">(<span class="keyword">long</span> lowerBound, <span class="keyword">long</span> availableSequence)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">long</span> sequence = lowerBound; sequence &lt;= availableSequence; sequence++)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">if</span> (!isAvailable(sequence))</span><br><span class="line">        &#123;</span><br><span class="line">             <span class="keyword">return</span> sequence - <span class="number">1</span>;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> availableSequence;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>具体的实现就是从lowerBound开始，查看每个Seq是否已经可用了，找到第一个不可用的Position。</p>
+<h1 id="五-Consumer"><a href="#五-Consumer" class="headerlink" title="五. Consumer"></a>五. Consumer</h1><p>这里的Consumer的设计比较复杂，因为需要支持chain的操作。</p>
+<p>类似于first().then().finally()的链式处理。</p>
+<p>同时还支持不同的EventHandler都处理到同一个消息。</p>
+<p>类似于消息队列的消费组的概念。</p>
+<p>这里我们简单点，就看三个消费者并发消费的模型。</p>
+<p>源码的使用中，我们传入了三个一样的WorkHandler。</p>
+<p>最后每个WorkHandler都会通过WorkPool被包装成一个WorkProcessor。</p>
+<p>在每个WorkProcessor中，都会有2个Seq。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">final</span> <span class="class"><span class="keyword">class</span> <span class="title">WorkProcessor</span>&lt;<span class="title">T</span>&gt; </span>&#123;</span><br><span class="line">  <span class="keyword">private</span> <span class="keyword">final</span> Sequence sequence = <span class="keyword">new</span> Sequence(Sequencer.INITIAL_CURSOR_VALUE); <span class="comment">// 1</span></span><br><span class="line">  <span class="keyword">private</span> <span class="keyword">final</span> Sequence workSequence; <span class="comment">// 2</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<ol>
+<li>第一个是自己的，每一个WorkProcessor都会有一个自己的。</li>
+<li>第二个是所有的WorkProcessor都共享的一个。</li>
+</ol>
+<h2 id="SequenceBarrier"><a href="#SequenceBarrier" class="headerlink" title="SequenceBarrier"></a>SequenceBarrier</h2><p>这个叫做序号栅栏。</p>
+<p>他是消费者和生产者沟通的桥梁。</p>
+<p>消费者不能直接读取到生产者的循环数组和WriteCursor。</p>
+<p>而是通过Barrier来获取下一段的消费序号。</p>
+<p>在这个类中，有个重要的方法叫<code>long waitFor(long sequence)</code></p>
+<p>就是消费者在需要消费时调用的。</p>
+<p>比如消费者目前的seq是12，他想要消费13的数据，于是调用waitFor(13)去申请。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">long</span> <span class="title">waitFor</span><span class="params">(<span class="keyword">final</span> <span class="keyword">long</span> sequence)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">long</span> availableSequence = waitStrategy.waitFor(sequence, cursorSequence, dependentSequence, <span class="keyword">this</span>);</span><br><span class="line">        <span class="keyword">if</span> (availableSequence &lt; sequence)</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">return</span> availableSequence;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> sequencer.getHighestPublishedSequence(sequence, availableSequence);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这里的<code>cursorSequence</code>就是<code>AbstractSequencer</code>中的<code>cursor</code>，而<code>dependentSequence</code>是为了支持链式调用而传入的，这里没有相关的依赖，所以它的值和<code>cursorSequence</code>一样。</p>
+<p>对于<code>waitStrategy</code>而言，其实就是Consumer等待Producer生产消息的过程。</p>
+<p>主要功能就是等待Cursor的Seq是否已经到了我们所要申请的Seq。</p>
+<p>并不会做任何同步的逻辑。</p>
+<p>但是具体怎么等待，其实是个策略。具体的实现分为下面集中：</p>
+<p><img src="/images/ringbuffer/15.png" alt="image-20200826221709219" style="zoom:50%;"></p>
+<p>有等待超时，忙等待，不满足条件自动block的等待，Sleep的等待方式。</p>
+<p>我们简单看一下<code>BusySpinWaitStrategy</code>等待方式：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">final</span> <span class="class"><span class="keyword">class</span> <span class="title">BusySpinWaitStrategy</span> <span class="keyword">implements</span> <span class="title">WaitStrategy</span> </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">BusySpinWaitStrategy</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">long</span> <span class="title">waitFor</span><span class="params">(<span class="keyword">long</span> sequence, Sequence cursor, Sequence dependentSequence, SequenceBarrier barrier)</span> <span class="keyword">throws</span> AlertException, InterruptedException </span>&#123;</span><br><span class="line">        <span class="keyword">long</span> availableSequence;</span><br><span class="line">        <span class="keyword">while</span>((availableSequence = dependentSequence.get()) &lt; sequence) &#123;</span><br><span class="line">            barrier.checkAlert();</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">return</span> availableSequence;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">signalAllWhenBlocking</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>代码也比较简单，就是不断的轮询Cursor的值，看是否已经生产到想要获取的Cursor。</p>
+<p>看完了waitStrategy，我们再回过头看查看序号栅栏的waitFor方法：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">long</span> <span class="title">waitFor</span><span class="params">(<span class="keyword">final</span> <span class="keyword">long</span> sequence)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">long</span> availableSequence = waitStrategy.waitFor(sequence, cursorSequence, dependentSequence, <span class="keyword">this</span>); <span class="comment">// 1</span></span><br><span class="line">        <span class="keyword">if</span> (availableSequence &lt; sequence) <span class="comment">// 2</span></span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">return</span> availableSequence;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> sequencer.getHighestPublishedSequence(sequence, availableSequence); <span class="comment">// 3</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<ol>
+<li><p>调用waitStrategy查看Cursor是否已经生产到sequence的序列了</p>
+</li>
+<li><p>因为有Timeout的waitStrategy，所以也可能是超时返回了，并没有满足条件，这里需要做一个判断。</p>
+<p><strong>说到这儿，再思考个问题，availableSequence会不会大于sequence呢？</strong></p>
+<p><strong>答案是会的，因为这里有Block的waitStrategy，就是等待Producer生产消息后唤醒自己，唤醒完自己后，去读取Cursor的位置，很可能已经比sequence大了。</strong></p>
+</li>
+<li><p>如果满足了条件，但是因为前文提到过的MultiProducer的问题，我们要找出这段Seq中已经被赋值的最早的位置并返回。</p>
+</li>
+</ol>
+<h2 id="WorkProcessor"><a href="#WorkProcessor" class="headerlink" title="WorkProcessor"></a>WorkProcessor</h2><p>WorkProcessor实现了Run方法，在Disruptor调用了start之后，就会提交一份死循环的任务给ThreadPool，在ThreadPool中调用WorkProcessor的run方法：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">run</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">boolean</span> processedSequence = <span class="keyword">true</span>;</span><br><span class="line">    <span class="keyword">long</span> cachedAvailableSequence = Long.MIN_VALUE;</span><br><span class="line">    <span class="keyword">long</span> nextSequence = sequence.get();</span><br><span class="line">    T event = <span class="keyword">null</span>;</span><br><span class="line">    <span class="keyword">while</span> (<span class="keyword">true</span>)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">if</span> (processedSequence)</span><br><span class="line">        &#123;</span><br><span class="line">            processedSequence = <span class="keyword">false</span>;</span><br><span class="line">            <span class="keyword">do</span> &#123;</span><br><span class="line">                nextSequence = workSequence.get() + <span class="number">1L</span>;</span><br><span class="line">                sequence.set(nextSequence - <span class="number">1L</span>);</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">while</span> (!workSequence.compareAndSet(nextSequence - <span class="number">1L</span>, nextSequence));</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (cachedAvailableSequence &gt;= nextSequence)</span><br><span class="line">        &#123;</span><br><span class="line">            event = ringBuffer.get(nextSequence);</span><br><span class="line">            workHandler.onEvent(event);</span><br><span class="line">            processedSequence = <span class="keyword">true</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">else</span></span><br><span class="line">        &#123;</span><br><span class="line">            cachedAvailableSequence = sequenceBarrier.waitFor(nextSequence);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>整体的逻辑分为两段：</p>
+<ol>
+<li>因为workSequence是所有的WorkProcessor共享的，所以先去获取下一个Position的权限，具体的实现就是CAS不断的读取当前的WorkSequence的值，然后尝试设置下一个值。</li>
+<li>调用WaitFor，得到availableSequence，看能否执行步骤一获取的Position的元素。</li>
+</ol>
+<p>这里的cachedAvailableSequence，就是序号栅栏返回值的缓存。</p>
+
+    </div>
+
+    
+    
+    
+        
+
+<div>
+<ul class="post-copyright">
+  <li class="post-copyright-author">
+    <strong>Post author:  </strong>zhy
+  </li>
+  <li class="post-copyright-link">
+    <strong>Post link: </strong>
+    <a href="https://blog.lovezhy.cc/2020/08/30/从Mpsc到RingBuffer（三）- Disruptor/" title="从Mpsc到RingBuffer（三）- Disruptor">https://blog.lovezhy.cc/2020/08/30/从Mpsc到RingBuffer（三）- Disruptor/</a>
+  </li>
+  <li class="post-copyright-license">
+    <strong>Copyright Notice:  </strong>All articles in this blog are licensed under <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" rel="noopener" target="_blank"><i class="fa fa-fw fa-creative-commons"></i>BY-NC-SA</a> unless stating additionally.
+  </li>
+</ul>
+</div>
+
+        
+
+  <div class="followme">
+    <p>Welcome to my other publishing channels</p>
+
+    <div class="social-list">
+
+            <div class="social-item">
+              <a target="_blank" class="social-link" href="/atom.xml">
+                <span class="icon">
+                  <i class="fa fa-rss"></i>
+                </span>
+
+                <span class="label">RSS</span>
+              </a>
+            </div>
+    </div>
+  </div>
+
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/Java/" rel="tag"># Java</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2020/08/27/从Mpsc到RingBuffer（二）- RingBuffer/" rel="prev" title="从Mpsc到RingBuffer（二）- RingBuffer">
+      <i class="fa fa-chevron-left"></i> 从Mpsc到RingBuffer（二）- RingBuffer
+    </a></div>
+      <div class="post-nav-item"></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+    <div class="comments" id="gitalk-container"></div>
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let activeClass = CONFIG.comments.activeClass;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#一-前言"><span class="nav-number">1.</span> <span class="nav-text">一. 前言</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#二-使用"><span class="nav-number">2.</span> <span class="nav-text">二. 使用</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#三-Sequence和数组序号"><span class="nav-number">3.</span> <span class="nav-text">三. Sequence和数组序号</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#四-Sequencer"><span class="nav-number">4.</span> <span class="nav-text">四. Sequencer</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#4-1-SingleProducerSequencer"><span class="nav-number">4.1.</span> <span class="nav-text">4.1 SingleProducerSequencer</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#next"><span class="nav-number">4.1.1.</span> <span class="nav-text">next</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#publish"><span class="nav-number">4.1.2.</span> <span class="nav-text">publish</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#getHighestPublishedSequence"><span class="nav-number">4.1.3.</span> <span class="nav-text">getHighestPublishedSequence</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-2-MultiProducerSequencer"><span class="nav-number">4.2.</span> <span class="nav-text">4.2 MultiProducerSequencer</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#next-1"><span class="nav-number">4.2.1.</span> <span class="nav-text">next</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#publish-1"><span class="nav-number">4.2.2.</span> <span class="nav-text">publish</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#getHighestPublishedSequence-1"><span class="nav-number">4.2.3.</span> <span class="nav-text">getHighestPublishedSequence</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#五-Consumer"><span class="nav-number">5.</span> <span class="nav-text">五. Consumer</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#SequenceBarrier"><span class="nav-number">5.1.</span> <span class="nav-text">SequenceBarrier</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#WorkProcessor"><span class="nav-number">5.2.</span> <span class="nav-text">WorkProcessor</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">zhy</p>
+  <div class="site-description" itemprop="description">敌视现实</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">91</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">34</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">60</span>
+        <span class="site-state-item-name">tags</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/zhyzhyzhy" title="GitHub → https://github.com/zhyzhyzhy" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:zhuyichen1017@outlook.com" title="E-Mail → mailto:zhuyichen1017@outlook.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+  <div class="beian"><a href="http://www.beian.miit.gov.cn" rel="noopener" target="_blank">苏ICP备15058469号 </a>
+  </div>
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">zhy</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> v3.8.0
+  </div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">Theme – <a href="https://muse.theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a> v7.7.1
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+<script src="/js/utils.js"></script><script src="/js/motion.js"></script>
+<script src="/js/schemes/muse.js"></script>
+<script src="/js/next-boot.js"></script>
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+<link rel="stylesheet" href="//cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.css">
+
+<script>
+NexT.utils.loadComments(document.querySelector('#gitalk-container'), () => {
+  NexT.utils.getScript('//cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.js', () => {
+    var gitalk = new Gitalk({
+      clientID: '397fc9b869aab02e85ba',
+      clientSecret: 'fb88003acd1df02f7ad1d3f19b54e8ce0f09932d',
+      repo: 'zhyzhyzhy.github.io',
+      owner: 'zhyzhyzhy',
+      admin: ['zhyzhyzhy'],
+      id: '071724e35f01f80cb4d829c7eae31fc8',
+        language: 'zh_CN',
+      distractionFreeMode: true
+    });
+    gitalk.render('gitalk-container');
+  }, window.Gitalk);
+});
+</script>
+
+</body>
+</html>

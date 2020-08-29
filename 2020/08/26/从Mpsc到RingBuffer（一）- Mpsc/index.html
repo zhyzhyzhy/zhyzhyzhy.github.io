@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 3.8.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+  <meta name="google-site-verification" content="wE7ISC42t3QOT-S-gdbdy_XsP3NB23Xi3alKNWXd0dA">
+  <meta name="baidu-site-verification" content="keFN8E7jd3">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="//fonts.googleapis.com/css?family=Operator Mono:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    hostname: new URL('https://blog.lovezhy.cc').hostname,
+    root: '/',
+    scheme: 'Muse',
+    version: '7.7.1',
+    exturl: false,
+    sidebar: {"position":"right","display":"always","padding":18,"offset":12,"onmobile":false},
+    copycode: {"enable":true,"show_result":true,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    comments: {"style":"tabs","active":"disqus","storage":true,"lazyload":false,"nav":null},
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: 'search.xml',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}
+  };
+</script>
+
+  <meta name="description" content="前言其实一开始没有接触过这个，但是看Netty源码的时候，发现Netty的对象池使用了MpscQueue，感觉还挺有意思的。 MpscQueue主要针对的是单消费者，多生产者的情况，实现上是LockFree的，这里的Lock Free，一般都是指用了CAS解决并发问题。">
+<meta name="keywords" content="Java">
+<meta property="og:type" content="article">
+<meta property="og:title" content="从Mpsc到RingBuffer（一）- Mpsc">
+<meta property="og:url" content="https://blog.lovezhy.cc/2020/08/26/从Mpsc到RingBuffer（一）- Mpsc/index.html">
+<meta property="og:site_name" content="LoveZhy">
+<meta property="og:description" content="前言其实一开始没有接触过这个，但是看Netty源码的时候，发现Netty的对象池使用了MpscQueue，感觉还挺有意思的。 MpscQueue主要针对的是单消费者，多生产者的情况，实现上是LockFree的，这里的Lock Free，一般都是指用了CAS解决并发问题。">
+<meta property="og:locale" content="zh-cn">
+<meta property="og:image" content="https://blog.lovezhy.cc/images/ringbuffer/1.png">
+<meta property="og:image" content="https://blog.lovezhy.cc/images/ringbuffer/2.png">
+<meta property="og:image" content="https://blog.lovezhy.cc/images/ringbuffer/3.png">
+<meta property="og:image" content="https://blog.lovezhy.cc/images/ringbuffer/4.png">
+<meta property="og:image" content="https://blog.lovezhy.cc/images/ringbuffer/5.png">
+<meta property="og:updated_time" content="2020-08-29T16:50:13.621Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="从Mpsc到RingBuffer（一）- Mpsc">
+<meta name="twitter:description" content="前言其实一开始没有接触过这个，但是看Netty源码的时候，发现Netty的对象池使用了MpscQueue，感觉还挺有意思的。 MpscQueue主要针对的是单消费者，多生产者的情况，实现上是LockFree的，这里的Lock Free，一般都是指用了CAS解决并发问题。">
+<meta name="twitter:image" content="https://blog.lovezhy.cc/images/ringbuffer/1.png">
+
+<link rel="canonical" href="https://blog.lovezhy.cc/2020/08/26/从Mpsc到RingBuffer（一）- Mpsc/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true
+  };
+</script>
+
+  <title>从Mpsc到RingBuffer（一）- Mpsc | LoveZhy</title>
+  
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-125642214-1"></script>
+    <script>
+      if (CONFIG.hostname === location.hostname) {
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'UA-125642214-1');
+      }
+    </script>
+
+
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?c1f963571cb3d8a4a5dc82346dc65842";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+<link rel="alternate" href="/atom.xml" title="LoveZhy" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">LoveZhy</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+  </div>
+
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-fw fa-user"></i>About</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>Tags</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>Categories</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>Archives</a>
+
+  </li>
+        <li class="menu-item menu-item-sitemap">
+
+    <a href="/sitemap.xml" rel="section"><i class="fa fa-fw fa-sitemap"></i>Sitemap</a>
+
+  </li>
+  </ul>
+
+</nav>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope="" itemtype="http://schema.org/Article" class="post-block " lang="zh-cn">
+    <link itemprop="mainEntityOfPage" href="https://blog.lovezhy.cc/2020/08/26/从Mpsc到RingBuffer（一）- Mpsc/">
+
+    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="zhy">
+      <meta itemprop="description" content="敌视现实">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="LoveZhy">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          从Mpsc到RingBuffer（一）- Mpsc
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2020-08-26 00:00:00" itemprop="dateCreated datePublished" datetime="2020-08-26T00:00:00+08:00">2020-08-26</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">Edited on</span>
+                <time title="Modified: 2020-08-30 00:50:13" itemprop="dateModified" datetime="2020-08-30T00:50:13+08:00">2020-08-30</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
+                  <a href="/categories/RingBuffer/" itemprop="url" rel="index">
+                    <span itemprop="name">RingBuffer</span>
+                  </a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h1 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h1><p>其实一开始没有接触过这个，但是看Netty源码的时候，发现Netty的对象池使用了MpscQueue，感觉还挺有意思的。</p>
+<p>MpscQueue主要针对的是单消费者，多生产者的情况，实现上是LockFree的，这里的Lock Free，一般都是指用了CAS解决并发问题。</p>
+<a id="more"></a>
+<h1 id="单消费者单生产者"><a href="#单消费者单生产者" class="headerlink" title="单消费者单生产者"></a>单消费者单生产者</h1><p>我们先一步一步来，先考虑单消费者单生产者的情况。</p>
+<p>这种情况下，除了Lock Free，还可以做到Wait Free。</p>
+<h2 id="数组存储"><a href="#数组存储" class="headerlink" title="数组存储"></a>数组存储</h2><p>如果我们使用数组作为存储的话，维护一个ReadIndex和WriteIndex。</p>
+<p>需要保证WriteIndex &gt; ReadIndex就行。</p>
+<p>每次读的时候，判断队列是否为空，每次写的时候判断队列是否已经满了。</p>
+<h2 id="链表存储"><a href="#链表存储" class="headerlink" title="链表存储"></a>链表存储</h2><p>如果我们使用链表作为存储的话，原理和数组类似，可以维护一个Head节点和一个Tail节点。</p>
+<p>每次写入的时候</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">Node node = newNode();</span><br><span class="line">tail.next = node;</span><br><span class="line">tail = node;</span><br></pre></td></tr></table></figure>
+<p>每次读取的时候</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (head == tail) &#123;</span><br><span class="line">  <span class="keyword">return</span> <span class="keyword">false</span>; <span class="comment">//队列为空</span></span><br><span class="line">&#125; </span><br><span class="line">Node node = head;</span><br><span class="line">head = head.next;</span><br><span class="line"><span class="keyword">return</span> node;</span><br></pre></td></tr></table></figure>
+<h1 id="单消费者，多生产者"><a href="#单消费者，多生产者" class="headerlink" title="单消费者，多生产者"></a>单消费者，多生产者</h1><p>这里我只想对于链表的实现，因为这是Netty的默认实现方式。</p>
+<p>对于数组的实现方式，等大家看了RingBuffer的实现方式之后，想必自然就懂了。</p>
+<p>在链表的实现上，对于单消费者，多生产者，其实对于消费者端的代码而言，区别和单消费者单生产者不大。</p>
+<p>但是由于生产者可能有多个，所以对于tail指针的操作，多线程下是不安全的。</p>
+<p>在Netty的Mpsc中，引入CAS操作，对tail指针进行原子操作：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">MpscLinkedNode tail = <span class="keyword">new</span> MpscLinkedNode();</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">private</span> MpscLinkedQueueNode&lt;E&gt; <span class="title">replaceTail</span><span class="params">(MpscLinkedQueueNode&lt;E&gt; node)</span> </span>&#123;</span><br><span class="line">   <span class="keyword">return</span> getAndSet(node);</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">final</span> MpscLinkedNode <span class="title">getAndSet</span><span class="params">(MpscLinkedNode newValue)</span> </span>&#123;</span><br><span class="line">   <span class="keyword">return</span> (MpscLinkedNode)unsafe.getAndSetObject(<span class="keyword">this</span>, valueOffset, newValue);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这里的<code>valueOffset</code>就是tail对象的地址。</p>
+<p>replaceTail这个函数，接收一个新的Node节点，将Tail节点替换成新的Node阶段，同时返回旧的Tail节点。</p>
+<h2 id="Offer操作"><a href="#Offer操作" class="headerlink" title="Offer操作"></a>Offer操作</h2><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">boolean</span> <span class="title">offer</span><span class="params">(E value)</span> </span>&#123;</span><br><span class="line">    MpscLinkedQueueNode&lt;E&gt; newTail = <span class="keyword">new</span> DefaultNode&lt;E&gt;(value)</span><br><span class="line">    MpscLinkedQueueNode&lt;E&gt; oldTail = replaceTail(newTail); <span class="comment">// 1</span></span><br><span class="line">    oldTail.setNext(newTail);                              <span class="comment">// 2</span></span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">true</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>生产者加元素的代码不多，算起来就2行。</p>
+<p>我们用图例来演示这2步究竟做了什么，首先，我们有一个单链表的结构。</p>
+<p><img src="/images/ringbuffer/1.png" alt="image-20200826221709219" style="zoom:50%;"></p>
+<h3 id="第一步，单线程"><a href="#第一步，单线程" class="headerlink" title="第一步，单线程"></a>第一步，单线程</h3><p><img src="/images/ringbuffer/2.png" alt="image-20200826221709219" style="zoom:50%;"></p>
+<p>第一步，原子替换Tail节点，将新的节点设置为Tail节点。</p>
+<p>但是这一步操作完之后，其实并没有改变之前的节点的Next指向，上一个节点的Next还是指向的之前的Tail节点。</p>
+<h3 id="第二步，单线程"><a href="#第二步，单线程" class="headerlink" title="第二步，单线程"></a>第二步，单线程</h3><p><img src="/images/ringbuffer/3.png" alt="image-20200826221709219" style="zoom:50%;"></p>
+<p>第二步执行完，才完成整个Next指针的链接。</p>
+<h3 id="第一步，多线程"><a href="#第一步，多线程" class="headerlink" title="第一步，多线程"></a>第一步，多线程</h3><p><img src="/images/ringbuffer/4.png" alt="image-20200826221709219" style="zoom:50%;"></p>
+<p>假设第一步被多线程并发了，现在有2个线程同时执行完了第一步。</p>
+<p>这个时候，整个链表的结构看起来就是这样的。</p>
+<p>后面两个接待是断开的。</p>
+<h3 id="第二步，多线程"><a href="#第二步，多线程" class="headerlink" title="第二步，多线程"></a>第二步，多线程</h3><p><img src="/images/ringbuffer/5.png" alt="image-20200826221709219" style="zoom:50%;"></p>
+<p>但是没关系，因为对于每个线程而言，都有自己的newTail和oldTail，这些newTail和oldTail相互串联了起来。</p>
+<p>这2个线程结束之后，又是一个完整的链表。</p>
+<h2 id="take"><a href="#take" class="headerlink" title="take"></a>take</h2><p>对于消费者而言，因为没有竞争，其实连CAS都不需要。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> MpscLinkedQueueNode&lt;E&gt; <span class="title">peekNode</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">for</span> (;;) &#123;</span><br><span class="line">        <span class="keyword">final</span> MpscLinkedQueueNode&lt;E&gt; head = headRef.get();</span><br><span class="line">        <span class="keyword">final</span> MpscLinkedQueueNode&lt;E&gt; next = head.next();</span><br><span class="line">           </span><br><span class="line">        <span class="keyword">if</span> (next != <span class="keyword">null</span>) &#123;</span><br><span class="line">            <span class="keyword">return</span> next;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">if</span> (head == getTail()) &#123;</span><br><span class="line">            <span class="keyword">return</span> <span class="keyword">null</span>;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>先看peekNode方法，因为head不保存数据，同时在多线程并发的情况下，可能会出现节点之间还没有被串联起来的情况。</p>
+<p>这里使用了<code>for(;;)</code>去等待数据。</p>
+<p>同时如果<code>head == tail</code>，表示队列中没有数据。</p>
+<p>看完了peek，我们再来看poll方法</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> E <span class="title">poll</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">final</span> MpscLinkedQueueNode&lt;E&gt; next = peekNode();</span><br><span class="line">    <span class="keyword">if</span> (next == <span class="keyword">null</span>) &#123;</span><br><span class="line">       <span class="keyword">return</span> <span class="keyword">null</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    MpscLinkedQueueNode&lt;E&gt; oldHead = headRef.get();</span><br><span class="line">    headRef.lazySet(next);</span><br><span class="line">    oldHead.setNext(<span class="keyword">null</span>);</span><br><span class="line">    <span class="keyword">return</span> next.clearMaybe();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这里就是拿到就的Head节点，把他置空，将next节点置为新的Head节点。</p>
+<h1 id="参考文章"><a href="#参考文章" class="headerlink" title="参考文章"></a>参考文章</h1><p><a href="https://blog.csdn.net/dingguohang/article/details/55252969" target="_blank" rel="noopener">https://blog.csdn.net/dingguohang/article/details/55252969</a></p>
+
+    </div>
+
+    
+    
+    
+        
+
+<div>
+<ul class="post-copyright">
+  <li class="post-copyright-author">
+    <strong>Post author:  </strong>zhy
+  </li>
+  <li class="post-copyright-link">
+    <strong>Post link: </strong>
+    <a href="https://blog.lovezhy.cc/2020/08/26/从Mpsc到RingBuffer（一）- Mpsc/" title="从Mpsc到RingBuffer（一）- Mpsc">https://blog.lovezhy.cc/2020/08/26/从Mpsc到RingBuffer（一）- Mpsc/</a>
+  </li>
+  <li class="post-copyright-license">
+    <strong>Copyright Notice:  </strong>All articles in this blog are licensed under <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" rel="noopener" target="_blank"><i class="fa fa-fw fa-creative-commons"></i>BY-NC-SA</a> unless stating additionally.
+  </li>
+</ul>
+</div>
+
+        
+
+  <div class="followme">
+    <p>Welcome to my other publishing channels</p>
+
+    <div class="social-list">
+
+            <div class="social-item">
+              <a target="_blank" class="social-link" href="/atom.xml">
+                <span class="icon">
+                  <i class="fa fa-rss"></i>
+                </span>
+
+                <span class="label">RSS</span>
+              </a>
+            </div>
+    </div>
+  </div>
+
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/Java/" rel="tag"># Java</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2020/08/19/LevelDB源码解析（七）- Compact与Version/" rel="prev" title="LevelDB源码解析（七）- Compact与Version">
+      <i class="fa fa-chevron-left"></i> LevelDB源码解析（七）- Compact与Version
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2020/08/27/从Mpsc到RingBuffer（二）- RingBuffer/" rel="next" title="从Mpsc到RingBuffer（二）- RingBuffer">
+      从Mpsc到RingBuffer（二）- RingBuffer <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+    <div class="comments" id="gitalk-container"></div>
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let activeClass = CONFIG.comments.activeClass;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#前言"><span class="nav-number">1.</span> <span class="nav-text">前言</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#单消费者单生产者"><span class="nav-number">2.</span> <span class="nav-text">单消费者单生产者</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#数组存储"><span class="nav-number">2.1.</span> <span class="nav-text">数组存储</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#链表存储"><span class="nav-number">2.2.</span> <span class="nav-text">链表存储</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#单消费者，多生产者"><span class="nav-number">3.</span> <span class="nav-text">单消费者，多生产者</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#Offer操作"><span class="nav-number">3.1.</span> <span class="nav-text">Offer操作</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#第一步，单线程"><span class="nav-number">3.1.1.</span> <span class="nav-text">第一步，单线程</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#第二步，单线程"><span class="nav-number">3.1.2.</span> <span class="nav-text">第二步，单线程</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#第一步，多线程"><span class="nav-number">3.1.3.</span> <span class="nav-text">第一步，多线程</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#第二步，多线程"><span class="nav-number">3.1.4.</span> <span class="nav-text">第二步，多线程</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#take"><span class="nav-number">3.2.</span> <span class="nav-text">take</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#参考文章"><span class="nav-number">4.</span> <span class="nav-text">参考文章</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">zhy</p>
+  <div class="site-description" itemprop="description">敌视现实</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">91</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">34</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">60</span>
+        <span class="site-state-item-name">tags</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/zhyzhyzhy" title="GitHub → https://github.com/zhyzhyzhy" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:zhuyichen1017@outlook.com" title="E-Mail → mailto:zhuyichen1017@outlook.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+  <div class="beian"><a href="http://www.beian.miit.gov.cn" rel="noopener" target="_blank">苏ICP备15058469号 </a>
+  </div>
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">zhy</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> v3.8.0
+  </div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">Theme – <a href="https://muse.theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a> v7.7.1
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+<script src="/js/utils.js"></script><script src="/js/motion.js"></script>
+<script src="/js/schemes/muse.js"></script>
+<script src="/js/next-boot.js"></script>
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+<link rel="stylesheet" href="//cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.css">
+
+<script>
+NexT.utils.loadComments(document.querySelector('#gitalk-container'), () => {
+  NexT.utils.getScript('//cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.js', () => {
+    var gitalk = new Gitalk({
+      clientID: '397fc9b869aab02e85ba',
+      clientSecret: 'fb88003acd1df02f7ad1d3f19b54e8ce0f09932d',
+      repo: 'zhyzhyzhy.github.io',
+      owner: 'zhyzhyzhy',
+      admin: ['zhyzhyzhy'],
+      id: '31928f145a7f7b40d5db61f9945aa28f',
+        language: 'zh_CN',
+      distractionFreeMode: true
+    });
+    gitalk.render('gitalk-container');
+  }, window.Gitalk);
+});
+</script>
+
+</body>
+</html>
