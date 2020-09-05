@@ -1,0 +1,836 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 3.8.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+  <meta name="google-site-verification" content="wE7ISC42t3QOT-S-gdbdy_XsP3NB23Xi3alKNWXd0dA">
+  <meta name="baidu-site-verification" content="keFN8E7jd3">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="//fonts.googleapis.com/css?family=Operator Mono:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    hostname: new URL('https://blog.lovezhy.cc').hostname,
+    root: '/',
+    scheme: 'Muse',
+    version: '7.7.1',
+    exturl: false,
+    sidebar: {"position":"right","display":"always","padding":18,"offset":12,"onmobile":false},
+    copycode: {"enable":true,"show_result":true,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    comments: {"style":"tabs","active":"disqus","storage":true,"lazyload":false,"nav":null},
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: 'search.xml',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}
+  };
+</script>
+
+  <meta name="description" content="A Generational Mostly-concurrent Garbage Collector(题目不知道咋翻，算了)，论文发布在2000年 注：本文讲的不完全是CMS垃圾收集器，其实讲的是并发垃圾收集器的思路。 而Java中的并发垃圾收集器包含CMS和G1。">
+<meta name="keywords" content="JVM">
+<meta property="og:type" content="article">
+<meta property="og:title" content="论文翻译-CMS">
+<meta property="og:url" content="https://blog.lovezhy.cc/2020/09/05/论文翻译-CMS/index.html">
+<meta property="og:site_name" content="LoveZhy">
+<meta property="og:description" content="A Generational Mostly-concurrent Garbage Collector(题目不知道咋翻，算了)，论文发布在2000年 注：本文讲的不完全是CMS垃圾收集器，其实讲的是并发垃圾收集器的思路。 而Java中的并发垃圾收集器包含CMS和G1。">
+<meta property="og:locale" content="zh-cn">
+<meta property="og:image" content="https://blog.lovezhy.cc/images/论文翻译cms/1.png">
+<meta property="og:image" content="https://blog.lovezhy.cc/images/论文翻译cms/2.png">
+<meta property="og:image" content="https://blog.lovezhy.cc/images/论文翻译cms/3.png">
+<meta property="og:image" content="https://blog.lovezhy.cc/images/论文翻译cms/4.png">
+<meta property="og:updated_time" content="2020-09-05T15:25:19.021Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="论文翻译-CMS">
+<meta name="twitter:description" content="A Generational Mostly-concurrent Garbage Collector(题目不知道咋翻，算了)，论文发布在2000年 注：本文讲的不完全是CMS垃圾收集器，其实讲的是并发垃圾收集器的思路。 而Java中的并发垃圾收集器包含CMS和G1。">
+<meta name="twitter:image" content="https://blog.lovezhy.cc/images/论文翻译cms/1.png">
+
+<link rel="canonical" href="https://blog.lovezhy.cc/2020/09/05/论文翻译-CMS/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true
+  };
+</script>
+
+  <title>论文翻译-CMS | LoveZhy</title>
+  
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-125642214-1"></script>
+    <script>
+      if (CONFIG.hostname === location.hostname) {
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'UA-125642214-1');
+      }
+    </script>
+
+
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?c1f963571cb3d8a4a5dc82346dc65842";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+<link rel="alternate" href="/atom.xml" title="LoveZhy" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">LoveZhy</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+  </div>
+
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-fw fa-user"></i>About</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>Tags</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>Categories</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>Archives</a>
+
+  </li>
+        <li class="menu-item menu-item-sitemap">
+
+    <a href="/sitemap.xml" rel="section"><i class="fa fa-fw fa-sitemap"></i>Sitemap</a>
+
+  </li>
+  </ul>
+
+</nav>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope="" itemtype="http://schema.org/Article" class="post-block " lang="zh-cn">
+    <link itemprop="mainEntityOfPage" href="https://blog.lovezhy.cc/2020/09/05/论文翻译-CMS/">
+
+    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="zhy">
+      <meta itemprop="description" content="敌视现实">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="LoveZhy">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          论文翻译-CMS
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+              
+
+              <time title="Created: 2020-09-05 00:00:00 / Modified: 23:25:19" itemprop="dateCreated datePublished" datetime="2020-09-05T00:00:00+08:00">2020-09-05</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
+                  <a href="/categories/论文翻译/" itemprop="url" rel="index">
+                    <span itemprop="name">论文翻译</span>
+                  </a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p><strong>A Generational Mostly-concurrent Garbage Collector</strong><br>(题目不知道咋翻，算了)，论文发布在2000年</p>
+<p>注：本文讲的不完全是CMS垃圾收集器，其实讲的是并发垃圾收集器的思路。</p>
+<p>而Java中的并发垃圾收集器包含CMS和G1。</p>
+<a id="more"></a>
+<p>Mostly-concurrent：不知道咋翻译，这里就翻译成<code>近似并发</code></p>
+<p>mutator：也不知道咋翻译，就按照软件给我叫突变器吧，类似于JVM的用户运行程序</p>
+<p>看到个博客，讲的挺好的</p>
+<p><a href="https://www.cnblogs.com/Leo_wl/p/5393300.html" target="_blank" rel="noopener">https://www.cnblogs.com/Leo_wl/p/5393300.html</a></p>
+<h2 id="译者总结"><a href="#译者总结" class="headerlink" title="译者总结"></a>译者总结</h2><ol>
+<li><p>CMS的垃圾收集算法没有选择Mark-Compact的方式，是因为Compact后，要修改所有指向该对象的引用，这个操作无法并发进行。</p>
+<p>导致CMS老年代的内存分配是使用Free-List的方式进行分配，类似于伙伴关系算法。</p>
+</li>
+<li><p>接着1的说，在年轻代的收集中，对象晋升时，需要把对象复制到老年代。但是因为使用Free-List的方式，这种复制很慢。官方注意到晋升时，垃圾收集器线程和突变器线程都是暂停的，所以让CMS进行了优化，支持了线性分配模式，这种模式下，使用线性分配来进行对象晋升复制。（论文中似乎没有写出具体的实现方式）</p>
+</li>
+<li><p>卡表：CMS中的卡表有两个作用，或者说其实CMS运用了两个卡表，作用却是不同的。</p>
+<ol>
+<li>用来标记老年代指向新生代对象的页，这样新生代收集的时候，也要Mark被老年代对象引用的新生代对象</li>
+<li>垃圾收集的并发收集阶段，如果这个时候对象的引用产生了变化，通过写屏障，把对象的页对应的卡表的位置，置为脏页，让重新标记阶段扫描这些脏页的对象。</li>
+</ol>
+</li>
+<li><p>标记对象时，CMS使用一系列的BitMap，每一个Bit表示地址的4Byte，也就是一个对象的位置，来记录初始标记阶段从GCRoot可直接到达的对象的地址。</p>
+<p>这样比使用容器存储这些对象的引用更省空间</p>
+</li>
+<li><p>并发标记阶段，突变器新分配的对象，可以是unmark的，因为重新标记阶段肯定会标记到这个对象。</p>
+<p>但是在并发收集阶段，突变器新分配的对象，应该是mark的，防止被收集掉。</p>
+</li>
+<li><p>重新标记阶段，是假定并发标记阶段，引用产生变化的对象不会很多。但是如果很多的话，就会造成STW的时间过长，使用并发预清理来应对这个情况。</p>
+<p>并发预清理，就是查看在并发标记阶段，查看卡表，对dirty的表项进行处理，然后置为clean。</p>
+<p>这样即使降低在重新标记阶段要处理的卡表项过多。</p>
+</li>
+</ol>
+<h2 id="摘要"><a href="#摘要" class="headerlink" title="摘要"></a>摘要</h2><p>本文报告了我们在Java编程语言的高性能虚拟机背景下实现的近似并发增量垃圾收集器的经验。</p>
+<p>该垃圾收集器基于Boehm等人的 “近似并行（parallel） “收集算法，可以作为分代内存系统的老年代代垃圾收集器。</p>
+<p>我们重写了目前的分代垃圾收集的写屏障代码，使之也可以识别在并发标记期间被修改的对象。</p>
+<p>这些对象必须重新扫描，以确保并发标记阶段标记所有的活对象。</p>
+<p>这种算法最大限度地减少了垃圾收集的暂停时间，同时对垃圾收集的平均暂停时间和整体执行时间只有很小的影响。</p>
+<p>我们将用实验结果来支持我们的观点，包括合成基准和真实程序。</p>
+<h2 id="1-介绍"><a href="#1-介绍" class="headerlink" title="1. 介绍"></a>1. 介绍</h2><p>在20世纪50年代末，依靠垃圾回收的编程语言就已经存在了。</p>
+<p>尽管垃圾回收对程序的简单性和健壮性的好处是众所周知的并且也是被认同的，但大多数软件开发者仍然依赖于传统的显式内存管理，这主要是出于对性能的考虑。</p>
+<p>直到最近Java语言被广泛接受，才使垃圾收集进入主流，并在大型系统中得到应用。</p>
+<p><br></p>
+<p>开发者对垃圾收集持怀疑态度，原因有二：吞吐量和延迟。</p>
+<p>也就是说，他们担心收集垃圾会减慢其系统的性能，或者导致长时间的暂停，或者两者兼而有之。</p>
+<p>计算能力的大幅提高并没有消除这些担忧，因为这些担忧通常会被内存需求的相应增加所抵消。</p>
+<p><br></p>
+<p>分代垃圾收集技术可以解决这两个性能问题。</p>
+<p>他们根据对象的年龄将堆分成几代。将集中收集在 “年轻 “一代的垃圾会增加吞吐量，因为(在大多数程序中)年轻的对象更有可能是垃圾，所以每单位的收集工作可以回收更多的可用空间。</p>
+<p>由于年轻一代相对于总的堆大小来说通常是很小的，所以年轻一代的收集工作通常是短暂的，从而解决了延迟的问题。</p>
+<p>然而，在足够多的年轻一代收集中存活下来的对象被认为是长寿命的，并被 “推广 “到老一代。</p>
+<p>即使老一代通常比较大，但最终还是会被填满，需要垃圾回收。老一代收集的延迟和吞吐量与全堆收集类似，因此，分代技术只能推迟而不能解决这个问题。</p>
+<p><br></p>
+<p>在本文中，我们提出了一种垃圾收集算法，该算法被设计成工作在分代内存系统的老年代。</p>
+<p>它试图减少最坏情况下的垃圾收集暂停时间，同时利用分代系统的优势。</p>
+<p>它是对Boehm等人的 “近似并行 “算法的改编。</p>
+<p>它通常与突变器（mutator）并发运行，只是偶尔会短时间暂停突变器（mutator）。</p>
+<h3 id="1-1-术语说明"><a href="#1-1-术语说明" class="headerlink" title="1.1 术语说明"></a>1.1 术语说明</h3><p>在本文中，如果一个收集器能够与突变器（mutator）交错运行，或者真正地并发执行，或者通过小的增量工作即可以在频繁的操作（如对象分配）上搭载，我们称它为并发收集器。</p>
+<p>相对于并行收集器而言，并行收集器使用多个合作线程来完成收集，因此可以在共享内存多处理器上实现并行加速。</p>
+<p><br></p>
+<p>不幸的是，这个术语与Boehm等人使用的术语发生冲突，因为他们用 “并行 “来表示我们命名为 “并发 “的概念。</p>
+<p>这个选择是歧义的；一个当地传统导致了我们的选择。因此，我们用 “近似并发 “来表示Boehm等人所说的 “近似并行”。</p>
+<h3 id="1-2-论文概览"><a href="#1-2-论文概览" class="headerlink" title="1.2 论文概览"></a>1.2 论文概览</h3><p>第2节简要介绍了我们的实现和实验所基于的平台，第3节介绍了最初的近似并发算法。第4节描述了我们对该算法的调整，第5节包含了我们为了评估我们的实现而进行的实验结果。</p>
+<p>最后，第6节给出了增量垃圾收集器的相关工作，第7节给出了结论和未来工作。</p>
+<h2 id="2-实验平台"><a href="#2-实验平台" class="headerlink" title="2. 实验平台"></a>2. 实验平台</h2><p>Sun Microsystems Laboratories Virtual Machine for Research，以下简称ResearchVM，是Sun Microsystems开发的高性能Java虚拟机。</p>
+<p>这个虚拟机之前被称为 “Exact VM”，并已被整合到产品中；例如，用于Solaris操作环境的Java 2 SDK (1.2.1 05)生产版1就采用了优化的即时编译器[8]和快速同步机制[2]。</p>
+<p><br></p>
+<p>更为重要的是，它具有高性能的精确（即非保守[6]，也称为精确）内存管理[1]。</p>
+<p>内存系统与虚拟机的其他部分通过一个定义良好的GC接口[27]分开。</p>
+<p>这个接口允许不同的垃圾收集器被 “接入”，而不需要改变系统的其他部分。</p>
+<p>目前已经构建了多种实现该接口的收集器。</p>
+<p>除了GC接口之外，还有第二层，称为分代框架，方便实现分代垃圾收集器。</p>
+<p><br></p>
+<p>其中一位作者学会了这些接口，并在几周内实现了一个垃圾收集器，所以有一些证据表明，实现上述接口是比较容易的。</p>
+<h2 id="3-近似收集"><a href="#3-近似收集" class="headerlink" title="3. 近似收集"></a>3. 近似收集</h2><p>Boehm等人提出的最初的近似并发算法，是一种并发的 “三色 “收集器。</p>
+<p>它使用写屏障使堆对象的字段更新，使包含对象呈灰色。</p>
+<p>它的主要创新之处在于，它通过允许根位置（globals、栈、寄存器）（通常比堆位置更新更频繁）被写入，而不使用屏障来维持三色不变，从而以完全的并发性换取更好的吞吐量。</p>
+<p>算法会暂停突变器来正确处理根基（Root）的问题，但通常只是短时间的。详细来说，该算法由四个阶段组成：</p>
+<ol>
+<li><p><strong>初始标记暂停</strong>。暂停所有的突变器，并记录所有从系统的根（globals、栈、寄存器）直接到达的对象。</p>
+</li>
+<li><p><strong>并发标记阶段</strong>。恢复突变器操作。同时，启动并发标记阶段，标记可触及对象的闭包。这个闭包不保证标记结束时，能标记到所有可达到对象，因为突变器对引用字段的并发更新可能会阻止标记阶段标记一些存活对象。</p>
+<p>为了处理这个复杂的问题，算法还安排跟踪堆对象中引用字段的更新。这是突变者和垃圾收集器之间唯一的互动。</p>
+</li>
+<li><p><strong>最后标记暂停</strong>。再次暂停突变器，从GC Roots开始标记，完成标记阶段，将标记对象中修改后的引用字段视为附加Roots。由于这类字段只包含并发标记阶段可能没有观察到的引用对象，这就确保了最后的过渡性闭包包括了最后标记阶段开始时可以到达的所有对象。它还可能包括一些在标记后变得无法触及的引用。这些垃圾将在下一个垃圾收集周期收集。</p>
+</li>
+<li><p><strong>并发收集阶段</strong>。再次恢复突变器，并同时扫过堆，去掉未标记的对象。必须注意不要重新分配新对象。在这个阶段，这可以通过分配 “活 “的对象（即标记）来实现。（没看懂，盲猜大意是这个阶段的JVM分配的对象要自带Mark标记，避免被并发收集掉）</p>
+</li>
+</ol>
+<p>这个描述从Boehm等人给出的描述中抽象出来：跟踪单个修改字段是最细的跟踪粒度；注意这个粒度可以变粗，可以通过降低精度来换取更高效（或方便）的修改跟踪。</p>
+<p>事实上，Boehm等人使用了相当粗的粒度，在4.2节中讨论过。</p>
+<p><br></p>
+<p>该算法假设堆对象中引用字段的在并发收集阶段变化的概率较低，否则，最后的标记阶段将不得不重新扫描许多脏的引用字段，导致长时间的、可能是破坏性的暂停。</p>
+<p>即使有些程序会打破这种假设，但Boehm等人报告说，在实践中这种技术表现良好，特别是对于交互式应用。</p>
+<h3 id="3-1-一个具体案例"><a href="#3-1-一个具体案例" class="headerlink" title="3.1 一个具体案例"></a>3.1 一个具体案例</h3><p><img src="/images/论文翻译cms/1.png" alt="image-20200617230346559"></p>
+<p>图1说明了近似并发算法的操作。</p>
+<p>在这个简单的例子中，堆中包含7个对象，并被分成4页。</p>
+<p>在最初的标记暂停期间（未图示），所有4页都被标记为干净，对象a被标记为有效，因为它可以从线程堆栈中到达。</p>
+<p><br></p>
+<p>图1a显示了并发标记阶段中途的堆。</p>
+<p>物体b、c和e已被标记。</p>
+<p>此时，突变器执行两次更新：对象g放弃对d的引用，对象b的引用字段指向c，用对d的引用覆盖，这些更新的结果如图1b所示。</p>
+<p>另外要注意的是，更新后导致第1页和第3页被弄脏了。</p>
+<p><br></p>
+<p>图1c显示了并发标记阶段结束时的堆。</p>
+<p>显然，标记是不完整的，因为一个标记的对象b指向一个未标记的对象d。</p>
+<p>在最终标记暂停期间，将处理这个问题：重新扫描脏页（第1页和第3页）上的所有标记对象。</p>
+<p>这就导致b被扫描，从而对象d被标记。</p>
+<p>图1d显示了最后标记暂停后堆的状态，现在标记已经完成。</p>
+<p>随后将同时进行扫尾阶段，并将回收未标记的对象f。</p>
+<p><br></p>
+<p>在垃圾收集周期开始时无法到达的对象，如f，保证被回收。</p>
+<p>但是，像c这样的对象，如果在一个收集周期内变得无法到达，就不能保证在该周期内收集，而是会在下一个周期内收集。</p>
+<h2 id="4-分代系统中近似并发垃圾收集"><a href="#4-分代系统中近似并发垃圾收集" class="headerlink" title="4. 分代系统中近似并发垃圾收集"></a>4. 分代系统中近似并发垃圾收集</h2><p>本节详细介绍了我们的分代近似并发垃圾收集器，并记录了我们在其设计和实现过程中的一些具体方案。</p>
+<p>我们也会尽量提出可能更适合不同系统的替代解决方案。</p>
+<p>我们设计的垃圾收集器大部分方面都与使用该垃圾收集器作用于哪一代无关，我们将首先讲解这些。</p>
+<p>稍后，我们将描述在分代的背景下使用该收集器的具体特性。</p>
+<h3 id="4-1-内存分配器"><a href="#4-1-内存分配器" class="headerlink" title="4.1 内存分配器"></a>4.1 内存分配器</h3><p>对于老年代，ResearchVM的默认配置使用的是标记扫描收集，并进行压实（compaction）传递，以实现后面的高效分配。</p>
+<p>我们将把这个收集器的实现称为mark-compact。</p>
+<p>压实也带来对象重定位问题，即需要更新对重定位对象的引用，这种引用更新很难并发进行。</p>
+<p>因此，近似并发垃圾收集不会尝试对象重新定位。</p>
+<p>因此，它的分配器使用了自由列表（free lists），按对象的大小进行隔离，对于小对象（最多100个4字节的字），每个大小的对象有一个自由列表，对于大对象，每个大小的组有一个自由列表（这些组是用类似斐波那契的序列选择的）。</p>
+<p><br></p>
+<p>有人会觉得可以使用一个更智能的分配器，在速度/碎片化之间进行更好的权衡。</p>
+<p>事实上，Johnstone和Wilson宣称，分离式自由列表分配策略是导致最严重的碎片化的策略之一。</p>
+<p>然而，这项工作假设了显式的 “在线 “再分配，正如C的malloc/free接口所代表的那样。</p>
+<p>在 “离线 “的垃圾收集器中，用一个遍历整个堆的清扫阶段来凝聚连续的空闲区域以减少碎片，是比较容易和有效的。</p>
+<h3 id="4-2-使用卡表"><a href="#4-2-使用卡表" class="headerlink" title="4.2 使用卡表"></a>4.2 使用卡表</h3><p>分代垃圾收集需要跟踪从老一代对象到年轻一代对象的引用。</p>
+<p>这对于正确性来说是必要的，因为一些年轻一代的对象可能是无法到达的，除非通过这种引用。</p>
+<p>需要一个比简单地遍历整个老一代更好的方案，因为那样会使年轻一代集合的工作类似于整个堆的集合的工作。</p>
+<p><br></p>
+<p>使用了几种方案来跟踪这种老年代到新生代的对象引用后，我们在成本/精度上进行了不同的权衡。</p>
+<p>最终ResearchVM的分代框架（见第2节）使用卡表来进行这种跟踪。</p>
+<p>卡表是一个数组，每个条目对应于堆的一个子区域，称为卡。</p>
+<p>通过突变器代码对堆对象内的引用字段的每一次更新都会执行一个写屏障，将包含引用字段的卡表条目对应的卡设置为脏值，</p>
+<p>在编译后的突变器代码中，我们采用了Ho ̈lzle提出的两指令写屏障，卡表更新的额外代码可以相当高效。</p>
+<p><br></p>
+<p>我们如此设计的一个根本原因是利用这种让人开心的巧合，即这种基于卡表的高效写屏障，几乎不需要修改就可以用来执行近似并发收集所需的引用更新跟踪。因此，对老年代使用近似并发收集，除了已经产生的分代写屏障外，不会增加额外的突变器开销。</p>
+<p><br>Boehm等人使用虚拟内存保护技术来跟踪指针更新，粒度是虚拟内存页粒度：一个 “脏 “页包含一个或多个被修改的引用字段。与这种方法相比，使用基于卡表的写屏障有几个优点。</p>
+<ul>
+<li><strong>开销少</strong>：在大多数操作系统中，调用自定义处理程序进行内存保护陷阱的成本相当高。Hosking和Moss发现使用五条指令的卡片标记屏障比基于页保护的屏障更有效率；ResearchVM中使用的两条或三条指令的实现仍然会更有效率。</li>
+<li><strong>更细粒度的信息</strong>。卡表的粒度可以根据精度/空间开销的权衡来选择。虚拟内存保护方案中的 “卡表大小 “就是页面大小，选择这个大小是因为系统优化，比如磁盘传输的效率，而这些系统属性与垃圾收集的考虑完全无关。一般来说，这些优化会导致页面大于参考更新跟踪的最佳值，通常至少为4KB。相比之下，ResearchVM的卡片大小是512字节。</li>
+<li><strong>更准确的类型信息</strong>。ResearchVM只在一张卡上的引用字段更新时才会对该卡进行脏化处理。基于虚拟内存的系统无法区分标量字段和引用字段的更新，因此可能会弄脏更多的页面，而不是跟踪修改后的指针所需要的。此外，他们的方法在其他地方也是保守的：它假设所有的字（理解是char*）都是潜在的指针。</li>
+</ul>
+<p>Hosking、Moss和Stefanovic详细讨论了软件和基于页保护的屏障实现之间的权衡。他们的基本结论是，软件机制比使用虚拟内存保护的机制更有效。</p>
+<p><br>平心而论，我们应该注意到，Boehm等人的系统试图满足我们系统中不存在的另一个约束：在没有编译器支持的情况下，完成不合作语言（C和C++）的垃圾收集。这个约束导致了保守的收集方案[6]，而近似并发扩展正是基于这个方案，同时也有利于使用虚拟内存技术进行引用更新跟踪，因为这个技术不需要修改突变器代码。</p>
+<p><br></p>
+<p>根据分代近似并发算法的需要，对卡表进行调整是很直接的。事实上，正如上面所讨论的，写屏障和卡表数据结构都没有改变。然而，我们仔细地注意到，卡表被两个可能同时运行的垃圾收集算法以微妙的不同方式使用。</p>
+<ol>
+<li><p>近似并发算法需要跟踪自当前标记阶段开始以来更新的所有引用</p>
+</li>
+<li><p>而年轻一代的垃圾收集需要识别所有老年代到年轻代的指针。</p>
+</li>
+</ol>
+<p>在基础分代系统中，年轻代集合扫描所有脏的旧的卡表，搜索进入年轻代的指针。如果没有找到，在下一次采集中就不需要扫描这张卡，所以这张卡被标记为干净。在年轻代垃圾收集清理脏卡之前，必须记录该卡已被修改的信息，以备近似并发收集器使用。</p>
+<p><br></p>
+<p><img src="/images/论文翻译cms/2.png" alt="image-20200617230346559"></p>
+<p>这是通过添加一个新的数据结构，the mod union table来实现的，如图2所示，之所以如此命名，是因为它代表了并发标记过程中发生的每一次年轻代垃圾收集之间修改的卡表条目的联合。</p>
+<p>卡表本身在ResearchVM中每个条目都包含一个字节；这就允许使用字节存储来快速实现写屏障。</p>
+<p>另一方面，mod-union表是一个位向量，每个条目只有一个位。</p>
+<p>因此，它在卡表之外增加了很少的空间开销，并且还能在卡表条目很少的时候快速遍历找到修改过的卡表条目。</p>
+<p>我们在mod union和卡片表上维护了一个不变性：任何包含自当前并发标记阶段开始以来被修改的引用的卡表条目，要么在mod union表中被设置了位，要么在卡片表中被标记为dirty，或者两者都有。</p>
+<p>这个不变性是由年轻代的集合来维护的，它在扫描这些脏卡之前，会设置卡表中所有脏卡的mod union位。</p>
+<h3 id="4-3-标记对象"><a href="#4-3-标记对象" class="headerlink" title="4.3 标记对象"></a>4.3 标记对象</h3><p>我们的并发垃圾收集器使用了一系列外部的标记位（bitmap)。</p>
+<p>对于堆中每4个字节，这个bitmap使用1bit与之对应。</p>
+<p>这种使用外部标记位，而不是对象头中的内部标记位，可以防止突变器和收集器同时使用对象头，对对方造成干扰。</p>
+<p><em>译者：这个用来表示地址，间接的表示某个对象</em></p>
+<p><br></p>
+<p>根扫描是一个有趣的设计，因为它受到两个相互矛盾的问题的影响。</p>
+<p>如我们在第3节中所描述的，近似并发算法扫描根的时候，突变器会被暂停。</p>
+<p>因此，我们希望这个过程尽可能的快。</p>
+<p>另一方面，任何标记过程都需要对已经标记但尚未扫描的对象集（以下简称待扫描集）进行记录。</p>
+<p>通常，这个集合是用堆外的一些数据结构来表示的，例如堆栈或队列。</p>
+<p>一个最小化STW时间的策略是简单地把所有从GCRoots可以直接到达的对象放在这个外部数据结构中。</p>
+<p>然而，由于垃圾回收的目的是在内存是稀缺资源的情况下回收内存，所以这种外部数据结构的大小始终是重要的关注点。</p>
+<p>由于Java语言是多线程的，所以根集可能包括许多线程的寄存器和堆栈。</p>
+<p>在我们的分代系统中，除了被收集的对象外，其他代的对象也被认为是根。</p>
+<p>所以根集的内存占用可能相当大。</p>
+<p><em>译者：这就导致GCRoots可直接到达的对象可能相当多，需要消耗太多的额外内存，所以这个方案不适合。</em></p>
+<p><br></p>
+<p>另一种能使空间成本最小化的策略是，在处理根时，立即标记所有可从根到达的对象。</p>
+<p>许多对象可能是可以从根部到达的，但我们每次都将这些对象放在待扫描集合中，在任何给定的时间都将这个数据结构（因为根部）所需的空间最小化。</p>
+<p>虽然这种策略适用于非并发收集，但与大部分并发算法不兼容，因为它将所有标记作为根扫描的一部分来完成。</p>
+<p><em>译者：就是迭代GCRoot，慢慢迭代完，局限性很大</em></p>
+<p><br></p>
+<p>我们使用了这两种方法之间的折衷方案。</p>
+<p><em>译者：其实不算是这种方案，就是优化了第一种方案的存储模式</em></p>
+<p>折衷方案是利用外部标记位的优点。</p>
+<p>根扫描只是简单地标记从根部直接到达的对象。</p>
+<p>通过使用标记位向量来表示待扫描的集合，这最大限度地减少了STW的时间，并且没有额外的空间成本。</p>
+<p>因此，并发标记阶段包括对堆的线性遍历，搜索标记位，找出活对象。这个过程的成本与堆大小成正比，和活的数据量无关，但由于清理阶段的存在，整体算法的复杂度已经不低）。</p>
+<p>每找到一个活对象cur，我们就把cur推到一个待扫描的栈中，然后进入一个循环，从这个栈中弹出对象，并扫描它们的引用，直到栈为空。</p>
+<p>对一个引用值ref的扫描过程（进入近似并发阶段）工作原理如下：</p>
+<p><img src="/images/论文翻译cms/3.png" alt="image-20200617230346559"></p>
+<ul>
+<li><p>如果 ref 指向 cur 的前面，那么对应的对象就会被简单地标记，而不会被推到堆栈上；它将在线性遍历的后面被访问。</p>
+</li>
+<li><p>如果 ref 指向 cur 后面，则对应的对象既被标记，又被推到栈上。</p>
+</li>
+</ul>
+<p>图3说明了这个过程。标记遍历刚刚发现了一个标记对象c，其地址成为cur的值。扫描c发现了两个引用，分别是a和e。对对象e进行简单的标记，因为它的地址在cur之后。对象a在cur之前，所以它既被标记又被扫描。这将导致b，它也在cur之前，所以它也被标记和扫描。然而，对象b对d的引用只导致d被标记，因为它在cur之后，因此将在后面的遍历中被扫描。</p>
+<p><br></p>
+<p>这种技术减少了对待扫描栈的需求，因为从根集直接到达的对象永远不会超过一个。</p>
+<p>这种方法的一个潜在缺点是线性遍历搜索活的对象，这使得标记的算法复杂度包含一个与堆的大小成正比的成分，而不仅仅是指针图中的节点和边的数量。</p>
+<p>只有当搜索标记对象的成本大于扫描它们时的成本时，这才是一个实际的问题，但是只有在活对象稀疏的情况下才会出现这种情况。</p>
+<p>需要注意的是，如果活对象是稀疏的，使用位图可以通过检测位向量中的零字，有效地跳过没有活物体的大区域。Printezis在磁盘垃圾收集器中使用了类似的技术。</p>
+<h3 id="清理阶段"><a href="#清理阶段" class="headerlink" title="清理阶段"></a>清理阶段</h3><p>当并发标记阶段完成后，清理阶段必须识别所有不可达的对象，回收他们的内存占用。</p>
+<p>内存分配过程通常会切分一个空闲的内存块，分成2块，包括已经分配的内存块和剩下的空闲内存块，切分后的2块都比之前的空闲内存块小。</p>
+<p>因此，为了防止平均内存块的大小不断的减小，清理阶段还必须执行某种形式的合并，即把一系列空闲内存块合并成一个大的空间内存块。</p>
+<p><br></p>
+<p>在一个非并发垃圾收集器中，如果使用了free-list的方案，通过丢弃现有的free-list，在清理阶段重新构造他们的方法，清理和合并就很容易完成。</p>
+<p>但是在并发收集器中，这种方式就行不通了，因为在并发收集器中，在并发收集阶段，也要能够分配新的内存出去。</p>
+<p><br></p>
+<p>并发分配在两个方面使清理变得复杂。</p>
+<p>首先，一个突变器线程可能正试图从一个空闲列表中分配内存，而清理进程正试图向该空闲列表中添加。</p>
+<p>这种问题用互斥锁相当容易处理。</p>
+<p>更微妙的是，清扫进程也可能与突变器线程竞争从空闲列表中移除内存块。</p>
+<p>考虑一个块a、b和c相邻的情况。块b在空闲列表上；块a和块c曾被分配到包含对象，但都被发现无法到达。</p>
+<p>我们希望将凝聚的块abc放到一个自由列表上。</p>
+<p>然而，要做到这一点，我们必须首先将块b从它的空闲列表中删除，否则块b可能会被清理线程和分配线程同时使用。</p>
+<p><br></p>
+<p>互斥锁仍然可以处理这种竞争。</p>
+<p>但是，请注意，这种情况对堆的自由列表数据结构提出了新的要求：</p>
+<p>我们必须能够从其自由列表中删除一个任意块。分配可以从自由列表中删除对象，但只能在列表的头部删除。</p>
+<p>当自由块只从头部被删除时，单链自由列表是高效的，而任意块的删除则更倾向于双链自由列表，它允许在恒定而非线性的时间内完成这一操作。</p>
+<p>请注意，这不会增加任何空间开销，因为当一个块被分配时，相同的内存被用来包含对象信息，而当它没有被分配时，自由列表链接被用来包含对象信息。</p>
+<h3 id="4-5-垃圾收集线程"><a href="#4-5-垃圾收集线程" class="headerlink" title="4.5 垃圾收集线程"></a>4.5 垃圾收集线程</h3><p>我们的系统使用一个专门的垃圾收集线程。</p>
+<p>这种方法使我们可以利用多个CPU。</p>
+<p>例如，一个单线程程序可以在双处理器机器上运行，并且大部分垃圾收集工作在第二个处理器上完成。</p>
+<p>同样，收集活动可以在突变器处于非活动状态时进行，例如，在执行I/O时。</p>
+<p>相比之下，Boehm等人以增量的方式形成收集功能，”搭载 “在由突变器线程执行的频繁操作上，例如对象分配。</p>
+<p>我们认为选择这种方法是为了增加可移植性。</p>
+<p><br></p>
+<p>我们还决定将垃圾收集器线程标记为 “假的 “突变器线程，这意味着它在年轻代收集过程中被暂停。这有两个好处：它不会减慢需要快速收集的年轻一代的收集速度，而且它能最大限度地减少与系统其他部分的同步。</p>
+<h3 id="4-6-与年轻代垃圾回收的交互"><a href="#4-6-与年轻代垃圾回收的交互" class="headerlink" title="4.6 与年轻代垃圾回收的交互"></a>4.6 与年轻代垃圾回收的交互</h3><p>有一些方法可以让我们的近似并发垃圾收集器被优化或修改为在分代收集器中为老年代工作。</p>
+<p>首先，我们认识到，对于大多数程序来说，老年代的大部分分配是由于年轻一代的晋升。</p>
+<p>（其余的是由老年代中的突变器 “直接 “分配，这通常只发生在太大而无法在年轻一代中分配的对象上）。</p>
+<p>而晋升发生在mutator线程和并发垃圾收集器线程被暂停的时候，这一点简化了垃圾收集器的设计。</p>
+<p>我们利用这种简化，在年轻代垃圾收集期间支持线性分配模式。</p>
+<p>线性分配比基于自由列表的分配快得多（特别是当使用双向自由列表时），因为比较和修改的指针较少。</p>
+<p>当线性分配模式生效时，只要有足够大的自由块存在，我们就会对小的分配请求保持线性分配。</p>
+<p>这大大加快了晋升的分配速度，而晋升可能是年轻一代垃圾收集成本的主要组成部分。</p>
+<p><br></p>
+<p>在ResearchVM的默认配置中，使用压实（compact）收集方式的老年代的方案简化了年轻代收集所需的一个函数的实现。</p>
+<p>Cheney式复制收集最优雅的一个方面是，仍然要扫描的对象集是连续的。</p>
+<p>在一个分代系统中，一些from空间的对象可能被复制到to空间，而另一些可能被晋升到老年代，被晋升的对象也是待扫描集的一部分。</p>
+<p>当老年代的系统使用压实，从而使用线性分配时，被晋升但尚未扫描的对象集是连续的。</p>
+<p>但是，在非压实收集器中，被晋升的对象可能不连续。</p>
+<p>这使得定位它们以便扫描它们的问题变得复杂。</p>
+<p><br></p>
+<p>我们通过用一个双向链表来表示被晋升但未扫描的对象集来解决这个问题。</p>
+<p>每一个被晋升的对象都是从年轻一代的当前from区域中推广出来的，而对象的from区域版本包含一个转发指针，指向对象在老年代的新地址。</p>
+<p>这些被推广对象的to空间副本被用作链接列表的 “节点”。</p>
+<p>转发指针表示该集合的元素，随后的头字被用作 “下一个 “字段。</p>
+<p>（没看懂这段）</p>
+<h3 id="4-7-控制启发式方法"><a href="#4-7-控制启发式方法" class="headerlink" title="4.7 控制启发式方法"></a>4.7 控制启发式方法</h3><p><img src="/images/论文翻译cms/4.png" alt="image-20200617230346559"></p>
+<p>图4显示了垃圾收集器线程执行的伪代码。</p>
+<p>第一条语句初始化initFrac，即启动新的收集周期的堆占用阈值。</p>
+<p>在ResearchVM收集器框架中，用户指定一个所需的堆占用率（heapOccupancyFrac）来控制堆使用。</p>
+<p>在程序的稳定状态下，这个分数在一个收集周期结束时被占用；</p>
+<p>当空闲空间的分数 allocBeforeCycleFrac 被分配完毕后，我们就会启动一个新的周期。</p>
+<p><br></p>
+<p>线程定期唤醒（SLEEP_INTERVAL设置为50毫秒）并检查堆内存占用率。如果已经达到initFrac，则新的循环开始，初始标记暂停。然后是并发标记阶段，接着是并发预清理（见4.9节），最后是标记暂停（见3节）。最后，这个循环由并发清除阶段完成，该阶段回收所有未标记的对象。</p>
+<p>实际上，测试会保护最后标记暂停和并发清扫的执行：如果标记的堆占用率已经太高，清除将无法回收足够的存储空间来证明其消耗成本。所以，如果标记的堆的分数超过98%，这两步都不会执行。</p>
+<p><em>译者：难道说的就是CMS并发失败时，调用单线程垃圾收集器，STW的进行FullGC</em></p>
+<p><br></p>
+<p>需要注意的是，”最大暂停时间 “本身并不能充分衡量垃圾收集器对系统的影响。考虑一个增量系统，将GC暂停时间限制在一个相对较小的最大值，比如50毫秒。</p>
+<p>在一个单核处理器上，这可能仍然允许垃圾收集器大幅度的影响系统：如果在每个GC暂停之间只做了10毫秒的突变器工作，用户将观察到程序在垃圾收集过程中只以其正常速度的20%运行。</p>
+<p>我们在后面介绍的测量是在多处理器上进行的，有一个额外的处理器可用于垃圾收集工作，因此忽略了这个问题。然而，该实现确实有一套启发式方法，旨在控制单处理器上的GC入侵。</p>
+<p>These heuristics view concurrent collection as a race in which the collector is trying to finish collection before mutator activity allocates the free space available at the start of the collection。</p>
+<p>（这句好难翻，原文摘出来你们自己看吧）</p>
+<p>收集器线程以一系列的步骤完成标记和清除，每一步之后都会在一个由收集和分配的相对进度决定的时期内睡觉。突变器填充内存的速度越快，那么收集活动发生的频率就越高。</p>
+<p><br></p>
+<p>偶尔，尽管有这些启发式方法或有额外的处理器可用，但收集器线程会 “输掉比赛”：突变器线程等待一个并发收集才能继续运行。</p>
+<p>当这种情况发生时，收集线程的剩余部分就会被非并发地执行。这将导致更长的停顿，但通常比在STW的情况下执行整个垃圾收集更短。</p>
+<p>另外，我们可以选择在这种情况下扩大堆；</p>
+<p>我们正在探索启发式方法来控制这种行为。</p>
+<h3 id="4-8-并发问题"><a href="#4-8-并发问题" class="headerlink" title="4.8 并发问题"></a>4.8 并发问题</h3><p>我们已经提到了几个并发问题；例如，上一节讨论了老年代分配和清理之间的并发管理。</p>
+<p>本节将探讨仍然存在的问题。</p>
+<p>正如前面所讨论的，由于我们希望大部分的老年代分配是因为在年轻代收集过程由于对象晋升完成的，因此在年轻代收集过程中暂停老年代收集的决定（见第4.5节）处理了许多这样的问题。</p>
+<p>但并不是所有的，突变器线程仍然可能偶尔直接在老年代中分配对象，而且在其数据结构不一致的关键部分，老一代收集线程必须不被打断进行年轻代收集。</p>
+<p><br></p>
+<p>老年代的对象分配，无论是直接分配还是晋升分配，都会带来两个问题。</p>
+<p>首先，如果后台垃圾收集器处于清理阶段，我们不仅要保证对空闲列表的访问一致，还要保证对标记位的访问一致。</p>
+<p>如果在清理期间分配了空闲块b，我们必须防止清理线程将b认为是已分配但未标记的块。</p>
+<p>因此，在清除过程中，我们使用分配活的策略：已分配的块在位图中被标记为活块。</p>
+<p>这种标记必须与清除线程对标记位的检查相协调。</p>
+<p><br></p>
+<p>我们也会在并发标记期间进行活对象分配，但原因有些不同。</p>
+<p>一个可行的替代策略是分配未被标记的对象。</p>
+<p>最后的标记暂停阶段仍然会达到一个正确的闭包：如果一个在标记期间分配的对象在标记结束时是可以到达的，那么存在着从根到标记结束时的对象的一些路径。</p>
+<p>每一条这样的路径要么完全由标记期间分配的未标记对象组成，要么至少包含一个标记对象。</p>
+<p>在前一种情况下，最后的标记暂停肯定会标记对象。在后一种情况下，考虑路径中的最后一个标记对象。它一定是在扫描后（因此在它被标记后）被修改成为路径的一部分，否则路径上的下一个对象将被标记为扫描的一部分。</p>
+<p>因此，使其成为路径的一部分的修改使该对象成为脏对象。</p>
+<p>所以，路径上最后一个被标记的对象一定是脏的，也就是说，并发标记期间分配的对象，最后肯定会被标记到。</p>
+<p><br></p>
+<p><em>译者：这里还有一段，大致意思是在并发标记阶段，即使新分配的对象是unmark的，也没事。但是由于在重新标记阶段会浪费一些时间进行mark，所以系统设计中，新分配的对象还是设置为marked的</em></p>
+<h3 id="4-9-并发预清理"><a href="#4-9-并发预清理" class="headerlink" title="4.9 并发预清理"></a>4.9 并发预清理</h3><p>我们在第3节中指出，高效的近似并发收集需要堆对象的引用字段具有较低的突变率。</p>
+<p>一个突变率高的程序会创建许多脏对象，这些脏对象必须在最后的标记暂停期间重新扫描，这使得这个暂停对程序的影响很大。</p>
+<p><br></p>
+<p>我们已经开发了一种叫做并发预清理的技术，可以部分缓解这个问题。</p>
+<p>观察到的情况相当简单：在最后的标记阶段，针对脏对象所做的很多工作都可以在之前进行，只要以一种谨慎的方式完成，以保持正确性。</p>
+<p>在并发标记结束时，有些对象集是脏的。在不停止突变器的情况下，我们找到所有这样的脏对象；对于每一个对象，我们将该对象进行标记，然后将对应的卡表标记为clean。</p>
+<p>由于任何进一步的突变器更新仍然会弄脏相应的对象，并且需要在最后的标记阶段对其进行处理，因此保持了正确性。</p>
+<p>然而，我们希望的是，并发清理过程所花费的时间将大大少于之前的并发标记阶段，允许更少的时间给突变器弄脏对象。</p>
+<p>因此，最后的标记阶段需要做的非并发工作就会减少。第5.3节将衡量这种技术的有效性。</p>
+<p><br></p>
+<p>在进一步的实验中（不包括在这些措施中），我们以两种方式扩展了并发预清洗。</p>
+<p>首先，预清洗的最初实现只在mod-union表上工作，假设两个年轻代垃圾收集之间反映在卡片表上的修改数量相对较少。</p>
+<p>事实证明，这对于具有高指针突变率的现实世界程序来说并不正确。因此，我们将该技术扩展到也对卡表进行预清理。</p>
+<p>这需要创建一个新的卡表值：脏卡被改为预清洁，它被分代垃圾收集认为是脏的，但在最后的标记阶段被认为是干净的。</p>
+<p>其次，只要遇到的脏卡数量减少一个足够的系数（目前是1/3），或者直到这个数量足够小（目前是小于1000），我们就会迭代预清洗过程。</p>
+<p>这两个扩展在满足5.4节讨论的电信应用需求方面是有用的。</p>
+<h2 id="五-实验结果"><a href="#五-实验结果" class="headerlink" title="五. 实验结果"></a>五. 实验结果</h2><p>略了，实在是不想翻译了</p>
+
+    </div>
+
+    
+    
+    
+        
+
+<div>
+<ul class="post-copyright">
+  <li class="post-copyright-author">
+    <strong>Post author:  </strong>zhy
+  </li>
+  <li class="post-copyright-link">
+    <strong>Post link: </strong>
+    <a href="https://blog.lovezhy.cc/2020/09/05/论文翻译-CMS/" title="论文翻译-CMS">https://blog.lovezhy.cc/2020/09/05/论文翻译-CMS/</a>
+  </li>
+  <li class="post-copyright-license">
+    <strong>Copyright Notice:  </strong>All articles in this blog are licensed under <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" rel="noopener" target="_blank"><i class="fa fa-fw fa-creative-commons"></i>BY-NC-SA</a> unless stating additionally.
+  </li>
+</ul>
+</div>
+
+        
+
+  <div class="followme">
+    <p>Welcome to my other publishing channels</p>
+
+    <div class="social-list">
+
+            <div class="social-item">
+              <a target="_blank" class="social-link" href="/atom.xml">
+                <span class="icon">
+                  <i class="fa fa-rss"></i>
+                </span>
+
+                <span class="label">RSS</span>
+              </a>
+            </div>
+    </div>
+  </div>
+
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/JVM/" rel="tag"># JVM</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2020/08/30/从Mpsc到RingBuffer（三）- Disruptor/" rel="prev" title="从Mpsc到RingBuffer（三）- Disruptor">
+      <i class="fa fa-chevron-left"></i> 从Mpsc到RingBuffer（三）- Disruptor
+    </a></div>
+      <div class="post-nav-item"></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+    <div class="comments" id="gitalk-container"></div>
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let activeClass = CONFIG.comments.activeClass;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#译者总结"><span class="nav-number">1.</span> <span class="nav-text">译者总结</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#摘要"><span class="nav-number">2.</span> <span class="nav-text">摘要</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#1-介绍"><span class="nav-number">3.</span> <span class="nav-text">1. 介绍</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-1-术语说明"><span class="nav-number">3.1.</span> <span class="nav-text">1.1 术语说明</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-2-论文概览"><span class="nav-number">3.2.</span> <span class="nav-text">1.2 论文概览</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-实验平台"><span class="nav-number">4.</span> <span class="nav-text">2. 实验平台</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-近似收集"><span class="nav-number">5.</span> <span class="nav-text">3. 近似收集</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-1-一个具体案例"><span class="nav-number">5.1.</span> <span class="nav-text">3.1 一个具体案例</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-分代系统中近似并发垃圾收集"><span class="nav-number">6.</span> <span class="nav-text">4. 分代系统中近似并发垃圾收集</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#4-1-内存分配器"><span class="nav-number">6.1.</span> <span class="nav-text">4.1 内存分配器</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-2-使用卡表"><span class="nav-number">6.2.</span> <span class="nav-text">4.2 使用卡表</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-3-标记对象"><span class="nav-number">6.3.</span> <span class="nav-text">4.3 标记对象</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#清理阶段"><span class="nav-number">6.4.</span> <span class="nav-text">清理阶段</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-5-垃圾收集线程"><span class="nav-number">6.5.</span> <span class="nav-text">4.5 垃圾收集线程</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-6-与年轻代垃圾回收的交互"><span class="nav-number">6.6.</span> <span class="nav-text">4.6 与年轻代垃圾回收的交互</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-7-控制启发式方法"><span class="nav-number">6.7.</span> <span class="nav-text">4.7 控制启发式方法</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-8-并发问题"><span class="nav-number">6.8.</span> <span class="nav-text">4.8 并发问题</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-9-并发预清理"><span class="nav-number">6.9.</span> <span class="nav-text">4.9 并发预清理</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#五-实验结果"><span class="nav-number">7.</span> <span class="nav-text">五. 实验结果</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">zhy</p>
+  <div class="site-description" itemprop="description">敌视现实</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">92</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">34</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">60</span>
+        <span class="site-state-item-name">tags</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/zhyzhyzhy" title="GitHub → https://github.com/zhyzhyzhy" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:zhuyichen1017@outlook.com" title="E-Mail → mailto:zhuyichen1017@outlook.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+  <div class="beian"><a href="http://www.beian.miit.gov.cn" rel="noopener" target="_blank">苏ICP备15058469号 </a>
+  </div>
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">zhy</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> v3.8.0
+  </div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">Theme – <a href="https://muse.theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a> v7.7.1
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+<script src="/js/utils.js"></script><script src="/js/motion.js"></script>
+<script src="/js/schemes/muse.js"></script>
+<script src="/js/next-boot.js"></script>
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+<link rel="stylesheet" href="//cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.css">
+
+<script>
+NexT.utils.loadComments(document.querySelector('#gitalk-container'), () => {
+  NexT.utils.getScript('//cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.js', () => {
+    var gitalk = new Gitalk({
+      clientID: '397fc9b869aab02e85ba',
+      clientSecret: 'fb88003acd1df02f7ad1d3f19b54e8ce0f09932d',
+      repo: 'zhyzhyzhy.github.io',
+      owner: 'zhyzhyzhy',
+      admin: ['zhyzhyzhy'],
+      id: '1fbbaac5b2c77c2e00dfafe678feee4c',
+        language: 'zh_CN',
+      distractionFreeMode: true
+    });
+    gitalk.render('gitalk-container');
+  }, window.Gitalk);
+});
+</script>
+
+</body>
+</html>
