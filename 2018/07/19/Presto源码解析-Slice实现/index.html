@@ -48,20 +48,20 @@
   };
 </script>
 
-  <meta name="description" content="前言Presto的Slice并不在Presto包中，是在一个独立的包org.airlift.slice中org.airlift是个工具类，作者也是Presto的主要开发者，主要是服务于Presto的，但是我们也可以单独取出来用。">
+  <meta name="description" content="2020-11-21日更： x信金科，如果大数据部招人，如果你是业务出生/学历不好/公司背景不强，就不要浪费他们的时间了 前言Presto的Slice并不在Presto包中，是在一个独立的包org.airlift.slice中org.airlift是个工具类，作者也是Presto的主要开发者，主要是服务于Presto的，但是我们也可以单独取出来用。">
 <meta name="keywords" content="Presto">
 <meta property="og:type" content="article">
 <meta property="og:title" content="Presto源码解析 - Slice实现">
 <meta property="og:url" content="https://blog.lovezhy.cc/2018/07/19/Presto源码解析-Slice实现/index.html">
 <meta property="og:site_name" content="LoveZhy">
-<meta property="og:description" content="前言Presto的Slice并不在Presto包中，是在一个独立的包org.airlift.slice中org.airlift是个工具类，作者也是Presto的主要开发者，主要是服务于Presto的，但是我们也可以单独取出来用。">
+<meta property="og:description" content="2020-11-21日更： x信金科，如果大数据部招人，如果你是业务出生/学历不好/公司背景不强，就不要浪费他们的时间了 前言Presto的Slice并不在Presto包中，是在一个独立的包org.airlift.slice中org.airlift是个工具类，作者也是Presto的主要开发者，主要是服务于Presto的，但是我们也可以单独取出来用。">
 <meta property="og:locale" content="zh-cn">
 <meta property="og:image" content="https://blog.lovezhy.cc/images/presto-slice/FixedBlock.png">
 <meta property="og:image" content="https://blog.lovezhy.cc/images/presto-slice/varBlock.png">
-<meta property="og:updated_time" content="2020-02-29T14:37:26.364Z">
+<meta property="og:updated_time" content="2020-11-21T02:43:52.561Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Presto源码解析 - Slice实现">
-<meta name="twitter:description" content="前言Presto的Slice并不在Presto包中，是在一个独立的包org.airlift.slice中org.airlift是个工具类，作者也是Presto的主要开发者，主要是服务于Presto的，但是我们也可以单独取出来用。">
+<meta name="twitter:description" content="2020-11-21日更： x信金科，如果大数据部招人，如果你是业务出生/学历不好/公司背景不强，就不要浪费他们的时间了 前言Presto的Slice并不在Presto包中，是在一个独立的包org.airlift.slice中org.airlift是个工具类，作者也是Presto的主要开发者，主要是服务于Presto的，但是我们也可以单独取出来用。">
 <meta name="twitter:image" content="https://blog.lovezhy.cc/images/presto-slice/FixedBlock.png">
 
 <link rel="canonical" href="https://blog.lovezhy.cc/2018/07/19/Presto源码解析-Slice实现/">
@@ -244,7 +244,7 @@
                   <i class="fa fa-calendar-check-o"></i>
                 </span>
                 <span class="post-meta-item-text">Edited on</span>
-                <time title="Modified: 2020-02-29 22:37:26" itemprop="dateModified" datetime="2020-02-29T22:37:26+08:00">2020-02-29</time>
+                <time title="Modified: 2020-11-21 10:43:52" itemprop="dateModified" datetime="2020-11-21T10:43:52+08:00">2020-11-21</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -269,7 +269,9 @@
     <div class="post-body" itemprop="articleBody">
 
       
-        <h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>Presto的Slice并不在Presto包中，是在一个独立的包<code>org.airlift.slice</code>中<br><code>org.airlift</code>是个工具类，作者也是Presto的主要开发者，主要是服务于Presto的，但是我们也可以单独取出来用。<br><a id="more"></a></p>
+        <p>2020-11-21日更：</p>
+<p><strong>x信金科，如果大数据部招人，如果你是业务出生/学历不好/公司背景不强，就不要浪费他们的时间了</strong></p>
+<h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>Presto的Slice并不在Presto包中，是在一个独立的包<code>org.airlift.slice</code>中<br><code>org.airlift</code>是个工具类，作者也是Presto的主要开发者，主要是服务于Presto的，但是我们也可以单独取出来用。<br><a id="more"></a></p>
 <h2 id="ClassLayout和Unsafe"><a href="#ClassLayout和Unsafe" class="headerlink" title="ClassLayout和Unsafe"></a>ClassLayout和Unsafe</h2><p>在Java中一般是无法取得类的大小的，需要通过一些特殊的手段，例如Unsafe包中的方法。<br><code>org.openjdk.jol</code>包封装了很多Unsafe的方法。<br>我们可以通过<code>ClassLayout</code>类来或者我们创建的Java对象在内存中的大小。</p>
 <p>通过Unsafe我们可以对对象的内存直接进行操作。<br>假设我们创建一个int类型的数组，每个元素的值是他Index的位置<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">int</span>[] nums = <span class="keyword">new</span> <span class="keyword">int</span>[<span class="number">20</span>];</span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; nums.length; i++) &#123;</span><br><span class="line">        nums[i] = i;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
 <p>上面这种写法是常规的写法。<br>我们也可以用Unsafe。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment">         * 调用反射获得Unsafe实例</span></span><br><span class="line"><span class="comment">         */</span></span><br><span class="line">        Field field = Unsafe.class.getDeclaredField(<span class="string">"theUnsafe"</span>);</span><br><span class="line">        field.setAccessible(<span class="keyword">true</span>);</span><br><span class="line">        Unsafe unsafe = (Unsafe) field.get(<span class="keyword">null</span>);</span><br><span class="line"></span><br><span class="line">        <span class="keyword">int</span>[] nums = <span class="keyword">new</span> <span class="keyword">int</span>[<span class="number">20</span>];</span><br><span class="line">        <span class="keyword">for</span> (<span class="keyword">int</span>  i = <span class="number">0</span>; i &lt; nums.length; i++) &#123;</span><br><span class="line">            unsafe.putInt(nums, (<span class="keyword">long</span>) i * Unsafe.ARRAY_INT_INDEX_SCALE + Unsafe.ARRAY_INT_BASE_OFFSET, i);</span><br><span class="line">        &#125;</span><br></pre></td></tr></table></figure></p>
@@ -331,8 +333,8 @@
       <i class="fa fa-chevron-left"></i> Presto的分段源码解析
     </a></div>
       <div class="post-nav-item">
-    <a href="/2018/07/20/Guava学习之异步编程/" rel="next" title="Guava学习之异步编程">
-      Guava学习之异步编程 <i class="fa fa-chevron-right"></i>
+    <a href="/2018/07/20/Presto源码-ExchangeClient和OutputBuffer详解/" rel="next" title="Presto源码-ExchangeClient和OutputBuffer详解">
+      Presto源码-ExchangeClient和OutputBuffer详解 <i class="fa fa-chevron-right"></i>
     </a></div>
     </div>
       </footer>

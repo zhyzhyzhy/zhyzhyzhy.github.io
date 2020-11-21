@@ -48,20 +48,20 @@
   };
 </script>
 
-  <meta name="description" content="先行流程在进行分段之前，已经建立好计划数PlanNode，并且已经进行了所有的planOptimizers进行优化。最后在SqlQueryExecution#doAnalyzeQuery()的PlanFragmenter中进行分段。">
+  <meta name="description" content="2020-11-21日更： x信金科，如果大数据部招人，如果你是业务出生/学历不好/公司背景不强(BAT)，就不要浪费他们的时间了 先行流程在进行分段之前，已经建立好计划数PlanNode，并且已经进行了所有的planOptimizers进行优化。最后在SqlQueryExecution#doAnalyzeQuery()的PlanFragmenter中进行分段。">
 <meta name="keywords" content="Presto">
 <meta property="og:type" content="article">
 <meta property="og:title" content="Presto的分段源码解析">
 <meta property="og:url" content="https://blog.lovezhy.cc/2018/07/10/Presto的分段源码解析/index.html">
 <meta property="og:site_name" content="LoveZhy">
-<meta property="og:description" content="先行流程在进行分段之前，已经建立好计划数PlanNode，并且已经进行了所有的planOptimizers进行优化。最后在SqlQueryExecution#doAnalyzeQuery()的PlanFragmenter中进行分段。">
+<meta property="og:description" content="2020-11-21日更： x信金科，如果大数据部招人，如果你是业务出生/学历不好/公司背景不强(BAT)，就不要浪费他们的时间了 先行流程在进行分段之前，已经建立好计划数PlanNode，并且已经进行了所有的planOptimizers进行优化。最后在SqlQueryExecution#doAnalyzeQuery()的PlanFragmenter中进行分段。">
 <meta property="og:locale" content="zh-cn">
 <meta property="og:image" content="https://blog.lovezhy.cc/images/presto-stage/JoinStage1.png">
 <meta property="og:image" content="https://blog.lovezhy.cc/images/presto-stage/JoinStage2.png">
-<meta property="og:updated_time" content="2020-02-29T14:37:03.123Z">
+<meta property="og:updated_time" content="2020-11-21T02:43:22.746Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Presto的分段源码解析">
-<meta name="twitter:description" content="先行流程在进行分段之前，已经建立好计划数PlanNode，并且已经进行了所有的planOptimizers进行优化。最后在SqlQueryExecution#doAnalyzeQuery()的PlanFragmenter中进行分段。">
+<meta name="twitter:description" content="2020-11-21日更： x信金科，如果大数据部招人，如果你是业务出生/学历不好/公司背景不强(BAT)，就不要浪费他们的时间了 先行流程在进行分段之前，已经建立好计划数PlanNode，并且已经进行了所有的planOptimizers进行优化。最后在SqlQueryExecution#doAnalyzeQuery()的PlanFragmenter中进行分段。">
 <meta name="twitter:image" content="https://blog.lovezhy.cc/images/presto-stage/JoinStage1.png">
 
 <link rel="canonical" href="https://blog.lovezhy.cc/2018/07/10/Presto的分段源码解析/">
@@ -244,7 +244,7 @@
                   <i class="fa fa-calendar-check-o"></i>
                 </span>
                 <span class="post-meta-item-text">Edited on</span>
-                <time title="Modified: 2020-02-29 22:37:03" itemprop="dateModified" datetime="2020-02-29T22:37:03+08:00">2020-02-29</time>
+                <time title="Modified: 2020-11-21 10:43:22" itemprop="dateModified" datetime="2020-11-21T10:43:22+08:00">2020-11-21</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -269,7 +269,9 @@
     <div class="post-body" itemprop="articleBody">
 
       
-        <h2 id="先行流程"><a href="#先行流程" class="headerlink" title="先行流程"></a>先行流程</h2><p>在进行分段之前，已经建立好计划数PlanNode，并且已经进行了所有的planOptimizers进行优化。<br>最后在SqlQueryExecution#doAnalyzeQuery()的PlanFragmenter中进行分段。</p>
+        <p>2020-11-21日更：</p>
+<p><strong>x信金科，如果大数据部招人，如果你是业务出生/学历不好/公司背景不强(BAT)，就不要浪费他们的时间了</strong></p>
+<h2 id="先行流程"><a href="#先行流程" class="headerlink" title="先行流程"></a>先行流程</h2><p>在进行分段之前，已经建立好计划数PlanNode，并且已经进行了所有的planOptimizers进行优化。<br>最后在SqlQueryExecution#doAnalyzeQuery()的PlanFragmenter中进行分段。</p>
 <a id="more"></a>
 <h2 id="Stage抽象"><a href="#Stage抽象" class="headerlink" title="Stage抽象"></a>Stage抽象</h2><blockquote>
 <p>Stage：unit of work that does not require shuffling  </p>

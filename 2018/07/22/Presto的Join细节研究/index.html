@@ -48,13 +48,13 @@
   };
 </script>
 
-  <meta name="description" content="前言Presto的Join操作可以说是极为复杂的几个步骤之一加上又无其文档和注释，所以想要了解其细节需要自己去耐心的阅读源码笔者进行了一些研究后，进行了一些自己的理解的整理总结出来，希望对你有用">
+  <meta name="description" content="2020-11-21日更： x信金科，如果大数据部招人，如果你是业务出生/学历不好/公司背景不强，就不要浪费他们的时间了 前言Presto的Join操作可以说是极为复杂的几个步骤之一加上又无其文档和注释，所以想要了解其细节需要自己去耐心的阅读源码笔者进行了一些研究后，进行了一些自己的理解的整理总结出来，希望对你有用">
 <meta name="keywords" content="Presto">
 <meta property="og:type" content="article">
 <meta property="og:title" content="Presto的Join的细节研究">
 <meta property="og:url" content="https://blog.lovezhy.cc/2018/07/22/Presto的Join细节研究/index.html">
 <meta property="og:site_name" content="LoveZhy">
-<meta property="og:description" content="前言Presto的Join操作可以说是极为复杂的几个步骤之一加上又无其文档和注释，所以想要了解其细节需要自己去耐心的阅读源码笔者进行了一些研究后，进行了一些自己的理解的整理总结出来，希望对你有用">
+<meta property="og:description" content="2020-11-21日更： x信金科，如果大数据部招人，如果你是业务出生/学历不好/公司背景不强，就不要浪费他们的时间了 前言Presto的Join操作可以说是极为复杂的几个步骤之一加上又无其文档和注释，所以想要了解其细节需要自己去耐心的阅读源码笔者进行了一些研究后，进行了一些自己的理解的整理总结出来，希望对你有用">
 <meta property="og:locale" content="zh-cn">
 <meta property="og:image" content="https://blog.lovezhy.cc/images/presto-join/demo1.png">
 <meta property="og:image" content="https://blog.lovezhy.cc/images/presto-join/demo2.png">
@@ -64,10 +64,10 @@
 <meta property="og:image" content="https://blog.lovezhy.cc/images/presto-join/demo6.png">
 <meta property="og:image" content="https://blog.lovezhy.cc/images/presto-join/demo7.png">
 <meta property="og:image" content="https://blog.lovezhy.cc/images/presto-join/demo8.png">
-<meta property="og:updated_time" content="2020-02-29T14:37:09.883Z">
+<meta property="og:updated_time" content="2020-11-21T02:43:35.250Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Presto的Join的细节研究">
-<meta name="twitter:description" content="前言Presto的Join操作可以说是极为复杂的几个步骤之一加上又无其文档和注释，所以想要了解其细节需要自己去耐心的阅读源码笔者进行了一些研究后，进行了一些自己的理解的整理总结出来，希望对你有用">
+<meta name="twitter:description" content="2020-11-21日更： x信金科，如果大数据部招人，如果你是业务出生/学历不好/公司背景不强，就不要浪费他们的时间了 前言Presto的Join操作可以说是极为复杂的几个步骤之一加上又无其文档和注释，所以想要了解其细节需要自己去耐心的阅读源码笔者进行了一些研究后，进行了一些自己的理解的整理总结出来，希望对你有用">
 <meta name="twitter:image" content="https://blog.lovezhy.cc/images/presto-join/demo1.png">
 
 <link rel="canonical" href="https://blog.lovezhy.cc/2018/07/22/Presto的Join细节研究/">
@@ -250,7 +250,7 @@
                   <i class="fa fa-calendar-check-o"></i>
                 </span>
                 <span class="post-meta-item-text">Edited on</span>
-                <time title="Modified: 2020-02-29 22:37:09" itemprop="dateModified" datetime="2020-02-29T22:37:09+08:00">2020-02-29</time>
+                <time title="Modified: 2020-11-21 10:43:35" itemprop="dateModified" datetime="2020-11-21T10:43:35+08:00">2020-11-21</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -275,7 +275,9 @@
     <div class="post-body" itemprop="articleBody">
 
       
-        <h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>Presto的Join操作可以说是极为复杂的几个步骤之一<br>加上又无其文档和注释，所以想要了解其细节需要自己去耐心的阅读源码<br>笔者进行了一些研究后，进行了一些自己的理解的整理<br>总结出来，希望对你有用</p>
+        <p>2020-11-21日更：</p>
+<p><strong>x信金科，如果大数据部招人，如果你是业务出生/学历不好/公司背景不强，就不要浪费他们的时间了</strong></p>
+<h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>Presto的Join操作可以说是极为复杂的几个步骤之一<br>加上又无其文档和注释，所以想要了解其细节需要自己去耐心的阅读源码<br>笔者进行了一些研究后，进行了一些自己的理解的整理<br>总结出来，希望对你有用</p>
 <a id="more"></a>
 <h2 id="Partition和Broadcast"><a href="#Partition和Broadcast" class="headerlink" title="Partition和Broadcast"></a>Partition和Broadcast</h2><p>站在整个Presto的体系中，其实数据到底是Partition的分发还是Broadcast的分发在很多环节都有的。<br>那么对于Join而言，Partition肯定是有的。<br>想象对于下面一句话<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> video v <span class="keyword">join</span> <span class="keyword">user</span> u <span class="keyword">on</span> v.user_id = u.id</span><br></pre></td></tr></table></figure></p>
 <p>那么对于整个分布式环境而言，完全可以把video和user表的数据根据join的key按照Hash的方式partition到不同的节点上去进行运算<br>这样提高整体的效率是极好的。  </p>

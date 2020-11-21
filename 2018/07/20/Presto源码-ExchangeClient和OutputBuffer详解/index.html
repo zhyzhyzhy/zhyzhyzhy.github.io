@@ -48,23 +48,23 @@
   };
 </script>
 
-  <meta name="description" content="前言Presto在数据进行shuffle的时候，并不是PPT中经常看到的Push模式，而是Pull模式。在两端负责分发和交换数据的类分别是ExchangClient和OutputBuffer。">
+  <meta name="description" content="2020-11-21日更： x信金科，如果大数据部招人，如果你是业务出生/学历不好/公司背景不强，就不要浪费他们的时间了 前言Presto在数据进行shuffle的时候，并不是PPT中经常看到的Push模式，而是Pull模式。在两端负责分发和交换数据的类分别是ExchangClient和OutputBuffer。">
 <meta name="keywords" content="Presto">
 <meta property="og:type" content="article">
 <meta property="og:title" content="Presto源码-ExchangeClient和OutputBuffer详解">
 <meta property="og:url" content="https://blog.lovezhy.cc/2018/07/20/Presto源码-ExchangeClient和OutputBuffer详解/index.html">
 <meta property="og:site_name" content="LoveZhy">
-<meta property="og:description" content="前言Presto在数据进行shuffle的时候，并不是PPT中经常看到的Push模式，而是Pull模式。在两端负责分发和交换数据的类分别是ExchangClient和OutputBuffer。">
+<meta property="og:description" content="2020-11-21日更： x信金科，如果大数据部招人，如果你是业务出生/学历不好/公司背景不强，就不要浪费他们的时间了 前言Presto在数据进行shuffle的时候，并不是PPT中经常看到的Push模式，而是Pull模式。在两端负责分发和交换数据的类分别是ExchangClient和OutputBuffer。">
 <meta property="og:locale" content="zh-cn">
 <meta property="og:image" content="https://blog.lovezhy.cc/images/presto-exchangeclient/ExchangeClient.png">
 <meta property="og:image" content="https://blog.lovezhy.cc/images/presto-exchangeclient/SqlTask.png">
 <meta property="og:image" content="https://blog.lovezhy.cc/images/presto-exchangeclient/token.png">
 <meta property="og:image" content="https://blog.lovezhy.cc/images/presto-exchangeclient/partition.png">
 <meta property="og:image" content="https://blog.lovezhy.cc/images/presto-exchangeclient/broadcast.png">
-<meta property="og:updated_time" content="2020-02-29T14:37:22.458Z">
+<meta property="og:updated_time" content="2020-11-21T02:43:47.734Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Presto源码-ExchangeClient和OutputBuffer详解">
-<meta name="twitter:description" content="前言Presto在数据进行shuffle的时候，并不是PPT中经常看到的Push模式，而是Pull模式。在两端负责分发和交换数据的类分别是ExchangClient和OutputBuffer。">
+<meta name="twitter:description" content="2020-11-21日更： x信金科，如果大数据部招人，如果你是业务出生/学历不好/公司背景不强，就不要浪费他们的时间了 前言Presto在数据进行shuffle的时候，并不是PPT中经常看到的Push模式，而是Pull模式。在两端负责分发和交换数据的类分别是ExchangClient和OutputBuffer。">
 <meta name="twitter:image" content="https://blog.lovezhy.cc/images/presto-exchangeclient/ExchangeClient.png">
 
 <link rel="canonical" href="https://blog.lovezhy.cc/2018/07/20/Presto源码-ExchangeClient和OutputBuffer详解/">
@@ -247,7 +247,7 @@
                   <i class="fa fa-calendar-check-o"></i>
                 </span>
                 <span class="post-meta-item-text">Edited on</span>
-                <time title="Modified: 2020-02-29 22:37:22" itemprop="dateModified" datetime="2020-02-29T22:37:22+08:00">2020-02-29</time>
+                <time title="Modified: 2020-11-21 10:43:47" itemprop="dateModified" datetime="2020-11-21T10:43:47+08:00">2020-11-21</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -272,7 +272,9 @@
     <div class="post-body" itemprop="articleBody">
 
       
-        <h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p><code>Presto</code>在数据进行<code>shuffle</code>的时候，并不是<code>PPT</code>中经常看到的<code>Push</code>模式，而是<code>Pull</code>模式。<br>在两端负责分发和交换数据的类分别是<code>ExchangClient</code>和<code>OutputBuffer</code>。</p>
+        <p>2020-11-21日更：</p>
+<p><strong>x信金科，如果大数据部招人，如果你是业务出生/学历不好/公司背景不强，就不要浪费他们的时间了</strong></p>
+<h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p><code>Presto</code>在数据进行<code>shuffle</code>的时候，并不是<code>PPT</code>中经常看到的<code>Push</code>模式，而是<code>Pull</code>模式。<br>在两端负责分发和交换数据的类分别是<code>ExchangClient</code>和<code>OutputBuffer</code>。</p>
 <a id="more"></a>
 <p>比如：<br><code>Source Stage</code>把数据从<code>Connector</code>中拉取出来，这时候需要给下一个<code>FixedStage</code>进行处理。<br>他会先把数据放在<code>OutputBuffer</code>中，等待上游把数据请求过去，而上游请求数据的类就是<code>ExchangeClient</code>。</p>
 <h2 id="ExchangeClient"><a href="#ExchangeClient" class="headerlink" title="ExchangeClient"></a>ExchangeClient</h2><p><img src="/images/presto-exchangeclient/ExchangeClient.png" alt=""><br>大体的过程是这样，但是一些细节还是没发画出来，尽力了。<br>下面详细解释下。</p>
@@ -370,12 +372,12 @@
         
     <div class="post-nav">
       <div class="post-nav-item">
-    <a href="/2018/07/20/Guava学习之异步编程/" rel="prev" title="Guava学习之异步编程">
-      <i class="fa fa-chevron-left"></i> Guava学习之异步编程
+    <a href="/2018/07/19/Presto源码解析-Slice实现/" rel="prev" title="Presto源码解析 - Slice实现">
+      <i class="fa fa-chevron-left"></i> Presto源码解析 - Slice实现
     </a></div>
       <div class="post-nav-item">
-    <a href="/2018/07/21/Guava库学习之Collections/" rel="next" title="Guava库学习之Collections">
-      Guava库学习之Collections <i class="fa fa-chevron-right"></i>
+    <a href="/2018/07/20/Guava学习之异步编程/" rel="next" title="Guava学习之异步编程">
+      Guava学习之异步编程 <i class="fa fa-chevron-right"></i>
     </a></div>
     </div>
       </footer>
